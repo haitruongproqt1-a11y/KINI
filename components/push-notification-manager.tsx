@@ -37,6 +37,7 @@ export function PushNotificationManager() {
     });
   }, [isAuthenticated, register, user]);
   useEffect(() => {
+    if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {
       const rawId = response.notification.request.content.data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
