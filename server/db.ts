@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, like, ne, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
 import {
   conversationParticipants,
@@ -8,6 +9,7 @@ import {
   type InsertUser,
   messageReceipts,
   messages,
+  pushDevices,
   userProfiles,
   users,
 } from "../drizzle/schema";
@@ -17,6 +19,24 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 const profileColors = ["#1677FF", "#6956E8", "#00A889", "#FF7A8A", "#D86FCA", "#F5A524"];
 const receiptRank = { sent: 1, delivered: 2, read: 3 } as const;
+
+function normalizeSecret(value: string) {
+  return value.trim().toLocaleLowerCase("vi-VN");
+}
+
+function hashSecret(value: string) {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(normalizeSecret(value), salt, 64).toString("hex")}`;
+}
+
+function verifySecret(value: string, stored: string | null) {
+  if (!stored) return false;
+  const [salt, digest] = stored.split(":");
+  if (!salt || !digest) return false;
+  const expected = Buffer.from(digest, "hex");
+  const actual = scryptSync(normalizeSecret(value), salt, 64);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -61,6 +81,58 @@ export async function getUserByOpenId(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result[0];
+}
+
+export async function createKiniPasswordAccount(input: { username: string; password: string; displayName: string; securityQuestion: string; securityAnswer: string }) {
+  const db = await requireDb();
+  const existing = await db.select().from(userProfiles).where(eq(userProfiles.username, input.username)).limit(1);
+  if (existing[0]) throw new Error("Tên đăng nhập KINI đã được sử dụng.");
+  const openId = `kini_${randomUUID()}`;
+  const insertedUser = await db.insert(users).values({ openId, name: input.displayName, loginMethod: "kini_password", lastSignedIn: new Date() });
+  const userId = Number(insertedUser[0].insertId);
+  await db.insert(userProfiles).values({ userId, username: input.username, displayName: input.displayName, avatarColor: profileColors[userId % profileColors.length], passwordHash: hashSecret(input.password), securityQuestion: input.securityQuestion, securityAnswerHash: hashSecret(input.securityAnswer), authKind: "kini_password", passwordUpdatedAt: new Date() });
+  const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+  if (!user) throw new Error("Không thể tạo tài khoản KINI.");
+  return user;
+}
+
+export async function authenticateKiniPassword(username: string, password: string) {
+  const db = await requireDb();
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, username)).limit(1))[0];
+  if (!profile || profile.authKind !== "kini_password" || !verifySecret(password, profile.passwordHash)) return null;
+  const user = (await db.select().from(users).where(eq(users.id, profile.userId)).limit(1))[0];
+  if (!user) return null;
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+  return user;
+}
+
+export async function getKiniRecoveryQuestion(username: string) {
+  const db = await requireDb();
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, username)).limit(1))[0];
+  if (!profile || profile.authKind !== "kini_password" || !profile.securityQuestion) return null;
+  return { username: profile.username, securityQuestion: profile.securityQuestion };
+}
+
+export async function resetKiniPassword(input: { username: string; answer: string; nextPassword: string }) {
+  const db = await requireDb();
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, input.username)).limit(1))[0];
+  if (!profile || profile.authKind !== "kini_password" || !verifySecret(input.answer, profile.securityAnswerHash)) return false;
+  await db.update(userProfiles).set({ passwordHash: hashSecret(input.nextPassword), passwordUpdatedAt: new Date() }).where(eq(userProfiles.id, profile.id));
+  return true;
+}
+
+export async function registerPushDevice(userId: number, expoPushToken: string, platform: string) {
+  const db = await requireDb();
+  const existing = await db.select().from(pushDevices).where(eq(pushDevices.expoPushToken, expoPushToken)).limit(1);
+  if (existing[0]) await db.update(pushDevices).set({ userId, platform, lastActiveAt: new Date() }).where(eq(pushDevices.id, existing[0].id));
+  else await db.insert(pushDevices).values({ userId, expoPushToken, platform, lastActiveAt: new Date() });
+  return { registered: true };
+}
+
+export async function removePushDevice(userId: number, expoPushToken: string) {
+  const db = await requireDb();
+  await db.delete(pushDevices).where(and(eq(pushDevices.userId, userId), eq(pushDevices.expoPushToken, expoPushToken)));
+  return { removed: true };
 }
 
 export async function getOrCreateProfile(userId: number, fallbackName?: string | null) {
@@ -251,7 +323,7 @@ export async function sendMessage(userId: number, input: { conversationId: numbe
   const recipients = await db.select().from(conversationParticipants).where(and(eq(conversationParticipants.conversationId, input.conversationId), ne(conversationParticipants.userId, userId)));
   if (recipients.length) await db.insert(messageReceipts).values(recipients.map((recipient) => ({ messageId, userId: recipient.userId, status: "sent" as const })));
   await db.update(conversations).set({ lastMessageAt: new Date() }).where(eq(conversations.id, input.conversationId));
-  return { id: messageId, status: "sent" as const };
+  return { id: messageId, status: "sent" as const, recipientUserIds: recipients.map((recipient) => recipient.userId) };
 }
 
 export async function markConversationRead(userId: number, conversationId: number) {

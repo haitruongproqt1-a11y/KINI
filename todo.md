@@ -19,3 +19,10 @@
 - [x] Bổ sung thông báo tin nhắn đến và trung tâm thông báo trong ứng dụng
 - [x] Bổ sung tìm kiếm nội dung tin nhắn và bộ lọc hội thoại cũ
 - [x] Kiểm thử và lưu phiên bản nâng cấp dùng dữ liệu thật
+- [x] Thiết kế dữ liệu xác thực KINI bằng tên đăng nhập và mật khẩu
+- [x] Bổ sung danh mục câu hỏi bảo mật để người dùng lựa chọn khi đăng ký
+- [x] Xây dựng luồng tạo tài khoản, đăng nhập và khôi phục mật khẩu bằng tên đăng nhập
+- [x] Lưu trữ an toàn phiên đăng nhập KINI và kiểm soát quyền truy cập API
+- [x] Đăng ký token thiết bị để nhận thông báo đẩy nền
+- [x] Gửi thông báo đẩy khi có tin nhắn mới và mở đúng cuộc hội thoại
+- [x] Kiểm thử xác thực, khôi phục mật khẩu và thông báo đẩy

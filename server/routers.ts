@@ -4,16 +4,46 @@ import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { sdk } from "./_core/sdk";
 import * as db from "./db";
 import { isKiniUsernameValid } from "../shared/kini-chat";
+import { isSecurityQuestionId, securityQuestions } from "../shared/security-questions";
+import { sendMessagePushNotification } from "./push";
 
 const usernameSchema = z.string().trim().min(3, "Tên người dùng cần ít nhất 3 ký tự.").max(64).refine(isKiniUsernameValid, "Tên người dùng chỉ gồm chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang.");
 const messageKindSchema = z.enum(["text", "image", "album", "file", "sticker"]);
+const passwordSchema = z.string().min(8, "Mật khẩu cần có ít nhất 8 ký tự.").max(128);
+
+async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }) {
+  return {
+    sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI" }),
+    user: { id: user.id, openId: user.openId, name: user.name, email: user.email, loginMethod: user.loginMethod, lastSignedIn: user.lastSignedIn },
+  };
+}
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    securityQuestions: publicProcedure.query(() => securityQuestions),
+    register: publicProcedure.input(z.object({
+      username: usernameSchema,
+      password: passwordSchema,
+      displayName: z.string().trim().min(1, "Tên tài khoản là bắt buộc.").max(128),
+      securityQuestion: z.string().refine(isSecurityQuestionId, "Câu hỏi bảo mật không hợp lệ."),
+      securityAnswer: z.string().trim().min(2, "Câu trả lời cần ít nhất 2 ký tự.").max(255),
+    })).mutation(async ({ input }) => createKiniSession(await db.createKiniPasswordAccount(input))),
+    login: publicProcedure.input(z.object({ username: usernameSchema, password: passwordSchema })).mutation(async ({ input }) => {
+      const user = await db.authenticateKiniPassword(input.username, input.password);
+      if (!user) throw new Error("Tên đăng nhập hoặc mật khẩu chưa đúng.");
+      return createKiniSession(user);
+    }),
+    recoveryQuestion: publicProcedure.input(z.object({ username: usernameSchema })).query(({ input }) => db.getKiniRecoveryQuestion(input.username)),
+    resetPassword: publicProcedure.input(z.object({ username: usernameSchema, answer: z.string().trim().min(2).max(255), nextPassword: passwordSchema })).mutation(async ({ input }) => {
+      const success = await db.resetKiniPassword(input);
+      if (!success) throw new Error("Câu trả lời bảo mật chưa đúng.");
+      return { success: true } as const;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -48,12 +78,21 @@ export const appRouter = router({
       attachmentUrl: z.string().max(1024).optional(),
       attachmentName: z.string().max(255).optional(),
       replyToMessageId: z.number().int().positive().optional(),
-    })).mutation(({ ctx, input }) => db.sendMessage(ctx.user.id, input)),
+    })).mutation(async ({ ctx, input }) => {
+      const result = await db.sendMessage(ctx.user.id, input);
+      const profile = await db.getOrCreateProfile(ctx.user.id, ctx.user.name);
+      await sendMessagePushNotification({ recipientUserIds: result.recipientUserIds, title: profile.displayName, body: input.kind === "text" ? input.content : `Đã gửi ${input.kind === "sticker" ? "một sticker" : "tệp đính kèm"}`, conversationId: input.conversationId });
+      return result;
+    }),
     markRead: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.markConversationRead(ctx.user.id, input.conversationId)),
     search: protectedProcedure.input(z.object({ query: z.string().trim().max(255) })).query(({ ctx, input }) => db.searchMessages(ctx.user.id, input.query)),
   }),
   notifications: router({
     summary: protectedProcedure.query(({ ctx }) => db.getNotificationSummary(ctx.user.id)),
+  }),
+  push: router({
+    register: protectedProcedure.input(z.object({ expoPushToken: z.string().regex(/^(Expo|Exponent)PushToken\[[^\]]+\]$/, "Token thiết bị không hợp lệ."), platform: z.enum(["ios", "android"]) })).mutation(({ ctx, input }) => db.registerPushDevice(ctx.user.id, input.expoPushToken, input.platform)),
+    unregister: protectedProcedure.input(z.object({ expoPushToken: z.string().min(1) })).mutation(({ ctx, input }) => db.removePushDevice(ctx.user.id, input.expoPushToken)),
   }),
 });
 

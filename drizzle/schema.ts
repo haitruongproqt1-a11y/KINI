@@ -22,6 +22,9 @@ export const userProfiles = mysqlTable("user_profiles", {
   avatarColor: varchar("avatarColor", { length: 16 }).default("#1677FF").notNull(),
   securityQuestion: varchar("securityQuestion", { length: 255 }),
   securityAnswerHash: varchar("securityAnswerHash", { length: 255 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  authKind: mysqlEnum("authKind", ["kini_password", "oauth"]).default("kini_password").notNull(),
+  passwordUpdatedAt: timestamp("passwordUpdatedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [
@@ -87,6 +90,20 @@ export const messageReceipts = mysqlTable("message_receipts", {
 }, (table) => [
   uniqueIndex("message_receipts_message_user_unique").on(table.messageId, table.userId),
   index("message_receipts_user_status_idx").on(table.userId, table.status),
+]);
+
+/** Token thiết bị Expo để gửi thông báo khi ứng dụng KINI chạy nền. */
+export const pushDevices = mysqlTable("push_devices", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  expoPushToken: varchar("expoPushToken", { length: 255 }).notNull(),
+  platform: varchar("platform", { length: 24 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastActiveAt: timestamp("lastActiveAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("push_devices_token_unique").on(table.expoPushToken),
+  index("push_devices_user_idx").on(table.userId),
 ]);
 
 export type User = typeof users.$inferSelect;

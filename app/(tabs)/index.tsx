@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-import { KiniRealAuth } from "@/components/kini-real-auth";
+import { KiniPasswordAuth } from "@/components/kini-password-auth";
 import { Avatar, kiniColors } from "@/components/kini-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,7 +33,7 @@ export default function HomeScreen() {
     }
   }, [notificationQuery.data?.unreadMessages]);
   if (loading || conversationsQuery.isLoading && isAuthenticated) return <ScreenContainer><View style={styles.loader}><ActivityIndicator color={kiniColors.blue} size="large" /><Text style={styles.loaderText}>Đang tải cuộc trò chuyện…</Text></View></ScreenContainer>;
-  if (!isAuthenticated) return <KiniRealAuth />;
+  if (!isAuthenticated) return <KiniPasswordAuth />;
   return (
     <ScreenContainer>
       <View style={styles.header}><View><Text style={styles.title}>Tin nhắn</Text><Text style={styles.subtitle}>Đồng bộ từ tài khoản KINI của bạn</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Lời mời và thông báo" onPress={() => router.push("/(tabs)/contacts" as never)} style={styles.bell} activeOpacity={0.7}><MaterialIcons name="notifications-none" size={23} color={kiniColors.navy} />{(notificationQuery.data?.pendingFriendRequests ?? 0) + (notificationQuery.data?.unreadMessages ?? 0) > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{Math.min(99, (notificationQuery.data?.pendingFriendRequests ?? 0) + (notificationQuery.data?.unreadMessages ?? 0))}</Text></View> : null}</TouchableOpacity></View>
