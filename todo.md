@@ -77,3 +77,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khắc phục các điểm cản trở build APK nếu phát hiện
 - [x] Kiểm tra TypeScript, test và cấu hình Expo Android phát hành
 - [x] Lưu checkpoint phát hành APK KINI mới nhất và đồng bộ GitHub
+
+- [x] Kiểm tra Gradle, prebuild Android và cấu hình native KINI
+- [x] Kiểm tra dependency/lockfile Expo và rủi ro build APK
+- [x] Khắc phục lỗi build Android từ mã nguồn nếu phát hiện
+- [x] Xác nhận lại bundle Android và báo cáo kết quả kiểm tra
