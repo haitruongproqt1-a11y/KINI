@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { attachmentLabel, createMessage } from "../lib/kini-domain";
+import { deliveryLabel, highestDeliveryStatus, isKiniUsernameValid } from "../shared/kini-chat";
 
-describe("KINI messaging domain", () => {
-  it("tạo tin nhắn văn bản cho đúng hội thoại", () => {
-    const message = createMessage("linh", "text", "Xin chào");
-    expect(message.conversationId).toBe("linh");
-    expect(message.sender).toBe("me");
-    expect(message.content).toBe("Xin chào");
+describe("Hợp đồng hội thoại KINI", () => {
+  it("ưu tiên trạng thái đã xem khi người nhận đã đọc tin nhắn", () => {
+    expect(highestDeliveryStatus(["sent", "delivered", "read"])).toBe("read");
+    expect(deliveryLabel("delivered")).toBe("Đã nhận");
   });
 
-  it("trình bày nhãn album theo số lượng ảnh", () => {
-    expect(attachmentLabel({ id: "album-1", kind: "album", name: "Album ảnh", count: 3 })).toBe("Album ảnh · 3 ảnh");
+  it("chấp nhận KINI ID hợp lệ và từ chối ký tự không an toàn", () => {
+    expect(isKiniUsernameValid("minh.nguyen_2026")).toBe(true);
+    expect(isKiniUsernameValid("minh nguyen")).toBe(false);
+    expect(isKiniUsernameValid("ab")).toBe(false);
   });
 });

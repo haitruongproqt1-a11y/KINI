@@ -1,20 +1,33 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import * as Clipboard from "expo-clipboard";
+import { useEffect, useState } from "react";
 import { Alert, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { kiniColors } from "@/components/kini-ui";
-import { type Attachment } from "@/lib/kini-domain";
+type Attachment = {
+  id: string;
+  kind: "image" | "album" | "file" | "sticker";
+  name: string;
+  uri?: string;
+  size?: number | null;
+  count?: number;
+};
 
 type AttachmentAction = { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; color: string; onPress: () => void };
 
 const stickers = ["👍", "❤️", "😂", "🎉", "✨", "🥳", "👏", "😎"];
 
-export function ChatComposer({ onSendText, onSendAttachment }: { onSendText: (value: string) => void; onSendAttachment: (attachment: Attachment) => void }) {
+export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, replyingTo, onClearReply }: { onSendText: (value: string) => void; onSendAttachment: (attachment: Attachment) => void; pasteNonce?: number; replyingTo?: string | null; onClearReply?: () => void }) {
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+
+  useEffect(() => {
+    if (!pasteNonce) return;
+    Clipboard.getStringAsync().then((text) => { if (text) setValue((current) => current ? `${current} ${text}` : text); }).catch(() => undefined);
+  }, [pasteNonce]);
 
   const send = () => {
     if (!value.trim()) return;
@@ -61,6 +74,7 @@ export function ChatComposer({ onSendText, onSendAttachment }: { onSendText: (va
 
   return (
     <View style={styles.wrapper}>
+      {replyingTo ? <View style={styles.replying}><View style={styles.replyLine} /><View style={styles.replyCopy}><Text style={styles.replyLabel}>Đang trả lời</Text><Text numberOfLines={1} style={styles.replyText}>{replyingTo}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Hủy trả lời" onPress={onClearReply} style={styles.replyClose}><MaterialIcons name="close" size={19} color={kiniColors.muted} /></TouchableOpacity></View> : null}
       <View style={styles.composer}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Gửi ảnh, album hoặc tệp" onPress={() => setShowActions(true)} style={styles.control} activeOpacity={0.6}><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
         <TextInput value={value} onChangeText={setValue} onSubmitEditing={send} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" style={styles.input} multiline />
@@ -74,6 +88,12 @@ export function ChatComposer({ onSendText, onSendAttachment }: { onSendText: (va
 
 const styles = StyleSheet.create({
   wrapper: { backgroundColor: kiniColors.white, borderTopColor: kiniColors.line, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
+  replying: { minHeight: 42, paddingHorizontal: 7, paddingBottom: 8, alignItems: "center", flexDirection: "row", gap: 9 },
+  replyLine: { width: 3, height: 30, borderRadius: 2, backgroundColor: kiniColors.blue },
+  replyCopy: { flex: 1, gap: 2 },
+  replyLabel: { color: kiniColors.blue, fontSize: 11, fontWeight: "800" },
+  replyText: { color: kiniColors.muted, fontSize: 12 },
+  replyClose: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
   composer: { alignItems: "flex-end", flexDirection: "row", gap: 5 },
   control: { alignItems: "center", justifyContent: "center", width: 38, height: 42 },
   input: { flex: 1, minHeight: 42, maxHeight: 106, borderRadius: 21, backgroundColor: kiniColors.cloud, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, color: kiniColors.navy, fontSize: 15, lineHeight: 20 },

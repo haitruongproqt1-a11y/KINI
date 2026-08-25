@@ -10,3 +10,12 @@
 - [x] Xây dựng tab Danh bạ, Khám phá và Cá nhân
 - [x] Viết kiểm thử luồng dữ liệu và kiểm tra giao diện mobile
 - [x] Cập nhật cấu hình thương hiệu, lưu phiên bản và bàn giao
+- [x] Thay thế tài khoản và hội thoại mẫu bằng dữ liệu xác thực thực từ máy chủ
+- [x] Thiết kế dữ liệu hồ sơ, quan hệ bạn bè và lời mời kết bạn
+- [x] Hiển thị và xử lý thông báo lời mời kết bạn
+- [x] Đồng bộ cuộc trò chuyện, tin nhắn và số lượng chưa đọc giữa tài khoản
+- [x] Hiển thị trạng thái đã gửi, đã nhận và đã xem cho tin nhắn
+- [x] Bổ sung thao tác nhấn giữ để phản hồi, sao chép và dán tin nhắn
+- [x] Bổ sung thông báo tin nhắn đến và trung tâm thông báo trong ứng dụng
+- [x] Bổ sung tìm kiếm nội dung tin nhắn và bộ lọc hội thoại cũ
+- [x] Kiểm thử và lưu phiên bản nâng cấp dùng dữ liệu thật

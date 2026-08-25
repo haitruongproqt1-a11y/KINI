@@ -1,49 +1,27 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { Avatar, kiniColors } from "@/components/kini-ui";
 import { ScreenContainer } from "@/components/screen-container";
-import { useKini } from "@/lib/kini-context";
-
-const contacts = [
-  { id: "linh", name: "Linh Nguyễn", initials: "LN", accent: "#FF7A8A", status: "Đang hoạt động" },
-  { id: "nam", name: "Nam Trần", initials: "NT", accent: "#00A889", status: "Đang hoạt động" },
-  { id: "phuong", name: "Phương Anh", initials: "PA", accent: "#D86FCA", status: "Hoạt động 12 phút trước" },
-  { id: "thanh", name: "Thanh Mai", initials: "TM", accent: "#3F8CFF", status: "Hoạt động hôm qua" },
-];
+import { useAuth } from "@/hooks/use-auth";
+import { trpc } from "@/lib/trpc";
 
 export default function ContactsScreen() {
   const router = useRouter();
-  const { markRead } = useKini();
-  return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <View><Text style={styles.title}>Danh bạ</Text><Text style={styles.subtitle}>Bạn bè và nhóm của bạn</Text></View>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Thêm bạn" style={styles.addButton} activeOpacity={0.7}>
-          <MaterialIcons name="person-add-alt-1" size={20} color={kiniColors.white} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.search}><MaterialIcons name="search" size={20} color={kiniColors.muted} /><TextInput placeholder="Tìm bạn bè" placeholderTextColor="#98A5B5" style={styles.searchInput} /></View>
-      <View style={styles.shortcuts}>
-        <TouchableOpacity style={styles.shortcut} activeOpacity={0.7}><View style={[styles.shortcutIcon, { backgroundColor: "#EAF3FF" }]}><MaterialIcons name="person-add-alt" size={23} color={kiniColors.blue} /></View><Text style={styles.shortcutText}>Lời mời kết bạn</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.shortcut} activeOpacity={0.7}><View style={[styles.shortcutIcon, { backgroundColor: "#F1EEFF" }]}><MaterialIcons name="groups" size={23} color="#6956E8" /></View><Text style={styles.shortcutText}>Nhóm</Text></TouchableOpacity>
-      </View>
-      <Text style={styles.section}>Bạn bè · {contacts.length}</Text>
-      <FlatList
-        data={contacts}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Trò chuyện với ${item.name}`} onPress={() => { markRead(item.id); router.push(`/chat/${item.id}` as never); }} style={styles.row} activeOpacity={0.7}>
-            <Avatar initials={item.initials} color={item.accent} />
-            <View style={styles.copy}><Text style={styles.name}>{item.name}</Text><Text style={styles.status}>{item.status}</Text></View>
-            <MaterialIcons name="chevron-right" size={22} color="#AAB5C3" />
-          </TouchableOpacity>
-        )}
-      />
-    </ScreenContainer>
-  );
+  const { isAuthenticated } = useAuth();
+  const [query, setQuery] = useState("");
+  const utils = trpc.useUtils();
+  const friendsQuery = trpc.friends.list.useQuery(undefined, { enabled: isAuthenticated });
+  const requestsQuery = trpc.friends.requests.useQuery(undefined, { enabled: isAuthenticated, refetchInterval: 8000 });
+  const searchQuery = trpc.friends.search.useQuery({ query }, { enabled: isAuthenticated && query.trim().length >= 2 });
+  const sendRequest = trpc.friends.send.useMutation({ onSuccess: () => { void utils.friends.search.invalidate(); void utils.notifications.summary.invalidate(); } });
+  const respond = trpc.friends.respond.useMutation({ onSuccess: () => { void utils.friends.requests.invalidate(); void utils.friends.list.invalidate(); void utils.notifications.summary.invalidate(); } });
+  const openDirect = trpc.chat.openDirect.useMutation({ onSuccess: (conversationId) => router.push(`/chat/${conversationId}` as never), onError: (error) => Alert.alert("Không thể mở cuộc trò chuyện", error.message) });
+  const results = useMemo<any[]>(() => query.trim().length >= 2 ? searchQuery.data ?? [] : friendsQuery.data ?? [], [friendsQuery.data, query, searchQuery.data]);
+  const openFriend = (userId: number) => openDirect.mutate({ friendUserId: userId });
+  return <ScreenContainer><View style={styles.header}><View><Text style={styles.title}>Danh bạ</Text><Text style={styles.subtitle}>Kết nối bằng tài khoản KINI thật</Text></View><View style={styles.requestIcon}><MaterialIcons name="person-add-alt-1" size={21} color={kiniColors.blue} />{requestsQuery.data?.length ? <View style={styles.requestBadge}><Text style={styles.requestBadgeText}>{requestsQuery.data.length}</Text></View> : null}</View></View><View style={styles.search}><MaterialIcons name="search" size={20} color={kiniColors.muted} /><TextInput value={query} onChangeText={setQuery} placeholder="Tìm KINI ID hoặc tên hiển thị" placeholderTextColor="#98A5B5" style={styles.searchInput} autoCapitalize="none" /></View>{requestsQuery.data?.length ? <View style={styles.requestBlock}><Text style={styles.section}>Lời mời kết bạn · {requestsQuery.data.length}</Text>{requestsQuery.data.map((request) => <View key={request.id} style={styles.requestRow}><Avatar initials={request.fromProfile.displayName.slice(0, 2).toUpperCase()} color={request.fromProfile.avatarColor} size={42} /><View style={styles.requestCopy}><Text style={styles.name}>{request.fromProfile.displayName}</Text><Text style={styles.handle}>@{request.fromProfile.username} muốn kết bạn</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Chấp nhận kết bạn" onPress={() => respond.mutate({ fromUserId: request.fromUserId, accept: true })} style={styles.accept}><Text style={styles.acceptText}>Đồng ý</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" accessibilityLabel="Từ chối kết bạn" onPress={() => respond.mutate({ fromUserId: request.fromUserId, accept: false })} style={styles.decline}><MaterialIcons name="close" size={18} color={kiniColors.muted} /></TouchableOpacity></View>)}</View> : null}<Text style={styles.section}>{query.trim().length >= 2 ? "Kết quả tìm kiếm" : "Bạn bè"}</Text>{friendsQuery.isLoading ? <View style={styles.loading}><ActivityIndicator color={kiniColors.blue} /></View> : <FlatList data={results} keyExtractor={(item) => ("profile" in item ? item.profile.id : item.id).toString()} contentContainerStyle={styles.list} ListEmptyComponent={<View style={styles.empty}><MaterialIcons name={query ? "person-search" : "group"} size={30} color="#AAB5C3" /><Text style={styles.emptyText}>{query ? "Không tìm thấy tài khoản KINI phù hợp" : "Bạn chưa có bạn bè. Hãy tìm bằng KINI ID."}</Text></View>} renderItem={({ item }) => { const profile = "profile" in item ? item.profile : item; const relation = "relation" in item ? item.relation : "friends"; return <View style={styles.row}><Avatar initials={profile.displayName.slice(0, 2).toUpperCase()} color={profile.avatarColor} /><View style={styles.copy}><Text style={styles.name}>{profile.displayName}</Text><Text style={styles.handle}>@{profile.username}</Text></View>{relation === "friends" ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Nhắn tin với ${profile.displayName}`} onPress={() => openFriend(profile.userId)} style={styles.chatButton}><MaterialIcons name="chat-bubble" size={18} color={kiniColors.blue} /></TouchableOpacity> : relation === "incoming" ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Chấp nhận kết bạn" onPress={() => respond.mutate({ fromUserId: profile.userId, accept: true })} style={styles.addButton}><Text style={styles.addButtonText}>Chấp nhận</Text></TouchableOpacity> : <TouchableOpacity accessibilityRole="button" accessibilityLabel="Gửi lời mời kết bạn" disabled={relation === "outgoing" || sendRequest.isPending} onPress={() => sendRequest.mutate({ userId: profile.userId })} style={[styles.addButton, relation === "outgoing" && styles.pendingButton]}><Text style={[styles.addButtonText, relation === "outgoing" && styles.pendingText]}>{relation === "outgoing" ? "Đã gửi" : "Kết bạn"}</Text></TouchableOpacity>}</View>; }} />}</ScreenContainer>;
 }
 
-const styles = StyleSheet.create({ header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, title: { color: kiniColors.navy, fontSize: 27, fontWeight: "900" }, subtitle: { color: kiniColors.muted, fontSize: 13, marginTop: 4 }, addButton: { width: 42, height: 42, backgroundColor: kiniColors.blue, borderRadius: 14, alignItems: "center", justifyContent: "center" }, search: { marginHorizontal: 20, height: 44, borderRadius: 14, backgroundColor: kiniColors.cloud, alignItems: "center", flexDirection: "row", paddingHorizontal: 13, gap: 8 }, searchInput: { flex: 1, color: kiniColors.navy, fontSize: 15 }, shortcuts: { marginTop: 18, borderBottomWidth: 8, borderBottomColor: kiniColors.cloud }, shortcut: { paddingHorizontal: 20, paddingVertical: 11, flexDirection: "row", alignItems: "center", gap: 13 }, shortcutIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, shortcutText: { color: kiniColors.navy, fontSize: 15, fontWeight: "700" }, section: { color: kiniColors.muted, fontSize: 13, fontWeight: "800", paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 }, list: { paddingBottom: 112 }, row: { minHeight: 70, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 12 }, copy: { flex: 1, gap: 3 }, name: { color: kiniColors.navy, fontSize: 16, fontWeight: "800" }, status: { color: kiniColors.muted, fontSize: 13 } });
+const styles = StyleSheet.create({ header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, title: { color: kiniColors.navy, fontSize: 27, fontWeight: "900" }, subtitle: { color: kiniColors.muted, fontSize: 13, marginTop: 4 }, requestIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kiniColors.mist }, requestBadge: { position: "absolute", right: -4, top: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: kiniColors.coral, alignItems: "center", justifyContent: "center" }, requestBadgeText: { color: kiniColors.white, fontSize: 10, fontWeight: "900" }, search: { marginHorizontal: 20, height: 44, borderRadius: 14, backgroundColor: kiniColors.cloud, alignItems: "center", flexDirection: "row", paddingHorizontal: 13, gap: 8 }, searchInput: { flex: 1, color: kiniColors.navy, fontSize: 15 }, requestBlock: { marginTop: 16, paddingBottom: 10, borderBottomWidth: 8, borderBottomColor: kiniColors.cloud }, section: { color: kiniColors.muted, fontSize: 13, fontWeight: "800", paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8 }, requestRow: { paddingVertical: 8, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 9 }, requestCopy: { flex: 1, gap: 3 }, name: { color: kiniColors.navy, fontSize: 15, fontWeight: "800" }, handle: { color: kiniColors.muted, fontSize: 12 }, accept: { height: 34, paddingHorizontal: 11, borderRadius: 11, backgroundColor: kiniColors.blue, alignItems: "center", justifyContent: "center" }, acceptText: { color: kiniColors.white, fontSize: 12, fontWeight: "800" }, decline: { width: 34, height: 34, borderRadius: 11, backgroundColor: kiniColors.cloud, alignItems: "center", justifyContent: "center" }, list: { paddingBottom: 112 }, row: { minHeight: 70, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 12 }, copy: { flex: 1, gap: 3 }, chatButton: { width: 38, height: 38, borderRadius: 12, backgroundColor: kiniColors.mist, alignItems: "center", justifyContent: "center" }, addButton: { minWidth: 68, height: 36, paddingHorizontal: 11, borderRadius: 11, backgroundColor: kiniColors.blue, alignItems: "center", justifyContent: "center" }, addButtonText: { color: kiniColors.white, fontSize: 12, fontWeight: "800" }, pendingButton: { backgroundColor: kiniColors.cloud }, pendingText: { color: kiniColors.muted }, empty: { alignItems: "center", paddingHorizontal: 44, paddingTop: 45, gap: 10 }, emptyText: { color: kiniColors.muted, fontSize: 13, lineHeight: 19, textAlign: "center" }, loading: { height: 120, alignItems: "center", justifyContent: "center" } });

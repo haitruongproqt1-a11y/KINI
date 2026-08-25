@@ -1,17 +1,8 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+/** Tài khoản xác thực do OAuth quản lý. */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -22,7 +13,84 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+/** Hồ sơ KINI công khai gắn một-một với tài khoản xác thực. */
+export const userProfiles = mysqlTable("user_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  username: varchar("username", { length: 64 }).notNull(),
+  displayName: varchar("displayName", { length: 128 }).notNull(),
+  avatarColor: varchar("avatarColor", { length: 16 }).default("#1677FF").notNull(),
+  securityQuestion: varchar("securityQuestion", { length: 255 }),
+  securityAnswerHash: varchar("securityAnswerHash", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("user_profiles_user_id_unique").on(table.userId),
+  uniqueIndex("user_profiles_username_unique").on(table.username),
+]);
+
+/** Quan hệ lời mời bạn bè; chỉ trạng thái accepted cho phép nhắn tin trực tiếp. */
+export const friendRequests = mysqlTable("friend_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  fromUserId: int("fromUserId").notNull(),
+  toUserId: int("toUserId").notNull(),
+  status: mysqlEnum("status", ["pending", "accepted", "declined", "cancelled"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  respondedAt: timestamp("respondedAt"),
+}, (table) => [
+  uniqueIndex("friend_requests_direction_unique").on(table.fromUserId, table.toUserId),
+  index("friend_requests_recipient_status_idx").on(table.toUserId, table.status),
+]);
+
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  kind: mysqlEnum("kind", ["direct", "group"]).default("direct").notNull(),
+  title: varchar("title", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+});
+
+export const conversationParticipants = mysqlTable("conversation_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  userId: int("userId").notNull(),
+  lastReadMessageId: int("lastReadMessageId"),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("conversation_participants_unique").on(table.conversationId, table.userId),
+  index("conversation_participants_user_idx").on(table.userId),
+]);
+
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  senderId: int("senderId").notNull(),
+  kind: mysqlEnum("kind", ["text", "image", "album", "file", "sticker"]).default("text").notNull(),
+  content: text("content").notNull(),
+  attachmentUrl: varchar("attachmentUrl", { length: 1024 }),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  replyToMessageId: int("replyToMessageId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  editedAt: timestamp("editedAt"),
+}, (table) => [
+  index("messages_conversation_created_idx").on(table.conversationId, table.createdAt),
+  index("messages_sender_idx").on(table.senderId),
+]);
+
+/** Trạng thái trên thiết bị người nhận: sent → delivered → read. */
+export const messageReceipts = mysqlTable("message_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  messageId: int("messageId").notNull(),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["sent", "delivered", "read"]).default("sent").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("message_receipts_message_user_unique").on(table.messageId, table.userId),
+  index("message_receipts_user_status_idx").on(table.userId, table.status),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
+export type ChatMessage = typeof messages.$inferSelect;
