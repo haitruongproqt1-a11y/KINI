@@ -26,3 +26,8 @@
 - [x] Đăng ký token thiết bị để nhận thông báo đẩy nền
 - [x] Gửi thông báo đẩy khi có tin nhắn mới và mở đúng cuộc hội thoại
 - [x] Kiểm thử xác thực, khôi phục mật khẩu và thông báo đẩy
+- [x] Khắc phục lỗi đăng ký không lưu hoặc không chuyển vào ứng dụng
+- [x] Hiển thị lỗi rõ ràng khi sai tên đăng nhập hoặc mật khẩu
+- [x] Loại bỏ trạng thái treo và bổ sung phản hồi khi đăng ký/đăng nhập thất bại
+- [x] Mở rộng danh mục câu hỏi bảo mật cho đăng ký và khôi phục mật khẩu
+- [x] Kiểm thử hồi quy luồng tạo tài khoản, đăng nhập và đặt lại mật khẩu

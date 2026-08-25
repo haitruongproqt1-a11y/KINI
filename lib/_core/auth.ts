@@ -106,6 +106,7 @@ export async function setUserInfo(user: User): Promise<void> {
     console.log("[Auth] User info stored in SecureStore successfully");
   } catch (error) {
     console.error("[Auth] Failed to set user info:", error);
+    throw error;
   }
 }
 
