@@ -64,3 +64,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Liên kết repository KINI với GitHub và đẩy mã nguồn cùng lịch sử phiên bản
 - [ ] Chuẩn bị APK release theo quy trình Expo/EAS
 - [ ] Publish phiên bản web KINI sau khi checkpoint hoàn tất
+
+- [x] Cấu hình KINI Android-first và loại bỏ cấu hình iOS không cần thiết
+- [x] Chuẩn bị cấu hình APK Android cài trực tiếp và kiểm tra build
+- [x] Viết hướng dẫn GitHub để tải source, lịch sử checkpoint và APK phiên bản Android
+- [ ] Lưu checkpoint cấu hình Android-first và đồng bộ GitHub

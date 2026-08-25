@@ -34,7 +34,6 @@ const env = {
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "/manus-storage/kini-icon_eceb161d.png",
   scheme: schemeFromBundleId,
-  iosBundleId: bundleId,
   androidPackage: bundleId,
 };
 
@@ -42,18 +41,12 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
+  platforms: ["android"],
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-  },
   android: {
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
@@ -61,8 +54,9 @@ const config: ExpoConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    versionCode: 1,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+    permissions: ["POST_NOTIFICATIONS", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO"],
     intentFilters: [
       {
         action: "VIEW",
@@ -99,12 +93,7 @@ const config: ExpoConfig = {
       },
     ],
     "expo-document-picker",
-    [
-      "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
+    "expo-audio",
     [
       "expo-video",
       {
