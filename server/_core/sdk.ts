@@ -22,6 +22,7 @@ export type SessionPayload = {
   openId: string;
   appId: string;
   name: string;
+  sessionId?: string;
 };
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -147,13 +148,14 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {},
+    options: { expiresInMs?: number; name?: string; sessionId?: string } = {},
   ): Promise<string> {
     return this.signSession(
       {
         openId,
         appId: ENV.appId,
         name: options.name || "",
+        sessionId: options.sessionId,
       },
       options,
     );
@@ -172,6 +174,7 @@ class SDKServer {
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name,
+      sessionId: payload.sessionId,
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -180,7 +183,7 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null,
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId: string; appId: string; name: string; sessionId?: string } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -191,7 +194,7 @@ class SDKServer {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { openId, appId, name, sessionId } = payload as Record<string, unknown>;
 
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
         console.warn("[Auth] Session payload missing required fields");
@@ -202,6 +205,7 @@ class SDKServer {
         openId,
         appId,
         name,
+        ...(isNonEmptyString(sessionId) ? { sessionId } : {}),
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -282,12 +286,16 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
+    if (session.sessionId && !(await db.validateUserSession(user.id, session.sessionId))) {
+      throw ForbiddenError("Phiên đăng nhập đã bị vô hiệu hóa trên thiết bị này.");
+    }
+
     await db.upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt,
     });
 
-    return user;
+    return { ...user, ...(session.sessionId ? { sessionId: session.sessionId } : {}) };
   }
 }
 
@@ -297,6 +305,7 @@ const CRON_OPEN_ID_PREFIX = "cron_";
 export type AuthenticatedUser = User & {
   taskUid?: string;
   isCron?: boolean;
+  sessionId?: string;
 };
 
 function buildCronUser(userInfo: GetUserInfoWithJwtResponse): AuthenticatedUser {

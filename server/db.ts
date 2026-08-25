@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, ne, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, ne, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
@@ -10,6 +10,7 @@ import {
   messageReceipts,
   messages,
   pushDevices,
+  userSessions,
   userProfiles,
   users,
 } from "../drizzle/schema";
@@ -133,6 +134,34 @@ export async function removePushDevice(userId: number, expoPushToken: string) {
   const db = await requireDb();
   await db.delete(pushDevices).where(and(eq(pushDevices.userId, userId), eq(pushDevices.expoPushToken, expoPushToken)));
   return { removed: true };
+}
+
+export async function createExclusiveUserSession(userId: number, device: { deviceName: string; platform: string }) {
+  const db = await requireDb();
+  const now = new Date();
+  await db.update(userSessions).set({ revokedAt: now }).where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
+  const id = randomUUID();
+  await db.insert(userSessions).values({ id, userId, deviceName: device.deviceName.slice(0, 128), platform: device.platform.slice(0, 24) });
+  return id;
+}
+
+export async function validateUserSession(userId: number, sessionId: string) {
+  const db = await requireDb();
+  const session = await db.select().from(userSessions).where(and(eq(userSessions.id, sessionId), eq(userSessions.userId, userId), isNull(userSessions.revokedAt))).limit(1);
+  if (!session[0]) return false;
+  await db.update(userSessions).set({ lastActiveAt: new Date() }).where(eq(userSessions.id, sessionId));
+  return true;
+}
+
+export async function listUserSessions(userId: number) {
+  const db = await requireDb();
+  return db.select().from(userSessions).where(eq(userSessions.userId, userId)).orderBy(desc(userSessions.lastActiveAt)).limit(30);
+}
+
+export async function revokeUserSession(userId: number, sessionId: string) {
+  const db = await requireDb();
+  await db.update(userSessions).set({ revokedAt: new Date() }).where(and(eq(userSessions.id, sessionId), eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
+  return { revoked: true } as const;
 }
 
 export async function getOrCreateProfile(userId: number, fallbackName?: string | null) {

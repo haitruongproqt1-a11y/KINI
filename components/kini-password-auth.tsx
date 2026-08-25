@@ -26,6 +26,7 @@ export function KiniPasswordAuth({ onSessionReady }: { onSessionReady: () => Pro
   const recoveryQuery = trpc.auth.recoveryQuestion.useQuery({ username }, { enabled: mode === "recover" && username.trim().length >= 3 });
   const reset = trpc.auth.resetPassword.useMutation();
   const selectedQuestion = securityQuestions.find((item) => item.id === question) ?? securityQuestions[0];
+  const device = { platform: Platform.OS, deviceName: Platform.OS === "ios" ? "Thiết bị iOS" : Platform.OS === "android" ? "Thiết bị Android" : "Trình duyệt web" };
   const recovery = recoveryQuery.data;
   const withTimeout = async <T,>(request: Promise<T>) => Promise.race<T>([request, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Kết nối đang chậm. Vui lòng kiểm tra mạng và thử lại.")), 15000))]);
   const readableError = (error: unknown, fallback: string) => {
@@ -39,12 +40,12 @@ export function KiniPasswordAuth({ onSessionReady }: { onSessionReady: () => Pro
   const handleLogin = async () => {
     if (!username.trim() || !password) return setFormError("Hãy nhập tên đăng nhập và mật khẩu để tiếp tục.");
     setFormError(null);
-    try { await completeSession(await withTimeout(login.mutateAsync({ username: username.trim(), password }))); } catch (error) { setFormError(readableError(error, "Không thể đăng nhập lúc này. Vui lòng thử lại.")); }
+    try { await completeSession(await withTimeout(login.mutateAsync({ username: username.trim(), password, ...device }))); } catch (error) { setFormError(readableError(error, "Không thể đăng nhập lúc này. Vui lòng thử lại.")); }
   };
   const handleRegister = async () => {
     if (!username.trim() || !password || !displayName.trim() || !answer.trim()) return setFormError("Hãy hoàn thành đầy đủ tên đăng nhập, mật khẩu, tên tài khoản và câu trả lời bảo mật.");
     setFormError(null);
-    try { await completeSession(await withTimeout(register.mutateAsync({ username: username.trim(), password, displayName: displayName.trim(), securityQuestion: question, securityAnswer: answer }))); } catch (error) { setFormError(readableError(error, "Không thể tạo tài khoản lúc này. Vui lòng thử lại.")); }
+    try { await completeSession(await withTimeout(register.mutateAsync({ username: username.trim(), password, displayName: displayName.trim(), securityQuestion: question, securityAnswer: answer, ...device }))); } catch (error) { setFormError(readableError(error, "Không thể tạo tài khoản lúc này. Vui lòng thử lại.")); }
   };
   const handleReset = async () => {
     if (!recovery) return setFormError("Hãy nhập đúng tên đăng nhập trước khi đặt lại mật khẩu.");

@@ -38,3 +38,9 @@
 _ Ghi chú: Các hạng mục trên thuộc nâng cấp hồ sơ bảo mật được yêu cầu sau phiên bản bdb56a77.
 
 _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho người dùng.
+
+- [x] Sửa đăng xuất để xóa phiên cục bộ và trở về màn hình đăng nhập
+- [x] Lưu lịch sử thiết bị và phiên đăng nhập của tài khoản
+- [x] Thêm danh sách thiết bị, đăng xuất từ xa và tự vô hiệu hóa phiên cũ khi đăng nhập mới
+- [x] Hoàn thiện các hành động trong mục Khám phá và Cài đặt hồ sơ
+- [x] Kiểm thử hồi quy luồng phiên, thiết bị và các mục KINI

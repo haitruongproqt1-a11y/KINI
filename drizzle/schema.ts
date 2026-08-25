@@ -106,6 +106,19 @@ export const pushDevices = mysqlTable("push_devices", {
   index("push_devices_user_idx").on(table.userId),
 ]);
 
+/** Phiên đăng nhập theo thiết bị; chỉ một phiên hoạt động được giữ cho mỗi tài khoản. */
+export const userSessions = mysqlTable("user_sessions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  deviceName: varchar("deviceName", { length: 128 }).notNull(),
+  platform: varchar("platform", { length: 24 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  lastActiveAt: timestamp("lastActiveAt").defaultNow().notNull(),
+  revokedAt: timestamp("revokedAt"),
+}, (table) => [
+  index("user_sessions_user_active_idx").on(table.userId, table.revokedAt),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;

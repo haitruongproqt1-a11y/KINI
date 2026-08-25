@@ -14,9 +14,13 @@ const usernameSchema = z.string().trim().min(3, "Tên người dùng cần ít n
 const messageKindSchema = z.enum(["text", "image", "album", "file", "sticker"]);
 const passwordSchema = z.string().min(8, "Mật khẩu cần có ít nhất 8 ký tự.").max(128);
 
-async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }) {
+async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }, device: { deviceName?: string; platform?: string } = {}) {
+  const sessionId = await db.createExclusiveUserSession(user.id, {
+    deviceName: device.deviceName?.trim() || "Thiết bị KINI",
+    platform: device.platform?.trim() || "unknown",
+  });
   return {
-    sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI" }),
+    sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI", sessionId }),
     user: { id: user.id, openId: user.openId, name: user.name, email: user.email, loginMethod: user.loginMethod, lastSignedIn: user.lastSignedIn },
   };
 }
@@ -32,11 +36,13 @@ export const appRouter = router({
       displayName: z.string().trim().min(1, "Tên tài khoản là bắt buộc.").max(128),
       securityQuestion: z.string().refine(isSecurityQuestionId, "Câu hỏi bảo mật không hợp lệ."),
       securityAnswer: z.string().trim().min(2, "Câu trả lời cần ít nhất 2 ký tự.").max(255),
-    })).mutation(async ({ input }) => createKiniSession(await db.createKiniPasswordAccount(input))),
-    login: publicProcedure.input(z.object({ username: usernameSchema, password: passwordSchema })).mutation(async ({ input }) => {
+      deviceName: z.string().trim().max(128).optional(),
+      platform: z.string().trim().max(24).optional(),
+    })).mutation(async ({ input }) => createKiniSession(await db.createKiniPasswordAccount(input), input)),
+    login: publicProcedure.input(z.object({ username: usernameSchema, password: passwordSchema, deviceName: z.string().trim().max(128).optional(), platform: z.string().trim().max(24).optional() })).mutation(async ({ input }) => {
       const user = await db.authenticateKiniPassword(input.username, input.password);
       if (!user) throw new Error("Tên đăng nhập hoặc mật khẩu chưa đúng.");
-      return createKiniSession(user);
+      return createKiniSession(user, input);
     }),
     recoveryQuestion: publicProcedure.input(z.object({ username: usernameSchema })).query(({ input }) => db.getKiniRecoveryQuestion(input.username)),
     resetPassword: publicProcedure.input(z.object({ username: usernameSchema, answer: z.string().trim().min(2).max(255), nextPassword: passwordSchema })).mutation(async ({ input }) => {
@@ -44,11 +50,17 @@ export const appRouter = router({
       if (!success) throw new Error("Câu trả lời bảo mật chưa đúng.");
       return { success: true } as const;
     }),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      const sessionId = (ctx.user as (typeof ctx.user & { sessionId?: string }) | null)?.sessionId;
+      if (ctx.user && sessionId) await db.revokeUserSession(ctx.user.id, sessionId);
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+  sessions: router({
+    list: protectedProcedure.query(({ ctx }) => db.listUserSessions(ctx.user.id)),
+    revoke: protectedProcedure.input(z.object({ sessionId: z.string().uuid() })).mutation(({ ctx, input }) => db.revokeUserSession(ctx.user.id, input.sessionId)),
   }),
   profile: router({
     me: protectedProcedure.query(({ ctx }) => db.getOrCreateProfile(ctx.user.id, ctx.user.name)),
