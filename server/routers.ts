@@ -11,7 +11,7 @@ import { isSecurityQuestionId, securityQuestions } from "../shared/security-ques
 import { sendMessagePushNotification, sendNewDeviceLoginPush } from "./push";
 
 const usernameSchema = z.string().trim().min(3, "Tên người dùng cần ít nhất 3 ký tự.").max(64).refine(isKiniUsernameValid, "Tên người dùng chỉ gồm chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang.");
-const messageKindSchema = z.enum(["text", "image", "album", "file", "sticker"]);
+const messageKindSchema = z.enum(["text", "image", "album", "video", "file", "sticker"]);
 const passwordSchema = z.string().min(8, "Mật khẩu cần có ít nhất 8 ký tự.").max(128);
 
 async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }, device: { deviceName?: string; platform?: string } = {}) {

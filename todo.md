@@ -49,3 +49,11 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Gửi cảnh báo đẩy khi phát hiện thiết bị mới đăng nhập
 - [x] Thêm thao tác xóa vĩnh viễn cuộc hội thoại cùng tin nhắn và tệp đính kèm
 - [x] Kiểm thử hồi quy hiệu năng, cảnh báo thiết bị và xóa hội thoại
+
+- [x] Sửa media message để ảnh sau khi gửi dùng URL ổn định và hiển thị được trên thiết bị khác
+- [x] Thêm hỗ trợ chọn và gửi video với metadata media đầy đủ
+- [x] Thêm trình xem ảnh/video khi chạm vào tin nhắn
+- [x] Thêm nhấn giữ ảnh/video để lưu về thư viện thiết bị
+- [x] Sửa optimistic reconciliation để tin nhắn không nhấp nháy ẩn/hiện sau khi gửi
+- [x] Kiểm thử hồi quy ảnh, video, lưu media và gửi tin nhắn
+- [x] Lưu checkpoint bản sửa media KINI

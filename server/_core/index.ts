@@ -5,7 +5,10 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
+import { storagePut } from "../storage";
 import { appRouter } from "../routers";
+import { sdk } from "./sdk";
+import crypto from "node:crypto";
 import { createContext } from "./context";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -52,11 +55,34 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(express.json({ limit: "80mb" }));
+  app.use(express.urlencoded({ limit: "80mb", extended: true }));
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  app.post("/api/media/upload", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user) {
+        res.status(401).json({ error: "Bạn cần đăng nhập để tải media." });
+        return;
+      }
+      const { data, name, contentType, size } = req.body as { data?: string; name?: string; contentType?: string; size?: number | null };
+      if (!data || typeof data !== "string" || data.length > 70_000_000) {
+        res.status(400).json({ error: "Dữ liệu media không hợp lệ hoặc vượt quá giới hạn." });
+        return;
+      }
+      const safeName = String(name || "media").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+      const type = String(contentType || "application/octet-stream").split(";")[0].slice(0, 120);
+      const key = `kini/${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const uploaded = await storagePut(key, Buffer.from(data, "base64"), type);
+      res.json({ url: uploaded.url, name: safeName, contentType: type, size: typeof size === "number" ? size : null });
+    } catch (error) {
+      console.error("[MediaUpload] failed:", error);
+      res.status(500).json({ error: "Không thể tải media lên máy chủ." });
+    }
+  });
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });

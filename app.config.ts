@@ -86,6 +86,13 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-notifications",
     [
+      "expo-media-library",
+      {
+        photosPermission: "Cho phép KINI truy cập ảnh và video để lưu media.",
+        savePhotosPermission: "Cho phép KINI lưu ảnh và video vào thư viện.",
+      },
+    ],
+    [
       "expo-image-picker",
       {
         photosPermission: "Cho phép KINI truy cập thư viện ảnh để gửi ảnh và album trong cuộc trò chuyện.",

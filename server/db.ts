@@ -359,7 +359,7 @@ export async function getConversationMessages(userId: number, conversationId: nu
   });
 }
 
-export async function sendMessage(userId: number, input: { conversationId: number; kind: "text" | "image" | "album" | "file" | "sticker"; content: string; attachmentUrl?: string; attachmentName?: string; replyToMessageId?: number }) {
+export async function sendMessage(userId: number, input: { conversationId: number; kind: "text" | "image" | "album" | "video" | "file" | "sticker"; content: string; attachmentUrl?: string; attachmentName?: string; replyToMessageId?: number }) {
   const db = await requireDb();
   await assertParticipant(userId, input.conversationId);
   const inserted = await db.insert(messages).values({ ...input, senderId: userId });

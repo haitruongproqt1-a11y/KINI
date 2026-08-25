@@ -70,7 +70,7 @@ export const messages = mysqlTable("messages", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
   senderId: int("senderId").notNull(),
-  kind: mysqlEnum("kind", ["text", "image", "album", "file", "sticker"]).default("text").notNull(),
+  kind: mysqlEnum("kind", ["text", "image", "album", "video", "file", "sticker"]).default("text").notNull(),
   content: text("content").notNull(),
   attachmentUrl: varchar("attachmentUrl", { length: 1024 }),
   attachmentName: varchar("attachmentName", { length: 255 }),
