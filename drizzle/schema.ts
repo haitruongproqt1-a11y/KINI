@@ -73,6 +73,7 @@ export const messages = mysqlTable("messages", {
   kind: mysqlEnum("kind", ["text", "image", "album", "video", "file", "sticker"]).default("text").notNull(),
   content: text("content").notNull(),
   attachmentUrl: varchar("attachmentUrl", { length: 1024 }),
+  attachmentUrls: text("attachmentUrls"),
   attachmentName: varchar("attachmentName", { length: 255 }),
   replyToMessageId: int("replyToMessageId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

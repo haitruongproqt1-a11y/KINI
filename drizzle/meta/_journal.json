@@ -43,6 +43,13 @@
       "when": 1787671891335,
       "tag": "0005_flawless_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787696469795,
+      "tag": "0006_faithful_stingray",
+      "breakpoints": true
     }
   ]
 }

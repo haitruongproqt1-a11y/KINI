@@ -93,6 +93,7 @@ export const appRouter = router({
       kind: messageKindSchema,
       content: z.string().trim().min(1).max(4000),
       attachmentUrl: z.string().max(1024).optional(),
+      attachmentUrls: z.string().max(20000).optional(),
       attachmentName: z.string().max(255).optional(),
       replyToMessageId: z.number().int().positive().optional(),
     })).mutation(async ({ ctx, input }) => {

@@ -16,12 +16,25 @@ function absoluteMediaUrl(path: string) {
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-export async function uploadMedia(uri: string, name: string, contentType = "application/octet-stream", size?: number | null): Promise<UploadedMedia> {
+export async function uploadMedia(uri: string, name: string, contentType = "application/octet-stream", size?: number | null, onProgress?: (progress: number) => void): Promise<UploadedMedia> {
+  onProgress?.(5);
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-  const result = await apiCall<{ url: string; name: string; contentType: string; size?: number | null }>("/api/media/upload", {
+  onProgress?.(20);
+  let progress = 20;
+  const timer = setInterval(() => {
+    progress = Math.min(90, progress + 4);
+    onProgress?.(progress);
+  }, 180);
+  let result: { url: string; name: string; contentType: string; size?: number | null };
+  try {
+    result = await apiCall<{ url: string; name: string; contentType: string; size?: number | null }>("/api/media/upload", {
     method: "POST",
     body: JSON.stringify({ data: base64, name, contentType, size: size ?? null }),
-  });
+    });
+  } finally {
+    clearInterval(timer);
+  }
+  onProgress?.(100);
   return { ...result, url: absoluteMediaUrl(result.url) };
 }
 

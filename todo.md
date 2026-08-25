@@ -57,3 +57,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Sửa optimistic reconciliation để tin nhắn không nhấp nháy ẩn/hiện sau khi gửi
 - [x] Kiểm thử hồi quy ảnh, video, lưu media và gửi tin nhắn
 - [x] Lưu checkpoint bản sửa media KINI
+
+- [ ] Hiển thị phần trăm và trạng thái upload ngay trên ảnh/video đang gửi
+- [ ] Hỗ trợ upload toàn bộ ảnh trong album và hiển thị dạng lưới trong một tin nhắn
+- [ ] Kiểm thử tiến trình upload và album nhiều ảnh
+- [ ] Liên kết repository KINI với GitHub và đẩy mã nguồn cùng lịch sử phiên bản
+- [ ] Chuẩn bị APK release theo quy trình Expo/EAS
+- [ ] Publish phiên bản web KINI sau khi checkpoint hoàn tất
