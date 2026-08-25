@@ -72,3 +72,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Chuẩn bị hướng dẫn build APK KINI trực tiếp trên máy cá nhân
 - [x] Ghi tài liệu local build Android và cài đặt APK không dùng cloud
+
+- [x] Rà soát toàn bộ cấu hình, dependency và manifest cho APK Android KINI
+- [x] Khắc phục các điểm cản trở build APK nếu phát hiện
+- [x] Kiểm tra TypeScript, test và cấu hình Expo Android phát hành
+- [x] Lưu checkpoint phát hành APK KINI mới nhất và đồng bộ GitHub
