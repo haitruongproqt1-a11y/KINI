@@ -4,6 +4,7 @@ import { pushDevices } from "../drizzle/schema";
 import { getDb } from "./db";
 
 type PushPayload = { recipientUserIds: number[]; title: string; body: string; conversationId: number };
+type SecurityPayload = { userId: number; deviceName: string };
 
 export const isExpoPushToken = (token: string) => /^(Expo|Exponent)PushToken\[[^\]]+\]$/.test(token);
 
@@ -28,6 +29,29 @@ export async function sendMessagePushNotification(payload: PushPayload) {
     return { delivered: messages.length };
   } catch (error) {
     console.warn("[Push] Unable to deliver notification", error);
+    return { delivered: 0 };
+  }
+}
+
+export async function sendNewDeviceLoginPush(payload: SecurityPayload) {
+  const db = await getDb();
+  if (!db) return { delivered: 0 };
+  const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.userId));
+  const messages = devices.filter((device) => isExpoPushToken(device.expoPushToken)).map((device) => ({
+    to: device.expoPushToken,
+    sound: "default",
+    title: "Cảnh báo đăng nhập KINI",
+    body: `${payload.deviceName} vừa đăng nhập vào tài khoản của bạn. Phiên cũ đã được đăng xuất.`,
+    priority: "high",
+    channelId: "messages",
+    data: { type: "new_device_login" },
+  }));
+  if (!messages.length) return { delivered: 0 };
+  try {
+    await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(messages) });
+    return { delivered: messages.length };
+  } catch (error) {
+    console.warn("[Push] Unable to deliver device-login alert", error);
     return { delivered: 0 };
   }
 }

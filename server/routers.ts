@@ -8,19 +8,20 @@ import { sdk } from "./_core/sdk";
 import * as db from "./db";
 import { isKiniUsernameValid } from "../shared/kini-chat";
 import { isSecurityQuestionId, securityQuestions } from "../shared/security-questions";
-import { sendMessagePushNotification } from "./push";
+import { sendMessagePushNotification, sendNewDeviceLoginPush } from "./push";
 
 const usernameSchema = z.string().trim().min(3, "Tên người dùng cần ít nhất 3 ký tự.").max(64).refine(isKiniUsernameValid, "Tên người dùng chỉ gồm chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang.");
 const messageKindSchema = z.enum(["text", "image", "album", "file", "sticker"]);
 const passwordSchema = z.string().min(8, "Mật khẩu cần có ít nhất 8 ký tự.").max(128);
 
 async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }, device: { deviceName?: string; platform?: string } = {}) {
-  const sessionId = await db.createExclusiveUserSession(user.id, {
+  const session = await db.createExclusiveUserSession(user.id, {
     deviceName: device.deviceName?.trim() || "Thiết bị KINI",
     platform: device.platform?.trim() || "unknown",
   });
+  if (session.replacedSessions > 0) void sendNewDeviceLoginPush({ userId: user.id, deviceName: device.deviceName?.trim() || "Thiết bị KINI" });
   return {
-    sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI", sessionId }),
+    sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI", sessionId: session.id }),
     user: { id: user.id, openId: user.openId, name: user.name, email: user.email, loginMethod: user.loginMethod, lastSignedIn: user.lastSignedIn },
   };
 }
@@ -97,9 +98,10 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const result = await db.sendMessage(ctx.user.id, input);
       const profile = await db.getOrCreateProfile(ctx.user.id, ctx.user.name);
-      await sendMessagePushNotification({ recipientUserIds: result.recipientUserIds, title: profile.displayName, body: input.kind === "text" ? input.content : `Đã gửi ${input.kind === "sticker" ? "một sticker" : "tệp đính kèm"}`, conversationId: input.conversationId });
+      void sendMessagePushNotification({ recipientUserIds: result.recipientUserIds, title: profile.displayName, body: input.kind === "text" ? input.content : `Đã gửi ${input.kind === "sticker" ? "một sticker" : "tệp đính kèm"}`, conversationId: input.conversationId });
       return result;
     }),
+    delete: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.deleteConversationPermanently(ctx.user.id, input.conversationId)),
     markRead: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.markConversationRead(ctx.user.id, input.conversationId)),
     search: protectedProcedure.input(z.object({ query: z.string().trim().max(255) })).query(({ ctx, input }) => db.searchMessages(ctx.user.id, input.query)),
   }),

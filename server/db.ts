@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, like, ne, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
@@ -139,10 +139,11 @@ export async function removePushDevice(userId: number, expoPushToken: string) {
 export async function createExclusiveUserSession(userId: number, device: { deviceName: string; platform: string }) {
   const db = await requireDb();
   const now = new Date();
+  const activeSessions = await db.select({ id: userSessions.id }).from(userSessions).where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
   await db.update(userSessions).set({ revokedAt: now }).where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
   const id = randomUUID();
   await db.insert(userSessions).values({ id, userId, deviceName: device.deviceName.slice(0, 128), platform: device.platform.slice(0, 24) });
-  return id;
+  return { id, replacedSessions: activeSessions.length };
 }
 
 export async function validateUserSession(userId: number, sessionId: string) {
@@ -308,19 +309,22 @@ export async function getOrCreateDirectConversation(userId: number, friendUserId
 export async function listConversations(userId: number, filter: "all" | "unread" | "direct" | "group" = "all") {
   const db = await requireDb();
   const memberships = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
-  const summaries = await Promise.all(memberships.map(async (membership) => {
-    const conversation = (await db.select().from(conversations).where(eq(conversations.id, membership.conversationId)).limit(1))[0];
-    if (!conversation) return null;
-    const participantRows = await db.select().from(conversationParticipants).where(eq(conversationParticipants.conversationId, conversation.id));
-    const other = participantRows.find((participant) => participant.userId !== userId);
-    const otherProfile = other ? await getOrCreateProfile(other.userId) : null;
-    const recent = await db.select().from(messages).where(eq(messages.conversationId, conversation.id)).orderBy(desc(messages.createdAt)).limit(1);
-    const allMessages = await db.select().from(messages).where(and(eq(messages.conversationId, conversation.id), ne(messages.senderId, userId)));
-    let unreadCount = 0;
-    for (const message of allMessages) {
-      const receipt = await db.select().from(messageReceipts).where(and(eq(messageReceipts.messageId, message.id), eq(messageReceipts.userId, userId))).limit(1);
-      if (receipt[0]?.status !== "read") unreadCount += 1;
-    }
+  const ids = memberships.map((membership) => membership.conversationId);
+  if (!ids.length) return [];
+  const [conversationRows, participantRows] = await Promise.all([
+    db.select().from(conversations).where(inArray(conversations.id, ids)),
+    db.select().from(conversationParticipants).where(inArray(conversationParticipants.conversationId, ids)),
+  ]);
+  const otherUserIds = [...new Set(participantRows.filter((participant) => participant.userId !== userId).map((participant) => participant.userId))];
+  const profiles = otherUserIds.length ? await db.select().from(userProfiles).where(inArray(userProfiles.userId, otherUserIds)) : [];
+  const membershipByConversation = new Map(memberships.map((membership) => [membership.conversationId, membership]));
+  const participantsByConversation = new Map<number, number[]>();
+  participantRows.forEach((participant) => participantsByConversation.set(participant.conversationId, [...(participantsByConversation.get(participant.conversationId) ?? []), participant.userId]));
+  const profilesByUser = new Map(profiles.map((profile) => [profile.userId, profile]));
+  const summaries = conversationRows.map((conversation) => {
+    const otherUserId = participantsByConversation.get(conversation.id)?.find((participantId) => participantId !== userId);
+    const otherProfile = otherUserId ? profilesByUser.get(otherUserId) : undefined;
+    const membership = membershipByConversation.get(conversation.id);
     return {
       id: conversation.id,
       kind: conversation.kind,
@@ -328,12 +332,12 @@ export async function listConversations(userId: number, filter: "all" | "unread"
       username: otherProfile?.username ?? null,
       avatarColor: otherProfile?.avatarColor ?? "#1677FF",
       initials: (otherProfile?.displayName ?? conversation.title ?? "K").slice(0, 2).toUpperCase(),
-      preview: recent[0]?.content ?? "Bắt đầu cuộc trò chuyện",
-      updatedAt: recent[0]?.createdAt ?? conversation.lastMessageAt,
-      unreadCount,
+      preview: conversation.lastMessagePreview ?? "Bắt đầu cuộc trò chuyện",
+      updatedAt: conversation.lastMessageAt,
+      unreadCount: membership?.unreadCount ?? 0,
     };
-  }));
-  return summaries.filter((item): item is NonNullable<typeof item> => Boolean(item)).filter((item) =>
+  });
+  return summaries.filter((item) =>
     filter === "all" ? true : filter === "unread" ? item.unreadCount > 0 : item.kind === filter,
   ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
@@ -342,13 +346,14 @@ export async function getConversationMessages(userId: number, conversationId: nu
   const db = await requireDb();
   await assertParticipant(userId, conversationId);
   const thread = await db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt).limit(200);
-  for (const message of thread.filter((item) => item.senderId !== userId)) {
-    await db.update(messageReceipts).set({ status: "delivered" }).where(and(eq(messageReceipts.messageId, message.id), eq(messageReceipts.userId, userId), eq(messageReceipts.status, "sent")));
-  }
+  const incomingIds = thread.filter((item) => item.senderId !== userId).map((item) => item.id);
+  if (incomingIds.length) await db.update(messageReceipts).set({ status: "delivered" }).where(and(inArray(messageReceipts.messageId, incomingIds), eq(messageReceipts.userId, userId), eq(messageReceipts.status, "sent")));
   const ownMessageIds = thread.filter((item) => item.senderId === userId).map((item) => item.id);
   const receipts = ownMessageIds.length ? await db.select().from(messageReceipts).where(inArray(messageReceipts.messageId, ownMessageIds)) : [];
+  const receiptsByMessage = new Map<number, typeof receipts>();
+  receipts.forEach((receipt) => receiptsByMessage.set(receipt.messageId, [...(receiptsByMessage.get(receipt.messageId) ?? []), receipt]));
   return thread.map((message) => {
-    const related = receipts.filter((receipt) => receipt.messageId === message.id);
+    const related = receiptsByMessage.get(message.id) ?? [];
     const status = related.reduce<"sent" | "delivered" | "read">((current, receipt) => receiptRank[receipt.status] > receiptRank[current] ? receipt.status : current, "sent");
     return { ...message, status: message.senderId === userId ? status : undefined };
   });
@@ -361,20 +366,33 @@ export async function sendMessage(userId: number, input: { conversationId: numbe
   const messageId = Number(inserted[0].insertId);
   const recipients = await db.select().from(conversationParticipants).where(and(eq(conversationParticipants.conversationId, input.conversationId), ne(conversationParticipants.userId, userId)));
   if (recipients.length) await db.insert(messageReceipts).values(recipients.map((recipient) => ({ messageId, userId: recipient.userId, status: "sent" as const })));
-  await db.update(conversations).set({ lastMessageAt: new Date() }).where(eq(conversations.id, input.conversationId));
+  await Promise.all([
+    db.update(conversations).set({ lastMessageAt: new Date(), lastMessagePreview: input.content.slice(0, 255) }).where(eq(conversations.id, input.conversationId)),
+    recipients.length ? db.update(conversationParticipants).set({ unreadCount: sql`${conversationParticipants.unreadCount} + 1` }).where(and(eq(conversationParticipants.conversationId, input.conversationId), ne(conversationParticipants.userId, userId))) : Promise.resolve(),
+  ]);
   return { id: messageId, status: "sent" as const, recipientUserIds: recipients.map((recipient) => recipient.userId) };
 }
 
 export async function markConversationRead(userId: number, conversationId: number) {
   const db = await requireDb();
   await assertParticipant(userId, conversationId);
-  const unread = await db.select().from(messages).where(and(eq(messages.conversationId, conversationId), ne(messages.senderId, userId)));
-  for (const message of unread) {
-    await db.update(messageReceipts).set({ status: "read" }).where(and(eq(messageReceipts.messageId, message.id), eq(messageReceipts.userId, userId)));
-  }
+  const unread = await db.select({ id: messages.id }).from(messages).where(and(eq(messages.conversationId, conversationId), ne(messages.senderId, userId)));
+  if (unread.length) await db.update(messageReceipts).set({ status: "read" }).where(and(inArray(messageReceipts.messageId, unread.map((message) => message.id)), eq(messageReceipts.userId, userId)));
   const latest = await db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(desc(messages.id)).limit(1);
-  await db.update(conversationParticipants).set({ lastReadMessageId: latest[0]?.id ?? null }).where(and(eq(conversationParticipants.conversationId, conversationId), eq(conversationParticipants.userId, userId)));
+  await db.update(conversationParticipants).set({ lastReadMessageId: latest[0]?.id ?? null, unreadCount: 0 }).where(and(eq(conversationParticipants.conversationId, conversationId), eq(conversationParticipants.userId, userId)));
   return { marked: unread.length };
+}
+
+export async function deleteConversationPermanently(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertParticipant(userId, conversationId);
+  const messageRows = await db.select({ id: messages.id }).from(messages).where(eq(messages.conversationId, conversationId));
+  const ids = messageRows.map((message) => message.id);
+  if (ids.length) await db.delete(messageReceipts).where(inArray(messageReceipts.messageId, ids));
+  await db.delete(messages).where(eq(messages.conversationId, conversationId));
+  await db.delete(conversationParticipants).where(eq(conversationParticipants.conversationId, conversationId));
+  await db.delete(conversations).where(eq(conversations.id, conversationId));
+  return { deleted: true } as const;
 }
 
 export async function searchMessages(userId: number, query: string) {
@@ -389,6 +407,6 @@ export async function searchMessages(userId: number, query: string) {
 }
 
 export async function getNotificationSummary(userId: number) {
-  const [requests, conversations] = await Promise.all([listFriendRequests(userId), listConversations(userId)]);
-  return { pendingFriendRequests: requests.length, unreadMessages: conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0) };
+  const [requests, memberships] = await Promise.all([listFriendRequests(userId), (await requireDb()).select({ unreadCount: conversationParticipants.unreadCount }).from(conversationParticipants).where(eq(conversationParticipants.userId, userId))]);
+  return { pendingFriendRequests: requests.length, unreadMessages: memberships.reduce((sum, membership) => sum + membership.unreadCount, 0) };
 }

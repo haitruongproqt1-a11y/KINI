@@ -44,3 +44,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm danh sách thiết bị, đăng xuất từ xa và tự vô hiệu hóa phiên cũ khi đăng nhập mới
 - [x] Hoàn thiện các hành động trong mục Khám phá và Cài đặt hồ sơ
 - [x] Kiểm thử hồi quy luồng phiên, thiết bị và các mục KINI
+- [x] Khoanh vùng và tối ưu truy vấn gây tải chậm danh sách tin nhắn
+- [x] Tối ưu phản hồi gửi tin nhắn và hiển thị trạng thái gửi tức thời
+- [x] Gửi cảnh báo đẩy khi phát hiện thiết bị mới đăng nhập
+- [x] Thêm thao tác xóa vĩnh viễn cuộc hội thoại cùng tin nhắn và tệp đính kèm
+- [x] Kiểm thử hồi quy hiệu năng, cảnh báo thiết bị và xóa hội thoại

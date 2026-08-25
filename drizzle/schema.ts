@@ -49,6 +49,7 @@ export const conversations = mysqlTable("conversations", {
   id: int("id").autoincrement().primaryKey(),
   kind: mysqlEnum("kind", ["direct", "group"]).default("direct").notNull(),
   title: varchar("title", { length: 255 }),
+  lastMessagePreview: varchar("lastMessagePreview", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
 });
@@ -58,6 +59,7 @@ export const conversationParticipants = mysqlTable("conversation_participants", 
   conversationId: int("conversationId").notNull(),
   userId: int("userId").notNull(),
   lastReadMessageId: int("lastReadMessageId"),
+  unreadCount: int("unreadCount").default(0).notNull(),
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("conversation_participants_unique").on(table.conversationId, table.userId),

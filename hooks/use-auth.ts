@@ -1,6 +1,6 @@
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 
 type UseAuthOptions = {
@@ -12,11 +12,12 @@ export function useAuth(options?: UseAuthOptions) {
   const [user, setUser] = useState<Auth.User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchUser = useCallback(async () => {
-    console.log("[useAuth] fetchUser called");
+    const showInitialLoader = !hasLoadedOnce.current;
     try {
-      setLoading(true);
+      if (showInitialLoader) setLoading(true);
       setError(null);
 
       const sessionToken = await Auth.getSessionToken();
@@ -41,8 +42,10 @@ export function useAuth(options?: UseAuthOptions) {
       setError(error);
       setUser(null);
     } finally {
-      setLoading(false);
-      console.log("[useAuth] fetchUser completed, loading:", false);
+      if (showInitialLoader) {
+        hasLoadedOnce.current = true;
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -63,25 +66,14 @@ export function useAuth(options?: UseAuthOptions) {
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 
   useEffect(() => {
-    console.log("[useAuth] useEffect triggered, autoFetch:", autoFetch, "platform:", Platform.OS);
     if (autoFetch) {
       fetchUser();
-      const timer = setInterval(fetchUser, 12000);
+      const timer = setInterval(fetchUser, 30000);
       return () => clearInterval(timer);
     } else {
-      console.log("[useAuth] autoFetch disabled, setting loading to false");
       setLoading(false);
     }
   }, [autoFetch, fetchUser]);
-
-  useEffect(() => {
-    console.log("[useAuth] State updated:", {
-      hasUser: !!user,
-      loading,
-      isAuthenticated,
-      error: error?.message,
-    });
-  }, [user, loading, isAuthenticated, error]);
 
   return {
     user,
