@@ -167,6 +167,16 @@ export async function updateProfile(userId: number, input: { username: string; d
   return getOrCreateProfile(userId);
 }
 
+export async function updateSecurityQuestion(userId: number, input: { securityQuestion: string; securityAnswer: string }) {
+  const db = await requireDb();
+  const profile = await getOrCreateProfile(userId);
+  await db.update(userProfiles).set({
+    securityQuestion: input.securityQuestion,
+    securityAnswerHash: hashSecret(input.securityAnswer),
+  }).where(eq(userProfiles.id, profile.id));
+  return { updated: true } as const;
+}
+
 export async function searchProfiles(currentUserId: number, query: string) {
   const db = await requireDb();
   const clean = query.trim();

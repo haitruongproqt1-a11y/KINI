@@ -59,6 +59,10 @@ export const appRouter = router({
       securityQuestion: z.string().trim().max(255).optional(),
       securityAnswerHash: z.string().max(255).optional(),
     })).mutation(({ ctx, input }) => db.updateProfile(ctx.user.id, input)),
+    updateSecurity: protectedProcedure.input(z.object({
+      securityQuestion: z.string().refine(isSecurityQuestionId, "Câu hỏi bảo mật không hợp lệ."),
+      securityAnswer: z.string().trim().min(2, "Câu trả lời cần ít nhất 2 ký tự.").max(255),
+    })).mutation(({ ctx, input }) => db.updateSecurityQuestion(ctx.user.id, input)),
   }),
   friends: router({
     search: protectedProcedure.input(z.object({ query: z.string().trim().max(64) })).query(({ ctx, input }) => db.searchProfiles(ctx.user.id, input.query)),

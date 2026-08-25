@@ -31,9 +31,9 @@
 - [x] Loại bỏ trạng thái treo và bổ sung phản hồi khi đăng ký/đăng nhập thất bại
 - [x] Mở rộng danh mục câu hỏi bảo mật cho đăng ký và khôi phục mật khẩu
 - [x] Kiểm thử hồi quy luồng tạo tài khoản, đăng nhập và đặt lại mật khẩu
-- [ ] Thêm mục thay đổi câu hỏi và câu trả lời bảo mật trong hồ sơ cá nhân
-- [ ] Lưu thay đổi bảo mật qua API và xác nhận kết quả rõ ràng
-- [ ] Kiểm thử luồng cập nhật câu hỏi bảo mật và tạo phiên bản bàn giao
+- [x] Thêm mục thay đổi câu hỏi và câu trả lời bảo mật trong hồ sơ cá nhân
+- [x] Lưu thay đổi bảo mật qua API và xác nhận kết quả rõ ràng
+- [x] Kiểm thử luồng cập nhật câu hỏi bảo mật và tạo phiên bản bàn giao
 
 _ Ghi chú: Các hạng mục trên thuộc nâng cấp hồ sơ bảo mật được yêu cầu sau phiên bản bdb56a77.
 
