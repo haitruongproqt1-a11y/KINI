@@ -69,3 +69,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Chuẩn bị cấu hình APK Android cài trực tiếp và kiểm tra build
 - [x] Viết hướng dẫn GitHub để tải source, lịch sử checkpoint và APK phiên bản Android
 - [x] Lưu checkpoint cấu hình Android-first và đồng bộ GitHub
+
+- [x] Chuẩn bị hướng dẫn build APK KINI trực tiếp trên máy cá nhân
+- [x] Ghi tài liệu local build Android và cài đặt APK không dùng cloud
