@@ -41,7 +41,8 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.8.2",
-  platforms: ["android"],
+  // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
+  platforms: ["android", "web"],
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,

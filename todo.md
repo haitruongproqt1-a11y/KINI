@@ -89,3 +89,7 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Hiển thị phiên bản đang dùng trong phần Cá nhân của ứng dụng
 - [x] Viết quy ước tăng phiên bản và tạo tag/release GitHub cho mỗi lần chỉnh sửa
 - [x] Kiểm tra, lưu checkpoint và đồng bộ phiên bản KINI mới
+
+- [x] Khoanh vùng và sửa lỗi preview hiển thị JSON Expo thay vì giao diện KINI
+- [x] Xác nhận preview KINI hiển thị đúng sau khi khởi động lại
+- [x] Lưu checkpoint bản sửa preview KINI
