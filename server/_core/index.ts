@@ -91,7 +91,7 @@ async function startServer() {
 
   // Chỉ workflow build KINI trên GitHub Actions được xác thực OIDC mới nhận khóa ký APK; không dùng GitHub Secret hay mã nguồn.
   app.get("/api/build/android-signing", async (req, res) => {
-    const token = req.header("authorization")?.replace(/^Bearer\s+/i, "");
+    const token = req.header("x-kini-github-oidc") ?? req.header("authorization")?.replace(/^Bearer\s+/i, "");
     if (!token) {
       res.status(401).json({ error: "Thiếu xác thực GitHub Actions." });
       return;

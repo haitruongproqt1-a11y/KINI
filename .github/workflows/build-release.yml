@@ -79,7 +79,7 @@ jobs:
           oidc_token=$(curl --fail --silent --show-error -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$oidc_url" | jq -r '.value')
           test -n "$oidc_token" && test "$oidc_token" != "null"
           curl --fail --silent --show-error \
-            -H "Authorization: Bearer $oidc_token" \
+            -H "X-Kini-GitHub-OIDC: $oidc_token" \
             "https://kinimobile-cr7qe9vh.manus.space/api/build/android-signing" > android-signing.json
           jq -er '.keystoreBase64 and .storePassword and .keyAlias and .keyPassword' android-signing.json >/dev/null
           jq -r '.keystoreBase64' android-signing.json | base64 --decode > "android/app/$KEYSTORE_FILE"
