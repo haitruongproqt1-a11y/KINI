@@ -191,12 +191,12 @@ async function startServer() {
   // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
   app.get("/api/update/latest", (_req, res) => {
     res.json({
-      releaseCode: "v1.7",
-      appVersion: "1.8.10",
-      buildNumber: 10,
-      notes: "Sửa gọi hai chiều: phân biệt đúng người gọi/người nhận, ICE/ontrack truyền stream hai phía, chia sẻ màn hình tách khỏi camera với preview nhỏ, và lịch sử gọi được đặt sau tin nhắn.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.7",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.7/KINI-Release-v1.7.apk",
+      releaseCode: "v1.8",
+      appVersion: "1.8.11",
+      buildNumber: 11,
+      notes: "Cuộc gọi dùng TURN credential ngắn hạn thay relay công khai; bổ sung quyền micro/camera rõ ràng, hàng rào RTCView và cleanup/candidate/ICE an toàn để hạn chế lỗi thoát Android. Hãy kiểm thử cuộc gọi trên hai thiết bị sau khi cập nhật.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.8",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.8/KINI-Release-v1.8.apk",
     });
   });
 

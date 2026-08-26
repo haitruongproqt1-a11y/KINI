@@ -169,4 +169,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Chuyển peer WebRTC sang TURN động, kiểm thử provider trả relay có username/credential hợp lệ
 - [x] Bổ sung hàng rào quyền micro/camera, RTCView, cleanup stream/peer, candidate và audio route để giảm crash Android
 - [ ] Kiểm thử cuộc gọi thoại/video và chia sẻ màn hình giữa hai Android trên Wi-Fi và 4G sau APK Build 11
-- [ ] Build, ký APK, tạo GitHub Release v1.8 và cập nhật feed KINI 1.8.11 · Build 11
+- [x] Build, ký APK, tạo GitHub Release v1.8 và cập nhật feed KINI 1.8.11 · Build 11
