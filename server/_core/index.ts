@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { storagePut } from "../storage";
 import { appRouter } from "../routers";
+import * as db from "../db";
 import { sdk } from "./sdk";
 import crypto from "node:crypto";
 import { createContext } from "./context";
@@ -84,8 +85,9 @@ async function startServer() {
     }
   });
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now() });
+  app.get("/api/health", async (_req, res) => {
+    const database = await db.isDatabaseReady();
+    res.status(database ? 200 : 503).json({ ok: database, database, timestamp: Date.now() });
   });
 
   app.use(

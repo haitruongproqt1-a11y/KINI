@@ -20,6 +20,7 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 const profileColors = ["#1677FF", "#6956E8", "#00A889", "#FF7A8A", "#D86FCA", "#F5A524"];
 const receiptRank = { sent: 1, delivered: 2, read: 3 } as const;
+const transientDatabaseCodes = new Set(["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "PROTOCOL_CONNECTION_LOST", "ER_CON_COUNT_ERROR"]);
 
 function normalizeSecret(value: string) {
   return value.trim().toLocaleLowerCase("vi-VN");
@@ -39,6 +40,24 @@ function verifySecret(value: string, stored: string | null) {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
+function normalizeUsername(username: string) {
+  return username.trim().toLocaleLowerCase("en-US");
+}
+
+function databaseErrorCode(error: unknown) {
+  return String((error as { code?: unknown } | null)?.code ?? "");
+}
+
+async function retryTransientDatabaseOperation<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!transientDatabaseCodes.has(databaseErrorCode(error))) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    return operation();
+  }
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -55,6 +74,17 @@ async function requireDb() {
   const db = await getDb();
   if (!db) throw new Error("Cơ sở dữ liệu KINI hiện chưa sẵn sàng.");
   return db;
+}
+
+export async function isDatabaseReady() {
+  try {
+    const db = await requireDb();
+    await db.select({ id: users.id }).from(users).limit(1);
+    return true;
+  } catch (error) {
+    console.warn("[Database] Health check failed:", error);
+    return false;
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -86,20 +116,31 @@ export async function getUserByOpenId(openId: string) {
 
 export async function createKiniPasswordAccount(input: { username: string; password: string; displayName: string; securityQuestion: string; securityAnswer: string }) {
   const db = await requireDb();
-  const existing = await db.select().from(userProfiles).where(eq(userProfiles.username, input.username)).limit(1);
-  if (existing[0]) throw new Error("Tên đăng nhập KINI đã được sử dụng.");
-  const openId = `kini_${randomUUID()}`;
-  const insertedUser = await db.insert(users).values({ openId, name: input.displayName, loginMethod: "kini_password", lastSignedIn: new Date() });
-  const userId = Number(insertedUser[0].insertId);
-  await db.insert(userProfiles).values({ userId, username: input.username, displayName: input.displayName, avatarColor: profileColors[userId % profileColors.length], passwordHash: hashSecret(input.password), securityQuestion: input.securityQuestion, securityAnswerHash: hashSecret(input.securityAnswer), authKind: "kini_password", passwordUpdatedAt: new Date() });
-  const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
-  if (!user) throw new Error("Không thể tạo tài khoản KINI.");
-  return user;
+  const username = normalizeUsername(input.username);
+  return retryTransientDatabaseOperation(async () => {
+    const existing = await db.select().from(userProfiles).where(eq(userProfiles.username, username)).limit(1);
+    if (existing[0]) throw new Error("Tên đăng nhập KINI đã được sử dụng.");
+
+    const openId = `kini_${randomUUID()}`;
+    let userId: number | null = null;
+    try {
+      const insertedUser = await db.insert(users).values({ openId, name: input.displayName, loginMethod: "kini_password", lastSignedIn: new Date() });
+      userId = Number(insertedUser[0].insertId);
+      await db.insert(userProfiles).values({ userId, username, displayName: input.displayName, avatarColor: profileColors[userId % profileColors.length], passwordHash: hashSecret(input.password), securityQuestion: input.securityQuestion, securityAnswerHash: hashSecret(input.securityAnswer), authKind: "kini_password", passwordUpdatedAt: new Date() });
+      const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+      if (!user) throw new Error("Không thể hoàn tất tạo tài khoản KINI.");
+      return user;
+    } catch (error) {
+      if (userId !== null) await db.delete(users).where(eq(users.id, userId)).catch(() => undefined);
+      if (databaseErrorCode(error) === "ER_DUP_ENTRY") throw new Error("Tên đăng nhập KINI đã được sử dụng.");
+      throw error;
+    }
+  });
 }
 
 export async function authenticateKiniPassword(username: string, password: string) {
   const db = await requireDb();
-  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, username)).limit(1))[0];
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, normalizeUsername(username))).limit(1))[0];
   if (!profile || profile.authKind !== "kini_password" || !verifySecret(password, profile.passwordHash)) return null;
   const user = (await db.select().from(users).where(eq(users.id, profile.userId)).limit(1))[0];
   if (!user) return null;
@@ -109,14 +150,14 @@ export async function authenticateKiniPassword(username: string, password: strin
 
 export async function getKiniRecoveryQuestion(username: string) {
   const db = await requireDb();
-  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, username)).limit(1))[0];
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, normalizeUsername(username))).limit(1))[0];
   if (!profile || profile.authKind !== "kini_password" || !profile.securityQuestion) return null;
   return { username: profile.username, securityQuestion: profile.securityQuestion };
 }
 
 export async function resetKiniPassword(input: { username: string; answer: string; nextPassword: string }) {
   const db = await requireDb();
-  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, input.username)).limit(1))[0];
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.username, normalizeUsername(input.username))).limit(1))[0];
   if (!profile || profile.authKind !== "kini_password" || !verifySecret(input.answer, profile.securityAnswerHash)) return false;
   await db.update(userProfiles).set({ passwordHash: hashSecret(input.nextPassword), passwordUpdatedAt: new Date() }).where(eq(userProfiles.id, profile.id));
   return true;

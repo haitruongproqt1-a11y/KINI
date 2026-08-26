@@ -30,10 +30,11 @@ export function KiniPasswordAuth({ onSessionReady }: { onSessionReady: () => Pro
   const recovery = recoveryQuery.data;
   const withTimeout = async <T,>(request: Promise<T>) => Promise.race<T>([request, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Kết nối đang chậm. Vui lòng kiểm tra mạng và thử lại.")), 15000))]);
   const readableError = (error: unknown, fallback: string) => {
-    const message = error instanceof Error ? error.message : "";
+    const message = error instanceof Error ? error.message : typeof (error as { message?: unknown } | null)?.message === "string" ? String((error as { message: string }).message) : "";
     if (/tên đăng nhập hoặc mật khẩu|username|password/i.test(message)) return "Tên đăng nhập hoặc mật khẩu không đúng.";
     if (/đã được sử dụng|already/i.test(message)) return "Tên đăng nhập này đã được sử dụng. Hãy chọn tên khác.";
     if (/mật khẩu cần|câu trả lời|tên tài khoản|tên người dùng/i.test(message)) return message;
+    if (/cơ sở dữ liệu|network|fetch|timeout|kết nối|ECONN/i.test(message)) return "Máy chủ KINI đang kết nối lại. Hãy kiểm tra mạng và thử lại sau ít giây.";
     return fallback;
   };
   const completeSession = async (result: { sessionToken: string; user: any }) => { await completeKiniSession(result); await onSessionReady(); router.replace("/(tabs)" as never); };

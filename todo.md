@@ -95,3 +95,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Lưu checkpoint bản sửa preview KINI
 
 - [x] Tăng số phát hành KINI cho bản sửa preview
+
+- [x] Khoanh vùng lỗi đăng ký và bổ sung phản hồi lỗi đáng tin cậy
+- [x] Tăng cường độ bền xác thực và giám sát trạng thái server
+- [x] Xóa sạch toàn bộ dữ liệu tài khoản và dữ liệu liên quan theo yêu cầu
+- [ ] Xác nhận luồng đăng ký/đăng nhập mới sau khi làm sạch dữ liệu
+- [ ] Chuẩn bị GitHub Release v1.8.3 với APK đúng version/build
+- [ ] Kiểm thử hồi quy, lưu checkpoint và đồng bộ GitHub
