@@ -90,6 +90,18 @@ async function startServer() {
     res.status(database ? 200 : 503).json({ ok: database, database, timestamp: Date.now() });
   });
 
+  // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
+  app.get("/api/update/latest", (_req, res) => {
+    res.json({
+      releaseCode: "v1.1",
+      appVersion: "1.0.1",
+      buildNumber: 1,
+      notes: "APK hiện có trên GitHub Release. Bản tiếp theo sẽ gồm sửa kết nối API Android, cập nhật và safe area.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.1",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.1/KINI-Release-v1.1.apk",
+    });
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({

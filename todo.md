@@ -99,9 +99,16 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khoanh vùng lỗi đăng ký và bổ sung phản hồi lỗi đáng tin cậy
 - [x] Tăng cường độ bền xác thực và giám sát trạng thái server
 - [x] Xóa sạch toàn bộ dữ liệu tài khoản và dữ liệu liên quan theo yêu cầu
-- [ ] Xác nhận luồng đăng ký/đăng nhập mới sau khi làm sạch dữ liệu
+- [x] Xác nhận luồng đăng ký/đăng nhập mới sau khi làm sạch dữ liệu
 - [x] Chuẩn bị GitHub Release v1.8.3 với APK đúng version/build (quy ước mới: GitHub Release v1.1)
-- [ ] Kiểm thử hồi quy, lưu checkpoint và đồng bộ GitHub
+- [x] Kiểm thử hồi quy, lưu checkpoint và đồng bộ GitHub
 
 - [x] Tách mã GitHub Release khỏi version ứng dụng KINI
 - [x] Tạo GitHub Release v1.1 cho bản KINI hiện tại
+
+- [x] Khoanh vùng và sửa URL API xác thực trong APK Android
+- [x] Bổ sung thông báo cập nhật từ GitHub Release và tải APK trong ứng dụng
+- [x] Chỉnh safe area trên/dưới cho màn hình xác thực và khung ứng dụng Android
+- [x] Kiểm thử đăng ký/đăng nhập, cập nhật và bố cục Android
+- [x] Lưu checkpoint và đồng bộ GitHub bản sửa kết nối/cập nhật
+- [x] Tăng KINI lên phiên bản và Android Build mới cho bản sửa này
