@@ -9,7 +9,7 @@ import { CallControls } from "./CallControls";
 export function VoiceCall({ call, title, initials, color }: { call: any; title: string; initials: string; color: string }) {
   const insets = useSafeAreaInsets();
   const visible = call.mode === "voice" && call.status !== "idle";
-  const incoming = call.status === "ringing";
+  const incoming = call.status === "ringing" && call.direction === "incoming";
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={call.endCall}>
     <View style={[styles.screen, { paddingTop: insets.top + 32, paddingBottom: Math.max(insets.bottom, 20) }]}>
       <Avatar initials={initials} color={color} size={94} />

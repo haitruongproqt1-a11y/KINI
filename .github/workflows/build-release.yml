@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.9
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.10
         required: true
-        default: v1.8.9
+        default: v1.8.10
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.6
+        description: Mã GitHub Release nhận APK, ví dụ v1.7
         required: true
-        default: v1.6
+        default: v1.7
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.9 · Build 9. Sửa lỗi undefined is not a function khi tạo cuộc gọi, signaling toàn cục để người nhận đang mở KINI có màn hình cuộc gọi đến, nhạc chuông/nhạc chờ, đồng hồ thời lượng, ping và lịch sử cuộc gọi nhỡ/đã nghe/từ chối."
+              --notes "KINI 1.8.10 · Build 10. Sửa vai trò người gọi/người nhận, luồng ICE/ontrack hai chiều, tách stream chia sẻ màn hình khỏi camera để người nhận thấy màn hình lớn và preview camera; lịch sử gọi chuyển xuống sau tin nhắn."
           fi

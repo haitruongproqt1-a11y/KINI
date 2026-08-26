@@ -335,7 +335,8 @@ export default function ChatScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         onContentSizeChange={scrollToLatest}
-        ListHeaderComponent={<View><Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text><CallHistory calls={(callsQuery.data ?? []) as CallLog[]} /></View>}
+        ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
+        ListFooterComponent={<CallHistory calls={(callsQuery.data ?? []) as CallLog[]} />}
       />
       <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>

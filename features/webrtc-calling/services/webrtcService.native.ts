@@ -32,7 +32,7 @@ function setSpeakerRoute(enabled: boolean) {
 }
 
 export function createPeerConnection() {
-  return new RTCPeerConnection({ iceServers: [...ICE_SERVERS] });
+  return new RTCPeerConnection({ iceServers: [...ICE_SERVERS], bundlePolicy: "max-bundle", rtcpMuxPolicy: "require", iceTransportPolicy: "all" });
 }
 
 export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {

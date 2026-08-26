@@ -154,3 +154,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bổ sung nhạc chuông cuộc gọi đến, nhạc chờ người nhận và cơ chế dừng âm thanh đúng lúc
 - [x] Hiển thị thời lượng theo giây và độ trễ ping kết nối WebRTC trên màn hình gọi
 - [ ] Kiểm thử hai tài khoản Android và tự phát hành APK sửa lỗi cuộc gọi
+
+- [x] Sửa vai trò người gọi/người nhận hiển thị đúng ở hai thiết bị
+- [x] Sửa ICE/SDP và stream để gọi thoại/video truyền hai chiều thực tế
+- [x] Hiển thị camera nhỏ khi chia sẻ màn hình, hoặc chỉ màn hình khi camera tắt
+- [x] Chuyển lịch sử gọi từ đầu chat về đúng vị trí theo dòng thời gian
+- [ ] Kiểm thử hai Android và tự phát hành APK sửa media WebRTC

@@ -14,6 +14,8 @@ type SignalPayload = {
   candidate?: unknown;
   outcome?: unknown;
   pingMs?: unknown;
+  renegotiate?: unknown;
+  screenSharing?: unknown;
 };
 
 function readBaseSignal(payload: SignalPayload) {
@@ -93,6 +95,13 @@ export function registerCallSignaling(httpServer: HttpServer) {
         try {
           const { callId, conversationId } = readBaseSignal(payload);
           const description = requireDescription(payload, "offer");
+          if (payload.renegotiate === true) {
+            const peers = await db.getDirectConversationPeerUserIds(userId, conversationId);
+            for (const peerUserId of peers) {
+              io.to(`kini-user:${peerUserId}`).emit("call:offer", { callId, conversationId, fromUserId: userId, mode, description, renegotiate: true, ...(typeof payload.screenSharing === "boolean" ? { screenSharing: payload.screenSharing } : {}) });
+            }
+            return;
+          }
           const created = await db.createCallSession({ id: callId, callerId: userId, conversationId, mode });
           io.to(`kini-user:${created.calleeId}`).emit("call:offer", { callId, conversationId, fromUserId: userId, mode, description, caller: created.caller });
           void sendIncomingCallPush({ recipientUserId: created.calleeId, callerName: created.caller.title, conversationId, callId, mode });
@@ -105,8 +114,8 @@ export function registerCallSignaling(httpServer: HttpServer) {
       void (async () => {
         try {
           const { callId } = readBaseSignal(payload);
-          await db.markCallAnswered(userId, callId);
-          await relay("call:answer", payload, { description: requireDescription(payload, "answer") });
+          if (payload.renegotiate !== true) await db.markCallAnswered(userId, callId);
+          await relay("call:answer", payload, { description: requireDescription(payload, "answer"), ...(payload.renegotiate === true ? { renegotiate: true } : {}) });
         } catch (error) {
           socket.emit("call:error", error instanceof Error ? error.message : "Không thể nhận kết nối cuộc gọi.");
         }

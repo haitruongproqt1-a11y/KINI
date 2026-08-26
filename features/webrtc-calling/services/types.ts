@@ -24,4 +24,6 @@ export type CallSignal = {
   caller?: CallPeer;
   outcome?: "declined" | "cancelled" | "ended" | "failed";
   pingMs?: number;
+  renegotiate?: boolean;
+  screenSharing?: boolean;
 };

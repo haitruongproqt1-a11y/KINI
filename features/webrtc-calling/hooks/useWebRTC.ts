@@ -38,7 +38,9 @@ type WebRTCState = {
   error: string | null;
   incoming: IncomingCall | null;
   localStream: NativeStream | null;
+  screenStream: NativeStream | null;
   remoteStream: NativeStream | null;
+  remoteScreenStream: NativeStream | null;
   muted: boolean;
   cameraEnabled: boolean;
   speakerEnabled: boolean;
@@ -49,7 +51,7 @@ type WebRTCState = {
 
 const initialState: WebRTCState = {
   status: "idle", mode: null, direction: null, conversationId: null, peer: null, error: null, incoming: null,
-  localStream: null, remoteStream: null, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null,
+  localStream: null, screenStream: null, remoteStream: null, remoteScreenStream: null, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null,
 };
 
 /** Quản lý một cuộc gọi KINI toàn cục để cuộc gọi đến hiện trên mọi màn hình khi ứng dụng đang mở. */
@@ -62,6 +64,7 @@ export function useWebRTC(enabled = true) {
   const conversationIdRef = useRef<number | null>(null);
   const pendingCandidatesRef = useRef<CallSignal[]>([]);
   const screenStreamRef = useRef<NativeStream | null>(null);
+  const screenSenderRef = useRef<any>(null);
   const incomingRef = useRef<IncomingCall | null>(null);
   const pingRef = useRef<number | null>(null);
 
@@ -70,6 +73,7 @@ export function useWebRTC(enabled = true) {
     peerRef.current = null;
     stopStream(screenStreamRef.current);
     screenStreamRef.current = null;
+    screenSenderRef.current = null;
     setState((current) => {
       stopStream(current.localStream);
       stopInCall();
@@ -98,12 +102,22 @@ export function useWebRTC(enabled = true) {
     };
     peerEvents.ontrack = (event: any) => {
       const remote = event.streams?.[0];
-      if (remote) setState((current) => ({ ...current, remoteStream: remote }));
+      if (!remote) return;
+      setState((current) => {
+        const secondVideoStream = event.track?.kind === "video" && current.remoteStream && current.remoteStream.id !== remote.id;
+        return secondVideoStream ? { ...current, remoteScreenStream: remote } : { ...current, remoteStream: current.remoteStream ?? remote };
+      });
+      if (event.track?.kind === "video") event.track.onended = () => setState((current) => current.remoteScreenStream?.id === remote.id ? { ...current, remoteScreenStream: null } : current);
     };
     peerEvents.onconnectionstatechange = () => {
       const connectionState = peer.connectionState;
       if (connectionState === "connected") setState((current) => ({ ...current, status: "connected", error: null }));
       if (connectionState === "failed" || connectionState === "disconnected") setState((current) => ({ ...current, status: "error", error: "Kết nối cuộc gọi bị gián đoạn." }));
+    };
+    peerEvents.oniceconnectionstatechange = () => {
+      const iceState = peer.iceConnectionState;
+      if (iceState === "connected" || iceState === "completed") setState((current) => ({ ...current, status: "connected", error: null }));
+      if (iceState === "failed") setState((current) => ({ ...current, status: "error", error: "ICE không tạo được đường truyền media. Hãy thử lại trên mạng khác." }));
     };
     return peer;
   }, []);
@@ -115,6 +129,23 @@ export function useWebRTC(enabled = true) {
         const mode = signal.mode;
         const description = signal.description;
         if (signal.conversationId <= 0 || !description || !mode) return;
+        if (signal.renegotiate && signal.callId === callIdRef.current && peerRef.current) {
+          void (async () => {
+            try {
+              const peer = peerRef.current;
+              if (!peer) return;
+              await peer.setRemoteDescription(toDescription(description));
+              await addQueuedCandidates();
+              const answer = await peer.createAnswer();
+              await peer.setLocalDescription(answer);
+              signalRef.current?.emitAnswer({ callId: signal.callId, conversationId: signal.conversationId, description: descriptionPayload(answer, "answer"), renegotiate: true });
+              if (signal.screenSharing === false) setState((current) => ({ ...current, remoteScreenStream: null }));
+            } catch (error) {
+              setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể cập nhật media cuộc gọi." }));
+            }
+          })();
+          return;
+        }
         const incoming: IncomingCall = { callId: signal.callId, conversationId: signal.conversationId, mode, fromUserId: signal.fromUserId, description, caller: signal.caller };
         if (callIdRef.current || incomingRef.current) return;
         callIdRef.current = signal.callId;
@@ -149,6 +180,17 @@ export function useWebRTC(enabled = true) {
     });
     return signalPromiseRef.current;
   }, [addQueuedCandidates, cleanup]);
+
+  const renegotiate = useCallback(async (screenSharing: boolean) => {
+    const peer = peerRef.current;
+    const callId = callIdRef.current;
+    const conversationId = conversationIdRef.current;
+    if (!peer || !callId || !conversationId || peer.signalingState !== "stable") return;
+    const signal = await ensureSignal();
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    signal.emitOffer({ callId, conversationId, mode: state.mode ?? "video", description: descriptionPayload(offer, "offer"), renegotiate: true, screenSharing });
+  }, [ensureSignal, state.mode]);
 
   const startCall = useCallback(async (conversationId: number, mode: CallMode, peerInfo: CallPeer) => {
     try {
@@ -202,29 +244,29 @@ export function useWebRTC(enabled = true) {
   const toggleSpeaker = useCallback(() => setState((current) => { const speakerEnabled = !current.speakerEnabled; setSpeakerEnabledOnDevice(speakerEnabled); return { ...current, speakerEnabled }; }), []);
   const switchCamera = useCallback(() => switchCameraOnStream(state.localStream), [state.localStream]);
   const stopScreenShare = useCallback(async () => {
-    const cameraTrack = state.localStream?.getVideoTracks()[0];
-    const sender = peerRef.current?.getSenders().find((item: any) => item.track?.kind === "video");
-    if (sender && cameraTrack) await sender.replaceTrack(cameraTrack);
+    if (screenSenderRef.current && peerRef.current) peerRef.current.removeTrack(screenSenderRef.current);
+    screenSenderRef.current = null;
     stopStream(screenStreamRef.current);
     screenStreamRef.current = null;
-    setState((current) => ({ ...current, isScreenSharing: false }));
-  }, [state.localStream]);
+    setState((current) => ({ ...current, isScreenSharing: false, screenStream: null }));
+    await renegotiate(false);
+  }, [renegotiate]);
   const toggleScreenShare = useCallback(async () => {
     if (state.isScreenSharing) return stopScreenShare();
     if (state.mode !== "video" || !peerRef.current) return setState((current) => ({ ...current, error: "Chia sẻ màn hình chỉ khả dụng trong cuộc gọi video đang kết nối." }));
     try {
       const screen = await createDisplayMedia();
       const screenTrack = screen.getVideoTracks()[0];
-      const sender = peerRef.current.getSenders().find((item: any) => item.track?.kind === "video");
-      if (!screenTrack || !sender) throw new Error("Không tìm thấy luồng video để chia sẻ màn hình.");
-      await sender.replaceTrack(screenTrack);
+      if (!screenTrack) throw new Error("Không tìm thấy luồng video để chia sẻ màn hình.");
+      screenSenderRef.current = peerRef.current.addTrack(screenTrack, screen);
       (screenTrack as any).onended = () => { void stopScreenShare(); };
       screenStreamRef.current = screen;
-      setState((current) => ({ ...current, isScreenSharing: true }));
+      setState((current) => ({ ...current, isScreenSharing: true, screenStream: screen }));
+      await renegotiate(true);
     } catch (error) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể chia sẻ màn hình." }));
     }
-  }, [state.isScreenSharing, state.mode, stopScreenShare]);
+  }, [renegotiate, state.isScreenSharing, state.mode, stopScreenShare]);
 
   useEffect(() => {
     if (state.status !== "connected") return;
