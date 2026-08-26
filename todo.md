@@ -122,4 +122,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Hiển thị vòng tròn tiến trình upload ngay giữa ảnh hoặc video đang gửi
 - [x] Sửa vùng soạn tin nhắn tránh bàn phím và thanh điều hướng Android, tự cuộn tới ô nhập khi gõ
 - [x] Đưa kiểm tra phiên bản mới và nút tải/cập nhật APK GitHub vào mục Cá nhân
-- [ ] Tăng version/build, kiểm thử hồi quy và chuẩn bị tag nguồn cho bản sửa mới
+- [x] Tăng version/build, kiểm thử hồi quy và chuẩn bị tag nguồn cho bản sửa mới
