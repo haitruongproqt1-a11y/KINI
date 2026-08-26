@@ -193,8 +193,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [ ] Kiểm thử hồi quy push, avatar, nearby và gọi thoại/video trên hai Android thật
 - [x] Tăng phiên bản KINI và lưu checkpoint phát hành sau đợt nâng cấp realtime/thông báo
 
-- [ ] Tối ưu lifecycle chạy nền và giảm polling/tiêu hao pin trên Android
-- [ ] Thêm nút Trả lời và Từ chối nhanh cho thông báo cuộc gọi trên màn hình khóa
-- [ ] Hiển thị tiến trình phần trăm khi tải bản cập nhật trong ứng dụng
-- [ ] Tự động cài đặt APK sau khi tải, trong giới hạn quyền bảo mật Android
-- [ ] Kiểm thử và chạy GitHub Actions tạo bản phát hành mới
+- [x] Tối ưu lifecycle chạy nền và giảm polling/tiêu hao pin trên Android
+- [x] Thêm nút Trả lời và Từ chối nhanh cho thông báo cuộc gọi trên màn hình khóa
+- [x] Hiển thị tiến trình phần trăm khi tải bản cập nhật trong ứng dụng
+- [x] Tải APK trực tiếp và tự mở trình cài đặt Android sau khi hoàn tất; hệ điều hành vẫn có thể yêu cầu xác nhận
+- [x] Kiểm thử và chạy GitHub Actions tạo bản phát hành mới
