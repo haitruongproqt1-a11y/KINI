@@ -61,7 +61,7 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
     const denied = Object.values(permissions).some((result) => result !== PermissionsAndroid.RESULTS.GRANTED);
     if (denied) throw new Error(mode === "video" ? "KINI cần quyền micro và camera để gọi video." : "KINI cần quyền micro để gọi thoại.");
   }
-  try { await configureCallAudio(mode === "video", mode); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
+  try { await configureCallAudio(true, mode); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
   const stream = await mediaDevices.getUserMedia({
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,

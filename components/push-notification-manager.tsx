@@ -48,12 +48,12 @@ export function PushNotificationManager() {
   useEffect(() => {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {
-      const data = response.notification.request.content.data as { conversationId?: string | number; type?: string } | undefined;
+      const data = response.notification.request.content.data as { conversationId?: string | number; callId?: string; type?: string } | undefined;
       const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
       if (data?.type === "incoming_call") {
-        if (response.actionIdentifier === "ANSWER_CALL" && call.direction === "incoming" && call.conversationId === Number(conversationId)) void call.acceptIncomingCall();
-        if (response.actionIdentifier === "DECLINE_CALL" && call.direction === "incoming" && call.conversationId === Number(conversationId)) call.declineIncomingCall();
+        if (response.actionIdentifier === "ANSWER_CALL" && data.callId) call.handleIncomingNotificationAction(data.callId, "answer");
+        if (response.actionIdentifier === "DECLINE_CALL" && data.callId) call.handleIncomingNotificationAction(data.callId, "decline");
       }
       if (conversationId && response.actionIdentifier !== "ANSWER_CALL" && response.actionIdentifier !== "DECLINE_CALL") router.push(`/chat/${conversationId}` as never);
     };

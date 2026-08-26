@@ -16,7 +16,7 @@ function callStatus(call: any, incoming: boolean) {
   return call.error ?? "Cuộc gọi đã kết thúc";
 }
 
-export function VideoCall({ call, title, initials, color }: { call: any; title: string; initials: string; color: string }) {
+export function VideoCall({ call, title, initials, color, avatarUrl }: { call: any; title: string; initials: string; color: string; avatarUrl?: string | null }) {
   const insets = useSafeAreaInsets();
   const visible = call.mode === "video" && call.status !== "idle";
   const incoming = call.status === "ringing" && call.direction === "incoming";
@@ -28,9 +28,9 @@ export function VideoCall({ call, title, initials, color }: { call: any; title: 
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
       <RtcVideo stream={primaryStream} objectFit={isScreenActive ? "contain" : "cover"} style={styles.remote} />
       <View pointerEvents="none" style={styles.shade} />
-      {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>Camera đang tắt</Text></View> : null}
+      {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>Camera của đối phương đang tắt</Text></View> : null}
       {previewStream ? <RtcVideo stream={previewStream} mirrored={previewMirrored} style={styles.local} /> : null}
-      {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}</View>}
+      {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}</View>}
       <View style={styles.bottom}>
         {incoming ? <><Text style={styles.actionHint}>Trả lời bằng video hoặc từ chối</Text><IncomingCallActions mode="video" onDecline={call.declineIncomingCall} onAccept={call.acceptIncomingCall} /></> : <><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.toggleCamera} onSwitchCamera={call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></>}
       </View>

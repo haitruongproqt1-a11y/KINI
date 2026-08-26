@@ -79,6 +79,7 @@ export function useWebRTC(enabled = true) {
   const renegotiatingRef = useRef(false);
   const pendingScreenSharingRef = useRef<boolean | null>(null);
   const renegotiationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingNotificationActionRef = useRef<{ callId: string; action: "answer" | "decline" } | null>(null);
 
   const cleanup = useCallback(() => {
     cleanupTokenRef.current += 1;
@@ -94,6 +95,7 @@ export function useWebRTC(enabled = true) {
     cameraSenderRef.current = null;
     remoteScreenSharingRef.current = false;
     pendingScreenSharingRef.current = null;
+    pendingNotificationActionRef.current = null;
     if (renegotiationTimerRef.current) clearTimeout(renegotiationTimerRef.current);
     renegotiationTimerRef.current = null;
     try {
@@ -274,7 +276,7 @@ export function useWebRTC(enabled = true) {
       const callId = newCallId();
       callIdRef.current = callId;
       conversationIdRef.current = conversationId;
-      setState({ ...initialState, status: "ringing", direction: "outgoing", mode, conversationId, peer: peerInfo, speakerEnabled: mode === "video" });
+      setState({ ...initialState, status: "ringing", direction: "outgoing", mode, conversationId, peer: peerInfo, speakerEnabled: true });
       const peer = await buildPeer(callId, conversationId);
       const localStream = await createLocalMedia(mode);
       localStream.getTracks().forEach((track: any) => {
@@ -332,6 +334,16 @@ export function useWebRTC(enabled = true) {
   }, [cleanup]);
 
   const declineIncomingCall = useCallback(() => void endCall("declined"), [endCall]);
+  const handleIncomingNotificationAction = useCallback((callId: string, action: "answer" | "decline") => {
+    const incoming = incomingRef.current;
+    if (incoming?.callId === callId) {
+      if (action === "answer") void acceptIncomingCall();
+      else void declineIncomingCall();
+      return;
+    }
+    pendingNotificationActionRef.current = { callId, action };
+    void ensureSignal().catch(() => undefined);
+  }, [acceptIncomingCall, declineIncomingCall, ensureSignal]);
   const toggleMute = useCallback(() => setState((current) => { const muted = !current.muted; setMutedOnStream(current.localStream, muted); return { ...current, muted }; }), []);
   const toggleCamera = useCallback(async () => {
     const localStream = localStreamRef.current;
@@ -412,6 +424,15 @@ export function useWebRTC(enabled = true) {
   }, [renegotiate, state.cameraEnabled, state.isScreenSharing, state.mode, state.status, stopScreenShare]);
 
   useEffect(() => {
+    const pending = pendingNotificationActionRef.current;
+    const incoming = incomingRef.current;
+    if (!pending || !incoming || pending.callId !== incoming.callId || state.status !== "ringing" || state.direction !== "incoming") return;
+    pendingNotificationActionRef.current = null;
+    if (pending.action === "answer") void acceptIncomingCall();
+    else void declineIncomingCall();
+  }, [acceptIncomingCall, declineIncomingCall, state.direction, state.status]);
+
+  useEffect(() => {
     if (state.status !== "connected") return;
     const connectedAt = Date.now();
     const updateDuration = () => setState((current) => current.status === "connected" ? { ...current, elapsedSeconds: Math.max(0, Math.floor((Date.now() - connectedAt) / 1000)) } : current);
@@ -455,5 +476,5 @@ export function useWebRTC(enabled = true) {
     };
   }, [cleanup, enabled, ensureSignal]);
 
-  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, endCall, toggleMute, toggleCamera, toggleSpeaker, switchCamera, toggleScreenShare, stopScreenShare };
+  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, handleIncomingNotificationAction, endCall, toggleMute, toggleCamera, toggleSpeaker, switchCamera, toggleScreenShare, stopScreenShare };
 }

@@ -14,7 +14,7 @@ function callStatus(call: any, incoming: boolean) {
   return call.error ?? "Cuộc gọi đã kết thúc";
 }
 
-export function VoiceCall({ call, title, initials, color }: { call: any; title: string; initials: string; color: string }) {
+export function VoiceCall({ call, title, initials, color, avatarUrl }: { call: any; title: string; initials: string; color: string; avatarUrl?: string | null }) {
   const insets = useSafeAreaInsets();
   const visible = call.mode === "voice" && call.status !== "idle";
   const incoming = call.status === "ringing" && call.direction === "incoming";
@@ -23,7 +23,7 @@ export function VoiceCall({ call, title, initials, color }: { call: any; title: 
       <View style={styles.orbOne} /><View style={styles.orbTwo} />
       <View style={styles.topBadge}><MaterialIcons name="lock" size={14} color="#BFD8F3" /><Text style={styles.topBadgeText}>Kết nối riêng tư KINI</Text></View>
       <View style={styles.identity}>
-        <View style={styles.avatarRing}><Avatar initials={initials} color={color} size={116} /></View>
+        <View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={116} /></View>
         <Text numberOfLines={1} style={styles.name}>{title}</Text>
         <Text style={styles.state}>{callStatus(call, incoming)}</Text>
         {call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={15} color="#85C9FF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}

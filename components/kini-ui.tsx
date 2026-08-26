@@ -21,7 +21,7 @@ export function Avatar({ initials, color, size = 48, imageUri }: { initials: str
   const showImage = Boolean(imageUri) && !imageFailed;
   return (
     <View style={[styles.avatar, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]}> 
-      {showImage ? <Image source={{ uri: imageUri! }} contentFit="cover" style={StyleSheet.absoluteFillObject} onError={() => setImageFailed(true)} /> : null}
+      {showImage ? <Image source={{ uri: imageUri! }} recyclingKey={imageUri!} cachePolicy="memory-disk" contentFit="cover" style={StyleSheet.absoluteFillObject} onError={() => setImageFailed(true)} /> : null}
       <Text style={[styles.avatarText, { fontSize: size * 0.33, opacity: showImage ? 0 : 1 }]}>{initials}</Text>
     </View>
   );

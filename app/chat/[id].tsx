@@ -208,13 +208,13 @@ export default function ChatScreen() {
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [pasteNonce, setPasteNonce] = useState(0);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 3500, staleTime: 750 });
+  const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 8000, refetchIntervalInBackground: false, staleTime: 1_500, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
   const directCallEnabled = isAuthenticated && conversation?.kind === "direct";
   const call = useKiniCall();
-  const messagesQuery = trpc.chat.messages.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 2500, staleTime: 750 });
-  const presenceQuery = trpc.chat.presence.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 30_000, staleTime: 5_000 });
-  const callsQuery = trpc.calls.list.useQuery({ conversationId }, { enabled: directCallEnabled && Number.isFinite(conversationId), refetchInterval: 12_000, staleTime: 2_500 });
+  const messagesQuery = trpc.chat.messages.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 5000, refetchIntervalInBackground: false, staleTime: 1_000, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
+  const presenceQuery = trpc.chat.presence.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 45_000, refetchIntervalInBackground: false, staleTime: 8_000, retry: 2 });
+  const callsQuery = trpc.calls.list.useQuery({ conversationId }, { enabled: directCallEnabled && Number.isFinite(conversationId), refetchInterval: 20_000, refetchIntervalInBackground: false, staleTime: 4_000, retry: 2 });
   const markRead = trpc.chat.markRead.useMutation({ onSuccess: () => { void utils.chat.list.invalidate(); void utils.notifications.summary.invalidate(); } });
   const send = trpc.chat.send.useMutation();
   const removeConversation = trpc.chat.delete.useMutation({
@@ -303,6 +303,7 @@ export default function ChatScreen() {
       title: conversation?.title ?? "Bạn KINI",
       initials: conversation?.initials ?? "K",
       color: conversation?.avatarColor ?? kiniColors.blue,
+      avatarUrl: conversation?.avatarUrl ?? null,
     });
   };
 
@@ -318,7 +319,7 @@ export default function ChatScreen() {
       <View style={{ paddingTop: insets.top }}>
         <View style={styles.header}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={styles.back}><MaterialIcons name="arrow-back" size={24} color={kiniColors.navy} /></TouchableOpacity>
-          <Avatar initials={conversation?.initials ?? "K"} color={conversation?.avatarColor ?? kiniColors.blue} size={38} />
+          <Avatar initials={conversation?.initials ?? "K"} color={conversation?.avatarColor ?? kiniColors.blue} imageUri={conversation?.avatarUrl} size={38} />
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle}>{conversation?.title ?? "Cuộc trò chuyện"}</Text>
             <Text style={[styles.headerStatus, { color: presenceQuery.data?.isOnline ? kiniColors.green : kiniColors.muted }]}>{headerPresence}</Text>

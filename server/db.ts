@@ -315,6 +315,7 @@ export async function getDirectCallPeer(userId: number, conversationId: number) 
     title,
     initials: title.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "K",
     color: profile?.avatarColor ?? "#1677FF",
+    avatarUrl: profile?.avatarUrl ?? null,
   };
 }
 
@@ -337,6 +338,7 @@ export async function createCallSession(input: { id: string; callerId: number; c
       title: callerTitle,
       initials: callerTitle.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "K",
       color: callerProfile?.avatarColor ?? "#1677FF",
+      avatarUrl: callerProfile?.avatarUrl ?? null,
     },
   };
 }
@@ -648,10 +650,10 @@ export async function listConversations(userId: number, filter: "all" | "unread"
   const memberships = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
   const ids = memberships.map((membership) => membership.conversationId);
   if (!ids.length) return [];
-  const [conversationRows, participantRows] = await Promise.all([
+  const [conversationRows, participantRows] = await retryTransientDatabaseOperation(() => Promise.all([
     db.select().from(conversations).where(inArray(conversations.id, ids)),
     db.select().from(conversationParticipants).where(inArray(conversationParticipants.conversationId, ids)),
-  ]);
+  ]));
   const otherUserIds = [...new Set(participantRows.filter((participant) => participant.userId !== userId).map((participant) => participant.userId))];
   const profiles = otherUserIds.length ? await db.select().from(userProfiles).where(inArray(userProfiles.userId, otherUserIds)) : [];
   const membershipByConversation = new Map(memberships.map((membership) => [membership.conversationId, membership]));
@@ -668,6 +670,7 @@ export async function listConversations(userId: number, filter: "all" | "unread"
       title: conversation.kind === "direct" ? otherProfile?.displayName ?? "Bạn KINI" : conversation.title ?? "Nhóm KINI",
       username: otherProfile?.username ?? null,
       avatarColor: otherProfile?.avatarColor ?? "#1677FF",
+      avatarUrl: otherProfile?.avatarUrl ?? null,
       initials: (otherProfile?.displayName ?? conversation.title ?? "K").slice(0, 2).toUpperCase(),
       preview: conversation.lastMessagePreview ?? "Bắt đầu cuộc trò chuyện",
       updatedAt: conversation.lastMessageAt,
@@ -682,7 +685,7 @@ export async function listConversations(userId: number, filter: "all" | "unread"
 export async function getConversationMessages(userId: number, conversationId: number) {
   const db = await requireDb();
   await assertParticipant(userId, conversationId);
-  const thread = await db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt).limit(200);
+  const thread = await retryTransientDatabaseOperation(() => db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt).limit(200));
   const incomingIds = thread.filter((item) => item.senderId !== userId).map((item) => item.id);
   if (incomingIds.length) await db.update(messageReceipts).set({ status: "delivered" }).where(and(inArray(messageReceipts.messageId, incomingIds), eq(messageReceipts.userId, userId), eq(messageReceipts.status, "sent")));
   const ownMessageIds = thread.filter((item) => item.senderId === userId).map((item) => item.id);

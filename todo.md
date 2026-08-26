@@ -198,3 +198,11 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Hiển thị tiến trình phần trăm khi tải bản cập nhật trong ứng dụng
 - [x] Tải APK trực tiếp và tự mở trình cài đặt Android sau khi hoàn tất; hệ điều hành vẫn có thể yêu cầu xác nhận
 - [x] Kiểm thử và chạy GitHub Actions tạo bản phát hành mới
+
+- [x] Sửa overlay cuộc gọi đến hiển thị ngay trong ứng dụng
+- [x] Khắc phục lỗi tải hội thoại không ổn định và bổ sung retry an toàn
+- [x] Tách trạng thái camera cục bộ/remote để một bên bật tắt không ảnh hưởng bên kia
+- [x] Khắc phục signaling và audio media cho gọi thoại 1:1
+- [x] Đồng bộ avatar đã đổi tới chat, call và nearby trên thiết bị khác
+- [x] Thêm tạm dừng/tiếp tục cho tiến trình tải APK cập nhật
+- [ ] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub

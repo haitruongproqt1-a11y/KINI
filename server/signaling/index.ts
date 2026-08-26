@@ -19,6 +19,9 @@ type SignalPayload = {
   cameraEnabled?: unknown;
 };
 
+type PendingOffer = { callId: string; conversationId: number; fromUserId: number; mode: "voice" | "video"; description: { type: "offer" | "answer"; sdp: string }; caller: unknown; expiresAt: number };
+const pendingOffersByCallee = new Map<number, PendingOffer>();
+
 function readBaseSignal(payload: SignalPayload) {
   const callId = typeof payload.callId === "string" && payload.callId.length <= 128 ? payload.callId : null;
   const conversationId = Number(payload.conversationId);
@@ -76,6 +79,11 @@ export function registerCallSignaling(httpServer: HttpServer) {
   io.on("connection", (socket) => {
     const userId = Number(socket.data.userId);
     socket.join(`kini-user:${userId}`);
+    const pendingOffer = pendingOffersByCallee.get(userId);
+    if (pendingOffer) {
+      if (pendingOffer.expiresAt > Date.now()) socket.emit("call:offer", pendingOffer);
+      else pendingOffersByCallee.delete(userId);
+    }
 
     const relay = async (event: "call:answer" | "call:candidate" | "call:media" | "call:end", payload: SignalPayload, extra: Record<string, unknown> = {}) => {
       try {
@@ -104,7 +112,13 @@ export function registerCallSignaling(httpServer: HttpServer) {
             return;
           }
           const created = await db.createCallSession({ id: callId, callerId: userId, conversationId, mode });
-          io.to(`kini-user:${created.calleeId}`).emit("call:offer", { callId, conversationId, fromUserId: userId, mode, description, caller: created.caller });
+          const offer: PendingOffer = { callId, conversationId, fromUserId: userId, mode, description, caller: created.caller, expiresAt: Date.now() + 50_000 };
+          pendingOffersByCallee.set(created.calleeId, offer);
+          io.to(`kini-user:${created.calleeId}`).emit("call:offer", offer);
+          setTimeout(() => {
+            const pending = pendingOffersByCallee.get(created.calleeId);
+            if (pending?.callId === callId) pendingOffersByCallee.delete(created.calleeId);
+          }, 55_000);
           void sendIncomingCallPush({ recipientUserId: created.calleeId, callerName: created.caller.title, conversationId, callId, mode });
         } catch (error) {
           socket.emit("call:error", error instanceof Error ? error.message : "Không thể gửi lời mời gọi.");
@@ -115,7 +129,10 @@ export function registerCallSignaling(httpServer: HttpServer) {
       void (async () => {
         try {
           const { callId } = readBaseSignal(payload);
-          if (payload.renegotiate !== true) await db.markCallAnswered(userId, callId);
+          if (payload.renegotiate !== true) {
+            await db.markCallAnswered(userId, callId);
+            pendingOffersByCallee.delete(userId);
+          }
           await relay("call:answer", payload, { description: requireDescription(payload, "answer"), ...(payload.renegotiate === true ? { renegotiate: true } : {}) });
         } catch (error) {
           socket.emit("call:error", error instanceof Error ? error.message : "Không thể nhận kết nối cuộc gọi.");

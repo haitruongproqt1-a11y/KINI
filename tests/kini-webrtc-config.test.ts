@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 const project = resolve(import.meta.dirname, "..");
 const nativeService = readFileSync(resolve(project, "features/webrtc-calling/services/webrtcService.native.ts"), "utf8");
 const hook = readFileSync(resolve(project, "features/webrtc-calling/hooks/useWebRTC.ts"), "utf8");
+const signaling = readFileSync(resolve(project, "server/signaling/index.ts"), "utf8");
+const pushManager = readFileSync(resolve(project, "components/push-notification-manager.tsx"), "utf8");
 
 describe("KINI WebRTC Android safety", () => {
   it("lấy TURN credential động thay vì nhúng relay công khai trong APK", () => {
@@ -36,5 +38,18 @@ describe("KINI WebRTC Android safety", () => {
     expect(nativeService).toContain("degradationPreference = \"maintain-resolution\"");
     expect(nativeService).toContain("encoding.maxBitrate = 2_500_000");
     expect(hook).toContain("await stabilizeScreenShareSender(transceiver.sender)");
+  });
+
+  it("replay offer và trì hoãn action notification cho tới khi call incoming đã sẵn sàng", () => {
+    expect(signaling).toContain("pendingOffersByCallee");
+    expect(signaling).toContain("socket.emit(\"call:offer\", pendingOffer)");
+    expect(hook).toContain("pendingNotificationActionRef");
+    expect(hook).toContain("handleIncomingNotificationAction");
+    expect(pushManager).toContain("call.handleIncomingNotificationAction");
+  });
+
+  it("khởi tạo route voice với speaker rõ ràng và cho phép người dùng đổi route sau đó", () => {
+    expect(nativeService).toContain("await configureCallAudio(true, mode)");
+    expect(nativeService).toContain("InCallManager.setForceSpeakerphoneOn(speakerEnabled)");
   });
 });
