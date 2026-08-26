@@ -135,12 +135,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          source_commit=$(git rev-list -n 1 "$SOURCE_TAG")
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "release-output/$APK_NAME" "release-output/$APK_NAME.sha256" --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$RELEASE_TAG" "release-output/$APK_NAME" "release-output/$APK_NAME.sha256" \
               --repo "$GITHUB_REPOSITORY" \
-              --target "$SOURCE_TAG" \
+              --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
               --notes "KINI 1.8.5 · Build 5. APK Android đã ký, gồm nút cập nhật trong Cá nhân, chống trùng tin nhắn, upload ảnh/video có tiến trình và sửa vùng nhập chat Android."
           fi

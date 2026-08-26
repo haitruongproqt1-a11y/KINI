@@ -124,8 +124,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Đưa kiểm tra phiên bản mới và nút tải/cập nhật APK GitHub vào mục Cá nhân
 - [x] Tăng version/build, kiểm thử hồi quy và chuẩn bị tag nguồn cho bản sửa mới
 
-- [ ] Xác nhận APK KINI 1.8.5 · Build 5 có thể dùng để phát hành
-- [ ] Tạo GitHub Release v1.2 và đính kèm đúng APK Build 5
+- [x] Xác nhận APK KINI 1.8.5 · Build 5 có thể dùng để phát hành
+- [x] Tạo GitHub Release v1.2 và đính kèm đúng APK Build 5
 - [ ] Cập nhật update feed KINI tới Release v1.2 và xác minh nút Cập nhật trong mục Cá nhân
 
 - [x] Tạo workflow GitHub Actions build APK Android từ tag KINI và lưu artifact
