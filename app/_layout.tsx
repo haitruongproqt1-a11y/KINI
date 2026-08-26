@@ -10,6 +10,7 @@ import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { ReleaseUpdateManager } from "@/components/release-update-manager";
+import { CallProvider } from "@/features/webrtc-calling/call-provider";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -84,6 +85,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
+          <CallProvider>
           <PushNotificationManager />
           <ReleaseUpdateManager />
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
@@ -95,6 +97,7 @@ export default function RootLayout() {
               <Stack.Screen name="oauth/callback" />
             </Stack>
             <StatusBar style="dark" backgroundColor="#FFFFFF" />
+          </CallProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

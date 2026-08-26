@@ -4,6 +4,7 @@ import { Server as SocketIOServer } from "socket.io";
 
 import * as db from "../db";
 import { sdk } from "../_core/sdk";
+import { sendIncomingCallPush } from "../push";
 
 type SignalPayload = {
   callId?: unknown;
@@ -11,6 +12,8 @@ type SignalPayload = {
   mode?: unknown;
   description?: unknown;
   candidate?: unknown;
+  outcome?: unknown;
+  pingMs?: unknown;
 };
 
 function readBaseSignal(payload: SignalPayload) {
@@ -71,7 +74,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
     const userId = Number(socket.data.userId);
     socket.join(`kini-user:${userId}`);
 
-    const relay = async (event: "call:offer" | "call:answer" | "call:candidate" | "call:end", payload: SignalPayload, extra: Record<string, unknown> = {}) => {
+    const relay = async (event: "call:answer" | "call:candidate" | "call:end", payload: SignalPayload, extra: Record<string, unknown> = {}) => {
       try {
         const { callId, conversationId } = readBaseSignal(payload);
         const peers = await db.getDirectConversationPeerUserIds(userId, conversationId);
@@ -86,18 +89,28 @@ export function registerCallSignaling(httpServer: HttpServer) {
     socket.on("call:offer", (payload: SignalPayload) => {
       const mode = payload.mode === "voice" || payload.mode === "video" ? payload.mode : null;
       if (!mode) return socket.emit("call:error", "Loại cuộc gọi không hợp lệ.");
-      try {
-        void relay("call:offer", payload, { mode, description: requireDescription(payload, "offer") });
-      } catch (error) {
-        socket.emit("call:error", error instanceof Error ? error.message : "Không thể gửi lời mời gọi.");
-      }
+      void (async () => {
+        try {
+          const { callId, conversationId } = readBaseSignal(payload);
+          const description = requireDescription(payload, "offer");
+          const created = await db.createCallSession({ id: callId, callerId: userId, conversationId, mode });
+          io.to(`kini-user:${created.calleeId}`).emit("call:offer", { callId, conversationId, fromUserId: userId, mode, description, caller: created.caller });
+          void sendIncomingCallPush({ recipientUserId: created.calleeId, callerName: created.caller.title, conversationId, callId, mode });
+        } catch (error) {
+          socket.emit("call:error", error instanceof Error ? error.message : "Không thể gửi lời mời gọi.");
+        }
+      })();
     });
     socket.on("call:answer", (payload: SignalPayload) => {
-      try {
-        void relay("call:answer", payload, { description: requireDescription(payload, "answer") });
-      } catch (error) {
-        socket.emit("call:error", error instanceof Error ? error.message : "Không thể nhận kết nối cuộc gọi.");
-      }
+      void (async () => {
+        try {
+          const { callId } = readBaseSignal(payload);
+          await db.markCallAnswered(userId, callId);
+          await relay("call:answer", payload, { description: requireDescription(payload, "answer") });
+        } catch (error) {
+          socket.emit("call:error", error instanceof Error ? error.message : "Không thể nhận kết nối cuộc gọi.");
+        }
+      })();
     });
     socket.on("call:candidate", (payload: SignalPayload) => {
       try {
@@ -106,7 +119,19 @@ export function registerCallSignaling(httpServer: HttpServer) {
         socket.emit("call:error", error instanceof Error ? error.message : "ICE candidate không hợp lệ.");
       }
     });
-    socket.on("call:end", (payload: SignalPayload) => { void relay("call:end", payload); });
+    socket.on("call:end", (payload: SignalPayload) => {
+      void (async () => {
+        try {
+          const { callId } = readBaseSignal(payload);
+          const outcome = payload.outcome === "declined" || payload.outcome === "cancelled" || payload.outcome === "failed" ? payload.outcome : "ended";
+          const pingMs = typeof payload.pingMs === "number" && Number.isFinite(payload.pingMs) ? payload.pingMs : undefined;
+          await db.finishCall(userId, callId, outcome, pingMs);
+          await relay("call:end", payload, { outcome });
+        } catch (error) {
+          socket.emit("call:error", error instanceof Error ? error.message : "Không thể kết thúc cuộc gọi.");
+        }
+      })();
+    });
   });
 
   return io;

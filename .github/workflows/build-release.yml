@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.8
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.9
         required: true
-        default: v1.8.8
+        default: v1.8.9
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.5
+        description: Mã GitHub Release nhận APK, ví dụ v1.6
         required: true
-        default: v1.5
+        default: v1.6
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.8 · Build 8. Đầu chat hiển thị online/lần hoạt động thật. Bổ sung cuộc gọi thoại, video và chia sẻ màn hình WebRTC trong hội thoại riêng tư, với signaling xác thực theo phiên KINI và STUN/TURN dự phòng. APK này cần được kiểm thử trên hai thiết bị Android trước khi dùng rộng rãi."
+              --notes "KINI 1.8.9 · Build 9. Sửa lỗi undefined is not a function khi tạo cuộc gọi, signaling toàn cục để người nhận đang mở KINI có màn hình cuộc gọi đến, nhạc chuông/nhạc chờ, đồng hồ thời lượng, ping và lịch sử cuộc gọi nhỡ/đã nghe/từ chối."
           fi

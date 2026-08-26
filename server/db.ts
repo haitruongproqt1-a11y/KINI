@@ -4,6 +4,7 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypt
 
 import {
   androidReleaseSigning,
+  callSessions,
   conversationParticipants,
   conversations,
   friendRequests,
@@ -257,6 +258,74 @@ export async function getDirectConversationPeerUserIds(userId: number, conversat
   const peers = participants.filter((participant) => participant.userId !== userId).map((participant) => participant.userId);
   if (peers.length !== 1) throw new Error("Không xác định được người nhận cuộc gọi.");
   return peers;
+}
+
+export async function getDirectCallPeer(userId: number, conversationId: number) {
+  const db = await requireDb();
+  const [peerUserId] = await getDirectConversationPeerUserIds(userId, conversationId);
+  const profile = (await db.select().from(userProfiles).where(eq(userProfiles.userId, peerUserId)).limit(1))[0];
+  const title = profile?.displayName ?? "Bạn KINI";
+  return {
+    userId: peerUserId,
+    title,
+    initials: title.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "K",
+    color: profile?.avatarColor ?? "#1677FF",
+  };
+}
+
+export async function createCallSession(input: { id: string; callerId: number; conversationId: number; mode: "voice" | "video" }) {
+  const db = await requireDb();
+  const peer = await getDirectCallPeer(input.callerId, input.conversationId);
+  await db.insert(callSessions).values({
+    id: input.id,
+    conversationId: input.conversationId,
+    callerId: input.callerId,
+    calleeId: peer.userId,
+    mode: input.mode,
+    status: "ringing",
+  });
+  const callerProfile = (await db.select().from(userProfiles).where(eq(userProfiles.userId, input.callerId)).limit(1))[0];
+  const callerTitle = callerProfile?.displayName ?? "Bạn KINI";
+  return {
+    calleeId: peer.userId,
+    caller: {
+      title: callerTitle,
+      initials: callerTitle.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "K",
+      color: callerProfile?.avatarColor ?? "#1677FF",
+    },
+  };
+}
+
+export async function markCallAnswered(userId: number, callId: string) {
+  const db = await requireDb();
+  const call = (await db.select().from(callSessions).where(eq(callSessions.id, callId)).limit(1))[0];
+  if (!call || call.calleeId !== userId) throw new Error("Không có quyền nhận cuộc gọi này.");
+  await db.update(callSessions).set({ status: "answered", answeredAt: new Date() }).where(eq(callSessions.id, callId));
+}
+
+export async function finishCall(userId: number, callId: string, requestedStatus: "declined" | "cancelled" | "ended" | "failed" = "ended", pingMs?: number) {
+  const db = await requireDb();
+  const call = (await db.select().from(callSessions).where(eq(callSessions.id, callId)).limit(1))[0];
+  if (!call || (call.callerId !== userId && call.calleeId !== userId)) throw new Error("Không có quyền kết thúc cuộc gọi này.");
+  const now = new Date();
+  const status = call.status === "ringing" && requestedStatus === "cancelled" ? "missed" : requestedStatus;
+  const durationSeconds = call.answeredAt ? Math.max(0, Math.floor((now.getTime() - new Date(call.answeredAt).getTime()) / 1000)) : 0;
+  await db.update(callSessions).set({ status, endedAt: now, durationSeconds, ...(typeof pingMs === "number" ? { lastPingMs: Math.max(0, Math.round(pingMs)) } : {}) }).where(eq(callSessions.id, callId));
+  return { status, durationSeconds };
+}
+
+export async function listCallSessions(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertParticipant(userId, conversationId);
+  const rows = await db.select().from(callSessions).where(eq(callSessions.conversationId, conversationId)).orderBy(desc(callSessions.startedAt)).limit(80);
+  const userIds = [...new Set(rows.flatMap((row) => [row.callerId, row.calleeId]))];
+  const profiles = userIds.length ? await db.select().from(userProfiles).where(inArray(userProfiles.userId, userIds)) : [];
+  const profileById = new Map(profiles.map((profile) => [profile.userId, profile]));
+  return rows.map((row) => ({
+    ...row,
+    isOutgoing: row.callerId === userId,
+    peerName: profileById.get(row.callerId === userId ? row.calleeId : row.callerId)?.displayName ?? "Bạn KINI",
+  }));
 }
 
 export async function updateActiveUserSessionDevice(userId: number, sessionId: string, device: { deviceName: string; platform: string }) {

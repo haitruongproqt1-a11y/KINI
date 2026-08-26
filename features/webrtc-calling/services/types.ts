@@ -2,6 +2,8 @@ export type CallMode = "voice" | "video";
 export type CallStatus = "idle" | "ringing" | "connecting" | "connected" | "ended" | "error";
 export type SessionDescriptionPayload = { type: "offer" | "answer" | "pranswer" | "rollback"; sdp: string };
 export type IceCandidatePayload = { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
+export type CallPeer = { title: string; initials: string; color: string };
+export type CallDirection = "outgoing" | "incoming" | null;
 
 export type IncomingCall = {
   callId: string;
@@ -9,6 +11,7 @@ export type IncomingCall = {
   mode: CallMode;
   fromUserId: number;
   description: SessionDescriptionPayload;
+  caller?: CallPeer;
 };
 
 export type CallSignal = {
@@ -18,4 +21,7 @@ export type CallSignal = {
   description?: SessionDescriptionPayload;
   candidate?: IceCandidatePayload;
   mode?: CallMode;
+  caller?: CallPeer;
+  outcome?: "declined" | "cancelled" | "ended" | "failed";
+  pingMs?: number;
 };

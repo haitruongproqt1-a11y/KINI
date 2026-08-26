@@ -113,6 +113,9 @@ export const appRouter = router({
     markRead: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.markConversationRead(ctx.user.id, input.conversationId)),
     search: protectedProcedure.input(z.object({ query: z.string().trim().max(255) })).query(({ ctx, input }) => db.searchMessages(ctx.user.id, input.query)),
   }),
+  calls: router({
+    list: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).query(({ ctx, input }) => db.listCallSessions(ctx.user.id, input.conversationId)),
+  }),
   notifications: router({
     summary: protectedProcedure.query(({ ctx }) => db.getNotificationSummary(ctx.user.id)),
   }),

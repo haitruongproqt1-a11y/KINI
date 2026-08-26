@@ -147,3 +147,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm mô-đun gọi thoại, video và chia sẻ màn hình WebRTC cho Android
 - [ ] Kiểm thử cuộc gọi hai thiết bị, quyền camera/micro và các tình huống lỗi mạng
 - [x] Tăng phiên bản, tự build APK GitHub Release và cập nhật feed sau tính năng gọi
+
+- [x] Sửa lỗi runtime undefined is not a function trong màn hình gọi Android
+- [x] Sửa signaling để người nhận đang mở ứng dụng nhận được cuộc gọi đến thực tế
+- [x] Lưu và hiển thị cuộc gọi nhỡ, từ chối, đã nghe, thời điểm và thời lượng cuộc gọi
+- [x] Bổ sung nhạc chuông cuộc gọi đến, nhạc chờ người nhận và cơ chế dừng âm thanh đúng lúc
+- [x] Hiển thị thời lượng theo giây và độ trễ ping kết nối WebRTC trên màn hình gọi
+- [ ] Kiểm thử hai tài khoản Android và tự phát hành APK sửa lỗi cuộc gọi

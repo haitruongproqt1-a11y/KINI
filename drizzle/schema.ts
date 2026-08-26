@@ -138,8 +138,28 @@ export const userSessions = mysqlTable("user_sessions", {
   index("user_sessions_user_active_idx").on(table.userId, table.revokedAt),
 ]);
 
+/** Nhật ký gọi P2P: được lưu để cả hai bên xem cuộc gọi nhỡ, đã nghe và thời lượng. */
+export const callSessions = mysqlTable("call_sessions", {
+  id: varchar("id", { length: 128 }).primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  callerId: int("callerId").notNull(),
+  calleeId: int("calleeId").notNull(),
+  mode: mysqlEnum("mode", ["voice", "video"]).notNull(),
+  status: mysqlEnum("status", ["ringing", "answered", "declined", "missed", "cancelled", "ended", "failed"]).default("ringing").notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  answeredAt: timestamp("answeredAt"),
+  endedAt: timestamp("endedAt"),
+  durationSeconds: int("durationSeconds").default(0).notNull(),
+  lastPingMs: int("lastPingMs"),
+}, (table) => [
+  index("call_sessions_conversation_started_idx").on(table.conversationId, table.startedAt),
+  index("call_sessions_callee_status_idx").on(table.calleeId, table.status),
+  index("call_sessions_caller_started_idx").on(table.callerId, table.startedAt),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type ChatMessage = typeof messages.$inferSelect;
+export type CallSession = typeof callSessions.$inferSelect;

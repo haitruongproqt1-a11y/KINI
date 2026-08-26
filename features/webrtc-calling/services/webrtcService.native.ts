@@ -14,6 +14,23 @@ import type { CallMode, IceCandidatePayload, SessionDescriptionPayload } from ".
 export type NativePeer = RTCPeerConnection;
 export type NativeStream = MediaStream;
 
+type InCallApi = {
+  start?: (options?: { media?: "audio" | "video"; auto?: boolean }) => void;
+  stop?: () => void;
+  setForceSpeakerphoneOn?: (enabled: boolean) => void;
+  setSpeakerphoneOn?: (enabled: boolean) => void;
+};
+
+function inCallApi() {
+  return InCallManager as unknown as InCallApi;
+}
+
+function setSpeakerRoute(enabled: boolean) {
+  const manager = inCallApi();
+  if (typeof manager.setForceSpeakerphoneOn === "function") manager.setForceSpeakerphoneOn(enabled);
+  else if (typeof manager.setSpeakerphoneOn === "function") manager.setSpeakerphoneOn(enabled);
+}
+
 export function createPeerConnection() {
   return new RTCPeerConnection({ iceServers: [...ICE_SERVERS] });
 }
@@ -23,8 +40,9 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
   });
-  InCallManager.start();
-  InCallManager.setForceSpeakerphoneOn(mode === "video");
+  const manager = inCallApi();
+  if (typeof manager.start === "function") manager.start({ media: "audio", auto: true });
+  setSpeakerRoute(mode === "video");
   return stream;
 }
 
@@ -64,9 +82,10 @@ export function switchCamera(stream: NativeStream | null) {
 }
 
 export function setSpeakerEnabled(enabled: boolean) {
-  InCallManager.setForceSpeakerphoneOn(enabled);
+  setSpeakerRoute(enabled);
 }
 
 export function stopInCall() {
-  InCallManager.stop();
+  const manager = inCallApi();
+  if (typeof manager.stop === "function") manager.stop();
 }

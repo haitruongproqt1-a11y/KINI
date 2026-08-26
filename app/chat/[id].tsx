@@ -26,10 +26,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatComposer } from "@/components/chat-composer";
 import { KiniMessageStatus } from "@/components/kini-message-status";
 import { Avatar, kiniColors } from "@/components/kini-ui";
-import { VideoCall } from "@/features/webrtc-calling/components/VideoCall";
-import { VoiceCall } from "@/features/webrtc-calling/components/VoiceCall";
-import { useWebRTC } from "@/features/webrtc-calling/hooks/useWebRTC";
+import { useKiniCall } from "@/features/webrtc-calling/call-provider";
 import { useAuth } from "@/hooks/use-auth";
+import { formatCallDuration } from "@/lib/kini-call-format";
 import { formatKiniPresence } from "@/lib/kini-presence";
 import { trpc } from "@/lib/trpc";
 
@@ -95,6 +94,39 @@ function AlbumGrid({ urls, fullscreen = false }: { urls: string[]; fullscreen?: 
       ))}
     </View>
   );
+}
+
+type CallLog = {
+  id: string;
+  mode: "voice" | "video";
+  status: "ringing" | "answered" | "declined" | "missed" | "cancelled" | "ended" | "failed";
+  startedAt: string | Date;
+  answeredAt?: string | Date | null;
+  durationSeconds: number;
+  isOutgoing: boolean;
+};
+
+function callLogCopy(item: CallLog) {
+  const at = new Date(item.answeredAt ?? item.startedAt).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+  if (item.status === "missed") return item.isOutgoing ? `Không trả lời · ${at}` : `Cuộc gọi nhỡ · ${at}`;
+  if (item.status === "declined") return item.isOutgoing ? `Bị từ chối · ${at}` : `Đã từ chối · ${at}`;
+  if (item.status === "cancelled") return "Đã hủy trước khi kết nối";
+  if (item.status === "failed") return "Kết nối không thành công";
+  if (item.status === "answered" || item.status === "ended") return `Đã nghe ${at} · ${formatCallDuration(item.durationSeconds)}`;
+  return "Đang đổ chuông…";
+}
+
+function CallHistory({ calls }: { calls: CallLog[] }) {
+  if (!calls.length) return null;
+  return <View style={styles.callHistory}>
+    {calls.slice(0, 5).map((call) => {
+      const missed = call.status === "missed" || call.status === "declined" || call.status === "failed";
+      return <View key={call.id} style={styles.callLogRow}>
+        <MaterialIcons name={call.mode === "video" ? "videocam" : "call"} size={17} color={missed ? kiniColors.coral : kiniColors.blue} />
+        <View style={styles.callLogCopy}><Text style={[styles.callLogTitle, missed && styles.callLogMissed]}>{call.isOutgoing ? "Cuộc gọi đi" : "Cuộc gọi đến"}</Text><Text style={styles.callLogDetail}>{callLogCopy(call)}</Text></View>
+      </View>;
+    })}
+  </View>;
 }
 
 function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
@@ -180,9 +212,10 @@ export default function ChatScreen() {
   const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 3500, staleTime: 750 });
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
   const directCallEnabled = isAuthenticated && conversation?.kind === "direct";
-  const call = useWebRTC(conversationId, directCallEnabled);
+  const call = useKiniCall();
   const messagesQuery = trpc.chat.messages.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 2500, staleTime: 750 });
   const presenceQuery = trpc.chat.presence.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 30_000, staleTime: 5_000 });
+  const callsQuery = trpc.calls.list.useQuery({ conversationId }, { enabled: directCallEnabled && Number.isFinite(conversationId), refetchInterval: 12_000, staleTime: 2_500 });
   const markRead = trpc.chat.markRead.useMutation({ onSuccess: () => { void utils.chat.list.invalidate(); void utils.notifications.summary.invalidate(); } });
   const send = trpc.chat.send.useMutation();
   const removeConversation = trpc.chat.delete.useMutation({
@@ -262,7 +295,11 @@ export default function ChatScreen() {
       Alert.alert("Chưa thể gọi", "KINI hiện chỉ hỗ trợ gọi trong cuộc trò chuyện riêng tư với bạn bè.");
       return;
     }
-    void call.startCall(mode);
+    void call.startCall(conversationId, mode, {
+      title: conversation?.title ?? "Bạn KINI",
+      initials: conversation?.initials ?? "K",
+      color: conversation?.avatarColor ?? kiniColors.blue,
+    });
   };
 
   if (!isAuthenticated || (messagesQuery.isLoading && !messagesQuery.data)) {
@@ -298,11 +335,9 @@ export default function ChatScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         onContentSizeChange={scrollToLatest}
-        ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
+        ListHeaderComponent={<View><Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text><CallHistory calls={(callsQuery.data ?? []) as CallLog[]} /></View>}
       />
       <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
-      <VoiceCall call={call} title={conversation?.title ?? "Bạn KINI"} initials={conversation?.initials ?? "K"} color={conversation?.avatarColor ?? kiniColors.blue} />
-      <VideoCall call={call} title={conversation?.title ?? "Bạn KINI"} />
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <View style={styles.viewer}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đóng trình xem media" onPress={() => setViewer(null)} style={styles.viewerClose}><MaterialIcons name="close" size={28} color={kiniColors.white} /></TouchableOpacity>
@@ -339,6 +374,12 @@ const styles = StyleSheet.create({
   headerAction: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
   headerActions: { flexDirection: "row", alignItems: "center" },
   thread: { flexGrow: 1, paddingHorizontal: 14, paddingBottom: 16, paddingTop: 10, gap: 7 },
+  callHistory: { marginHorizontal: 4, marginBottom: 12, borderRadius: 14, backgroundColor: kiniColors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: kiniColors.line, overflow: "hidden" },
+  callLogRow: { minHeight: 52, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kiniColors.line },
+  callLogCopy: { flex: 1 },
+  callLogTitle: { color: kiniColors.navy, fontSize: 13, fontWeight: "800" },
+  callLogMissed: { color: kiniColors.coral },
+  callLogDetail: { marginTop: 2, color: kiniColors.muted, fontSize: 12 },
   today: { alignSelf: "center", color: kiniColors.muted, fontSize: 12, marginVertical: 8 },
   messageRow: { flexDirection: "row", width: "100%" },
   mineRow: { justifyContent: "flex-end" },
