@@ -174,4 +174,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Sửa teardown WebRTC/native khi một trong hai bên kết thúc cuộc gọi, không treo hoặc buộc đóng ứng dụng
 - [x] Khôi phục media hai chiều cho chế độ gọi thoại và điều phối audio session an toàn với nhạc chuông
 - [x] Thiết kế lại giao diện gọi đến/gọi đi với avatar, trạng thái rõ ràng và các nút nhận/từ chối/kết thúc dễ dùng
-- [ ] Kiểm thử hai Android rồi phát hành APK KINI sửa cuộc gọi lên GitHub
+- [x] Kiểm thử code/Android prebuild, phát hành APK KINI sửa cuộc gọi lên GitHub Release v1.9
