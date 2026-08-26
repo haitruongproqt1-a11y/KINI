@@ -205,4 +205,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khắc phục signaling và audio media cho gọi thoại 1:1
 - [x] Đồng bộ avatar đã đổi tới chat, call và nearby trên thiết bị khác
 - [x] Thêm tạm dừng/tiếp tục cho tiến trình tải APK cập nhật
-- [ ] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub
+- [x] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub
