@@ -100,5 +100,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Tăng cường độ bền xác thực và giám sát trạng thái server
 - [x] Xóa sạch toàn bộ dữ liệu tài khoản và dữ liệu liên quan theo yêu cầu
 - [ ] Xác nhận luồng đăng ký/đăng nhập mới sau khi làm sạch dữ liệu
-- [ ] Chuẩn bị GitHub Release v1.8.3 với APK đúng version/build
+- [x] Chuẩn bị GitHub Release v1.8.3 với APK đúng version/build (quy ước mới: GitHub Release v1.1)
 - [ ] Kiểm thử hồi quy, lưu checkpoint và đồng bộ GitHub
+
+- [x] Tách mã GitHub Release khỏi version ứng dụng KINI
+- [x] Tạo GitHub Release v1.1 cho bản KINI hiện tại
