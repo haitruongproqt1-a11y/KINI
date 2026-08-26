@@ -13,6 +13,7 @@ import crypto from "node:crypto";
 import { createContext } from "./context";
 import { getSigningPayloadFromGithubToken } from "../github-build-signing";
 import { registerCallSignaling } from "../signaling/index";
+import { getUserIceServers } from "../turn";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -64,6 +65,28 @@ async function startServer() {
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  app.get("/api/call/ice", async (req, res) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại trước khi gọi." });
+      return;
+    }
+    if (!user) {
+      res.status(401).json({ error: "Bạn cần đăng nhập để thực hiện cuộc gọi." });
+      return;
+    }
+    try {
+      const iceServers = await getUserIceServers(user.id);
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ iceServers });
+    } catch (error) {
+      console.warn("[CallIce]", error instanceof Error ? error.message : error);
+      res.status(503).json({ error: "Không thể chuẩn bị đường truyền cuộc gọi. Hãy thử lại sau." });
+    }
+  });
 
   app.post("/api/media/presign", async (req, res) => {
     let user;

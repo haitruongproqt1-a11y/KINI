@@ -63,22 +63,23 @@ export function useWebRTC(enabled = true) {
   const callIdRef = useRef<string | null>(null);
   const conversationIdRef = useRef<number | null>(null);
   const pendingCandidatesRef = useRef<CallSignal[]>([]);
+  const localStreamRef = useRef<NativeStream | null>(null);
   const screenStreamRef = useRef<NativeStream | null>(null);
   const screenSenderRef = useRef<any>(null);
   const incomingRef = useRef<IncomingCall | null>(null);
   const pingRef = useRef<number | null>(null);
 
   const cleanup = useCallback(() => {
-    peerRef.current?.close();
+    const peer = peerRef.current;
     peerRef.current = null;
+    try { peer?.close(); } catch { /* Peer native đã đóng hoặc không còn hợp lệ. */ }
+    stopStream(localStreamRef.current);
+    localStreamRef.current = null;
     stopStream(screenStreamRef.current);
     screenStreamRef.current = null;
     screenSenderRef.current = null;
-    setState((current) => {
-      stopStream(current.localStream);
-      stopInCall();
-      return initialState;
-    });
+    stopInCall();
+    setState(initialState);
     callIdRef.current = null;
     conversationIdRef.current = null;
     pendingCandidatesRef.current = [];
@@ -90,17 +91,22 @@ export function useWebRTC(enabled = true) {
     const peer = peerRef.current;
     if (!peer) return;
     const queued = pendingCandidatesRef.current.splice(0);
-    for (const signal of queued) if (signal.candidate) await peer.addIceCandidate(toCandidate(signal.candidate));
+    for (const signal of queued) {
+      if (signal.callId !== callIdRef.current || !signal.candidate) continue;
+      try { await peer.addIceCandidate(toCandidate(signal.candidate)); } catch { /* Candidate cũ có thể hết hiệu lực sau renegotiation. */ }
+    }
   }, []);
 
-  const buildPeer = useCallback((callId: string, conversationId: number) => {
-    const peer = createPeerConnection();
+  const buildPeer = useCallback(async (callId: string, conversationId: number) => {
+    const peer = await createPeerConnection();
     peerRef.current = peer;
     const peerEvents = peer as any;
     peerEvents.onicecandidate = (event: any) => {
-      if (event.candidate) signalRef.current?.emitCandidate({ callId, conversationId, candidate: candidateToPayload(event.candidate) });
+      if (!event.candidate || peerRef.current !== peer) return;
+      try { signalRef.current?.emitCandidate({ callId, conversationId, candidate: candidateToPayload(event.candidate) }); } catch { /* Bỏ qua candidate lỗi thay vì làm sập cuộc gọi. */ }
     };
     peerEvents.ontrack = (event: any) => {
+      if (peerRef.current !== peer) return;
       const remote = event.streams?.[0];
       if (!remote) return;
       setState((current) => {
@@ -111,11 +117,13 @@ export function useWebRTC(enabled = true) {
     };
     peerEvents.onconnectionstatechange = () => {
       const connectionState = peer.connectionState;
+      if (peerRef.current !== peer) return;
       if (connectionState === "connected") setState((current) => ({ ...current, status: "connected", error: null }));
-      if (connectionState === "failed" || connectionState === "disconnected") setState((current) => ({ ...current, status: "error", error: "Kết nối cuộc gọi bị gián đoạn." }));
+      if (connectionState === "failed") setState((current) => ({ ...current, status: "error", error: "Kết nối cuộc gọi bị gián đoạn. Hãy kết thúc và gọi lại." }));
     };
     peerEvents.oniceconnectionstatechange = () => {
       const iceState = peer.iceConnectionState;
+      if (peerRef.current !== peer) return;
       if (iceState === "connected" || iceState === "completed") setState((current) => ({ ...current, status: "connected", error: null }));
       if (iceState === "failed") setState((current) => ({ ...current, status: "error", error: "ICE không tạo được đường truyền media. Hãy thử lại trên mạng khác." }));
     };
@@ -161,11 +169,12 @@ export function useWebRTC(enabled = true) {
       },
       candidate: async (signal) => {
         const peer = peerRef.current;
-        if (signal.callId !== callIdRef.current || !signal.candidate || !peer?.remoteDescription) {
+        if (signal.callId !== callIdRef.current || !signal.candidate) return;
+        if (!peer?.remoteDescription) {
           pendingCandidatesRef.current.push(signal);
           return;
         }
-        await peer.addIceCandidate(toCandidate(signal.candidate));
+        try { await peer.addIceCandidate(toCandidate(signal.candidate)); } catch { /* Candidate lỗi không được phá vỡ signaling đang hoạt động. */ }
       },
       end: (signal) => {
         if (signal.callId === callIdRef.current) cleanup();
@@ -200,9 +209,10 @@ export function useWebRTC(enabled = true) {
       callIdRef.current = callId;
       conversationIdRef.current = conversationId;
       setState({ ...initialState, status: "ringing", direction: "outgoing", mode, conversationId, peer: peerInfo, speakerEnabled: mode === "video" });
+      const peer = await buildPeer(callId, conversationId);
       const localStream = await createLocalMedia(mode);
-      const peer = buildPeer(callId, conversationId);
       localStream.getTracks().forEach((track: any) => peer.addTrack(track, localStream));
+      localStreamRef.current = localStream;
       setState((current) => ({ ...current, localStream }));
       const offer = await peer.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: mode === "video" });
       await peer.setLocalDescription(offer);
@@ -219,9 +229,10 @@ export function useWebRTC(enabled = true) {
     try {
       const signal = await ensureSignal();
       setState((current) => ({ ...current, status: "connecting", error: null }));
+      const peer = await buildPeer(incoming.callId, incoming.conversationId);
       const localStream = await createLocalMedia(incoming.mode);
-      const peer = buildPeer(incoming.callId, incoming.conversationId);
       localStream.getTracks().forEach((track: any) => peer.addTrack(track, localStream));
+      localStreamRef.current = localStream;
       await peer.setRemoteDescription(toDescription(incoming.description));
       await addQueuedCandidates();
       const answer = await peer.createAnswer();
@@ -244,7 +255,9 @@ export function useWebRTC(enabled = true) {
   const toggleSpeaker = useCallback(() => setState((current) => { const speakerEnabled = !current.speakerEnabled; setSpeakerEnabledOnDevice(speakerEnabled); return { ...current, speakerEnabled }; }), []);
   const switchCamera = useCallback(() => switchCameraOnStream(state.localStream), [state.localStream]);
   const stopScreenShare = useCallback(async () => {
-    if (screenSenderRef.current && peerRef.current) peerRef.current.removeTrack(screenSenderRef.current);
+    if (screenSenderRef.current && peerRef.current && peerRef.current.connectionState !== "closed") {
+      try { peerRef.current.removeTrack(screenSenderRef.current); } catch { /* Sender đã bị peer giải phóng. */ }
+    }
     screenSenderRef.current = null;
     stopStream(screenStreamRef.current);
     screenStreamRef.current = null;
@@ -253,7 +266,7 @@ export function useWebRTC(enabled = true) {
   }, [renegotiate]);
   const toggleScreenShare = useCallback(async () => {
     if (state.isScreenSharing) return stopScreenShare();
-    if (state.mode !== "video" || !peerRef.current) return setState((current) => ({ ...current, error: "Chia sẻ màn hình chỉ khả dụng trong cuộc gọi video đang kết nối." }));
+    if (state.mode !== "video" || state.status !== "connected" || !peerRef.current) return setState((current) => ({ ...current, error: "Chia sẻ màn hình chỉ khả dụng trong cuộc gọi video đang kết nối." }));
     try {
       const screen = await createDisplayMedia();
       const screenTrack = screen.getVideoTracks()[0];

@@ -1,4 +1,5 @@
-import InCallManager from "react-native-incall-manager";
+import { setAudioModeAsync } from "expo-audio";
+import { PermissionsAndroid, Platform } from "react-native";
 import {
   mediaDevices,
   MediaStream,
@@ -8,40 +9,43 @@ import {
   type MediaStreamTrack,
 } from "react-native-webrtc";
 
-import { ICE_SERVERS } from "../config/iceServers";
+import { apiCall } from "@/lib/_core/api";
 import type { CallMode, IceCandidatePayload, SessionDescriptionPayload } from "./types";
 
 export type NativePeer = RTCPeerConnection;
 export type NativeStream = MediaStream;
 
-type InCallApi = {
-  start?: (options?: { media?: "audio" | "video"; auto?: boolean }) => void;
-  stop?: () => void;
-  setForceSpeakerphoneOn?: (enabled: boolean) => void;
-  setSpeakerphoneOn?: (enabled: boolean) => void;
-};
-
-function inCallApi() {
-  return InCallManager as unknown as InCallApi;
-}
-
 function setSpeakerRoute(enabled: boolean) {
-  const manager = inCallApi();
-  if (typeof manager.setForceSpeakerphoneOn === "function") manager.setForceSpeakerphoneOn(enabled);
-  else if (typeof manager.setSpeakerphoneOn === "function") manager.setSpeakerphoneOn(enabled);
+  void setAudioModeAsync({
+    allowsRecording: true,
+    playsInSilentMode: true,
+    shouldRouteThroughEarpiece: !enabled,
+  }).catch(() => {
+    // WebRTC giữ audio session riêng; route thất bại không được làm hỏng cuộc gọi.
+  });
 }
 
-export function createPeerConnection() {
-  return new RTCPeerConnection({ iceServers: [...ICE_SERVERS], bundlePolicy: "max-bundle", rtcpMuxPolicy: "require", iceTransportPolicy: "all" });
+type IceServer = { urls: string | string[]; username?: string; credential?: string };
+
+export async function createPeerConnection() {
+  const result = await apiCall<{ iceServers: IceServer[] }>("/api/call/ice");
+  if (!Array.isArray(result.iceServers) || result.iceServers.length === 0) throw new Error("Không có TURN relay cho cuộc gọi.");
+  return new RTCPeerConnection({ iceServers: result.iceServers, bundlePolicy: "max-bundle", rtcpMuxPolicy: "require", iceTransportPolicy: "all" });
 }
 
 export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
+  if (Platform.OS === "android") {
+    const permissions = await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      ...(mode === "video" ? [PermissionsAndroid.PERMISSIONS.CAMERA] : []),
+    ]);
+    const denied = Object.values(permissions).some((result) => result !== PermissionsAndroid.RESULTS.GRANTED);
+    if (denied) throw new Error(mode === "video" ? "KINI cần quyền micro và camera để gọi video." : "KINI cần quyền micro để gọi thoại.");
+  }
   const stream = await mediaDevices.getUserMedia({
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
   });
-  const manager = inCallApi();
-  if (typeof manager.start === "function") manager.start({ media: "audio", auto: true });
   setSpeakerRoute(mode === "video");
   return stream;
 }
@@ -65,7 +69,11 @@ export function toDescription(description: SessionDescriptionPayload) {
 }
 
 export function stopStream(stream: NativeStream | null | undefined) {
-  stream?.getTracks().forEach((track) => track.stop());
+  try {
+    stream?.getTracks?.().forEach((track) => {
+      try { if (track.readyState !== "ended") track.stop(); } catch { /* Track đã được native release. */ }
+    });
+  } catch { /* Stream không còn hợp lệ sau khi peer đóng. */ }
 }
 
 export function setMuted(stream: NativeStream | null, muted: boolean) {
@@ -86,6 +94,5 @@ export function setSpeakerEnabled(enabled: boolean) {
 }
 
 export function stopInCall() {
-  const manager = inCallApi();
-  if (typeof manager.stop === "function") manager.stop();
+  void setAudioModeAsync({ allowsRecording: false, shouldRouteThroughEarpiece: false }).catch(() => {});
 }

@@ -160,3 +160,13 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Hiển thị camera nhỏ khi chia sẻ màn hình, hoặc chỉ màn hình khi camera tắt
 - [x] Chuyển lịch sử gọi từ đầu chat về đúng vị trí theo dòng thời gian
 - [ ] Kiểm thử hai Android và tự phát hành APK sửa media WebRTC
+
+- [ ] Chẩn đoán crash Android khi cuộc gọi chuyển từ đổ chuông sang kết nối
+- [ ] Sửa ICE/WebRTC để cuộc gọi thực kết nối audio/video hai chiều ổn định
+- [ ] Bổ sung bảo vệ native, timeout và thông báo khôi phục thay vì thoát ứng dụng
+- [ ] Kiểm thử Android prebuild/release và tự phát hành APK sửa crash cuộc gọi
+- [x] Cấp ICE/TURN Metered credential ngắn hạn qua endpoint KINI đã xác thực, không lộ Secret Key vào APK
+- [x] Chuyển peer WebRTC sang TURN động, kiểm thử provider trả relay có username/credential hợp lệ
+- [x] Bổ sung hàng rào quyền micro/camera, RTCView, cleanup stream/peer, candidate và audio route để giảm crash Android
+- [ ] Kiểm thử cuộc gọi thoại/video và chia sẻ màn hình giữa hai Android trên Wi-Fi và 4G sau APK Build 11
+- [ ] Build, ký APK, tạo GitHub Release v1.8 và cập nhật feed KINI 1.8.11 · Build 11

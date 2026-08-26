@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.10
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.11
         required: true
-        default: v1.8.10
+        default: v1.8.11
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.7
+        description: Mã GitHub Release nhận APK, ví dụ v1.8
         required: true
-        default: v1.7
+        default: v1.8
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.10 · Build 10. Sửa vai trò người gọi/người nhận, luồng ICE/ontrack hai chiều, tách stream chia sẻ màn hình khỏi camera để người nhận thấy màn hình lớn và preview camera; lịch sử gọi chuyển xuống sau tin nhắn."
+              --notes "KINI 1.8.11 · Build 11. Cuộc gọi dùng TURN Metered credential ngắn hạn thay relay công khai; bổ sung quyền micro/camera rõ ràng, hàng rào RTCView và cleanup/candidate/ICE an toàn để hạn chế lỗi thoát Android. Cần thử cuộc gọi trên hai Android sau khi cài APK."
           fi
