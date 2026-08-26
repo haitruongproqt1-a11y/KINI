@@ -40,7 +40,7 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.0.0",
+  version: "1.8.2",
   platforms: ["android"],
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -54,7 +54,7 @@ const config: ExpoConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    versionCode: 1,
+    versionCode: 2,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO"],
     intentFilters: [

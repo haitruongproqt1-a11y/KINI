@@ -82,3 +82,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Kiểm tra dependency/lockfile Expo và rủi ro build APK
 - [x] Khắc phục lỗi build Android từ mã nguồn nếu phát hiện
 - [x] Xác nhận lại bundle Android và báo cáo kết quả kiểm tra
+
+- [x] Bàn giao link mã nguồn KINI v1.8.1 và hướng dẫn build APK local
+
+- [x] Thiết lập số phiên bản hiển thị, versionCode Android và định danh release KINI
+- [x] Hiển thị phiên bản đang dùng trong phần Cá nhân của ứng dụng
+- [x] Viết quy ước tăng phiên bản và tạo tag/release GitHub cho mỗi lần chỉnh sửa
+- [x] Kiểm tra, lưu checkpoint và đồng bộ phiên bản KINI mới
