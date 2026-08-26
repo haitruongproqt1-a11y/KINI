@@ -93,3 +93,5 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khoanh vùng và sửa lỗi preview hiển thị JSON Expo thay vì giao diện KINI
 - [x] Xác nhận preview KINI hiển thị đúng sau khi khởi động lại
 - [x] Lưu checkpoint bản sửa preview KINI
+
+- [x] Tăng số phát hành KINI cho bản sửa preview

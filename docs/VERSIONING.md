@@ -17,4 +17,4 @@ KINI dùng cấu hình phát hành duy nhất tại [`app.config.ts`](../app.con
 5. Tạo GitHub Release cùng tag, ghi thay đổi chính và đính kèm đúng APK.
 6. Mở **Cá nhân** trong KINI để đối chiếu số phiên bản và build với Release trước khi chia sẻ.
 
-> Bản này dùng **KINI 1.8.2 · Build 2 · Android ổn định**. Người dùng có thể xác định đúng APK thông qua ba thông tin này.
+> Bản này dùng **KINI 1.8.3 · Build 3 · Android ổn định**. Người dùng có thể xác định đúng APK thông qua ba thông tin này.
