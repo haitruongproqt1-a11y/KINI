@@ -136,4 +136,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Làm sáng toàn bộ giao diện KINI, tăng tương phản và khả năng nhìn thấy thao tác
 - [x] Bỏ viền xanh không cần thiết ở trình xem ảnh và video
 - [x] Cố định khung soạn tin theo bàn phím Android để xem nội dung và gửi nhanh
-- [ ] Tăng version/build, build APK mới tự động, tạo GitHub Release và cập nhật update feed
+- [x] Tăng version/build, build APK mới tự động, tạo GitHub Release và cập nhật update feed
