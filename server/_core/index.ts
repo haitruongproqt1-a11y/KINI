@@ -114,12 +114,12 @@ async function startServer() {
   // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
   app.get("/api/update/latest", (_req, res) => {
     res.json({
-      releaseCode: "v1.2",
-      appVersion: "1.8.5",
-      buildNumber: 5,
-      notes: "Cập nhật trong mục Cá nhân, chống hiển thị trùng tin nhắn, gửi ảnh/video có tiến trình và sửa vùng nhập chat Android.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.2",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.2/KINI-Release-v1.2.apk",
+      releaseCode: "v1.3",
+      appVersion: "1.8.6",
+      buildNumber: 6,
+      notes: "Giao diện sáng dễ đọc, nhận diện đúng thiết bị đang dùng, ảnh/video không còn viền xanh và khung soạn tin đi cùng bàn phím Android.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.3",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.3/KINI-Release-v1.3.apk",
     });
   });
 
