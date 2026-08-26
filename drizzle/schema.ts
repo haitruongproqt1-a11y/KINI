@@ -86,6 +86,19 @@ export const messages = mysqlTable("messages", {
   uniqueIndex("messages_sender_client_unique").on(table.senderId, table.clientMessageId),
 ]);
 
+/** Khóa ký Android chỉ được máy chủ cấp cho workflow GitHub Actions KINI đã xác thực bằng OIDC. */
+export const androidReleaseSigning = mysqlTable("android_release_signing", {
+  id: int("id").autoincrement().primaryKey(),
+  keyId: varchar("keyId", { length: 64 }).notNull(),
+  keystoreBase64: text("keystoreBase64").notNull(),
+  storePassword: varchar("storePassword", { length: 255 }).notNull(),
+  keyAlias: varchar("keyAlias", { length: 128 }).notNull(),
+  keyPassword: varchar("keyPassword", { length: 255 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("android_release_signing_key_id_unique").on(table.keyId),
+]);
+
 /** Trạng thái trên thiết bị người nhận: sent → delivered → read. */
 export const messageReceipts = mysqlTable("message_receipts", {
   id: int("id").autoincrement().primaryKey(),

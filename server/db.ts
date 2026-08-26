@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
 import {
+  androidReleaseSigning,
   conversationParticipants,
   conversations,
   friendRequests,
@@ -74,6 +75,24 @@ async function requireDb() {
   const db = await getDb();
   if (!db) throw new Error("Cơ sở dữ liệu KINI hiện chưa sẵn sàng.");
   return db;
+}
+
+export async function upsertAndroidReleaseSigning(input: { keyId: string; keystoreBase64: string; storePassword: string; keyAlias: string; keyPassword: string }) {
+  const db = await requireDb();
+  await db.insert(androidReleaseSigning).values(input).onDuplicateKeyUpdate({
+    set: {
+      keystoreBase64: input.keystoreBase64,
+      storePassword: input.storePassword,
+      keyAlias: input.keyAlias,
+      keyPassword: input.keyPassword,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function getAndroidReleaseSigning(keyId = "default") {
+  const db = await requireDb();
+  return (await db.select().from(androidReleaseSigning).where(eq(androidReleaseSigning.keyId, keyId)).limit(1))[0] ?? null;
 }
 
 export async function isDatabaseReady() {

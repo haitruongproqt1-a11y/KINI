@@ -11,6 +11,7 @@ import * as db from "../db";
 import { sdk } from "./sdk";
 import crypto from "node:crypto";
 import { createContext } from "./context";
+import { getSigningPayloadFromGithubToken } from "../github-build-signing";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -85,6 +86,23 @@ async function startServer() {
     } catch (error) {
       console.error("[MediaUpload] failed:", error);
       res.status(500).json({ error: "Không thể tải media lên máy chủ." });
+    }
+  });
+
+  // Chỉ workflow build KINI trên GitHub Actions được xác thực OIDC mới nhận khóa ký APK; không dùng GitHub Secret hay mã nguồn.
+  app.get("/api/build/android-signing", async (req, res) => {
+    const token = req.header("authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      res.status(401).json({ error: "Thiếu xác thực GitHub Actions." });
+      return;
+    }
+    try {
+      const payload = await getSigningPayloadFromGithubToken(token);
+      res.setHeader("Cache-Control", "no-store");
+      res.json(payload);
+    } catch (error) {
+      console.error("[AndroidSigning] authorization failed:", error instanceof Error ? error.message : error);
+      res.status(403).json({ error: "Workflow build không được phép nhận khóa ký." });
     }
   });
 

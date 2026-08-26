@@ -1,0 +1,140 @@
+name: Build and release KINI Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.5
+        required: true
+        default: v1.8.5
+        type: string
+      release_tag:
+        description: Mã GitHub Release nhận APK, ví dụ v1.2
+        required: true
+        default: v1.2
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: kini-android-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build APK and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_TAG: ${{ inputs.source_tag }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      APK_NAME: KINI-Release-${{ inputs.release_tag }}.apk
+      KEYSTORE_FILE: kini-release.keystore
+      KEYSTORE_PROPERTIES: keystore.properties
+      JAVA_TOOL_OPTIONS: -Xmx3g
+
+    steps:
+      - name: Check out the requested KINI source tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_tag }}
+          fetch-depth: 0
+
+      - name: Set up Node.js and pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Java and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK command-line tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Verify TypeScript before native build
+        run: pnpm check
+
+      - name: Generate Android native project
+        run: pnpm exec expo prebuild --platform android --clean --non-interactive
+
+      - name: Receive stable Android release signing key through GitHub OIDC
+        run: |
+          oidc_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kini-android-release"
+          oidc_token=$(curl --fail --silent --show-error -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$oidc_url" | jq -r '.value')
+          test -n "$oidc_token" && test "$oidc_token" != "null"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $oidc_token" \
+            "https://kinimobile-cr7qe9vh.manus.space/api/build/android-signing" > android-signing.json
+          jq -er '.keystoreBase64 and .storePassword and .keyAlias and .keyPassword' android-signing.json >/dev/null
+          jq -r '.keystoreBase64' android-signing.json | base64 --decode > "android/app/$KEYSTORE_FILE"
+          cat > "android/$KEYSTORE_PROPERTIES" <<EOF
+          storeFile=$KEYSTORE_FILE
+          storePassword=$(jq -r '.storePassword' android-signing.json)
+          keyAlias=$(jq -r '.keyAlias' android-signing.json)
+          keyPassword=$(jq -r '.keyPassword' android-signing.json)
+          EOF
+          rm android-signing.json
+          cat >> android/app/build.gradle <<'EOF'
+
+          def kiniKeystoreProperties = new Properties()
+          file("../keystore.properties").withInputStream { kiniKeystoreProperties.load(it) }
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file(kiniKeystoreProperties["storeFile"])
+                      storePassword kiniKeystoreProperties["storePassword"]
+                      keyAlias kiniKeystoreProperties["keyAlias"]
+                      keyPassword kiniKeystoreProperties["keyPassword"]
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
+
+      - name: Build signed installable APK
+        working-directory: android
+        run: ./gradlew app:assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare versioned APK asset
+        run: |
+          mkdir -p release-output
+          cp android/app/build/outputs/apk/release/app-release.apk "release-output/$APK_NAME"
+          sha256sum "release-output/$APK_NAME" | tee "release-output/$APK_NAME.sha256"
+
+      - name: Preserve APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KINI-Android-${{ inputs.source_tag }}-${{ inputs.release_tag }}
+          path: release-output/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create or update GitHub Release with APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "release-output/$APK_NAME" "release-output/$APK_NAME.sha256" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" "release-output/$APK_NAME" "release-output/$APK_NAME.sha256" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$SOURCE_TAG" \
+              --title "KINI Release $RELEASE_TAG" \
+              --notes "KINI 1.8.5 · Build 5. APK Android đã ký, gồm nút cập nhật trong Cá nhân, chống trùng tin nhắn, upload ảnh/video có tiến trình và sửa vùng nhập chat Android."
+          fi
