@@ -20,7 +20,7 @@ export default function ProfileScreen() {
   const { logout } = useAuth();
   const router = useRouter();
   const utils = trpc.useUtils();
-  const profileQuery = trpc.profile.me.useQuery(undefined, { refetchInterval: 15000, refetchOnWindowFocus: true });
+  const profileQuery = trpc.profile.me.useQuery(undefined, { refetchInterval: 60000, refetchIntervalInBackground: false, refetchOnWindowFocus: true });
   const [editing, setEditing] = useState(false);
   const [securityEditing, setSecurityEditing] = useState(false);
   const [username, setUsername] = useState("");

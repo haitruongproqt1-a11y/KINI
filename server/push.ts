@@ -69,6 +69,7 @@ export async function sendIncomingCallPush(payload: IncomingCallPayload) {
     body: `${payload.callerName} đang gọi cho bạn.`,
     priority: "high",
     channelId: "calls",
+    categoryId: "incoming_call",
     data: { type: "incoming_call", conversationId: String(payload.conversationId), callId: payload.callId, mode: payload.mode, callerName: payload.callerName },
   }));
   if (!messages.length) return { delivered: 0 };

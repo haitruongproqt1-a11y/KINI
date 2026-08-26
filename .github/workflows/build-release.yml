@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.15
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.16
         required: true
-        default: v1.8.15
+        default: v1.8.16
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.12
+        description: Mã GitHub Release nhận APK, ví dụ v1.13
         required: true
-        default: v1.12
+        default: v1.13
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.15 · Build 15. Đồng bộ avatar/hồ sơ nearby gần realtime và thông báo cuộc gọi Android qua kênh ưu tiên cao khi ứng dụng ở nền hoặc vừa đóng; giữ nguyên video call, screen share và nearby."
+              --notes "KINI 1.8.16 · Build 16. Tối ưu polling nền để giảm pin, thêm action Trả lời/Từ chối cho thông báo cuộc gọi Android và tải APK trực tiếp có phần trăm trước khi mở trình cài đặt hệ thống."
           fi

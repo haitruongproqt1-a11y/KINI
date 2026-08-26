@@ -279,12 +279,12 @@ async function startServer() {
   // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
   app.get("/api/update/latest", (_req, res) => {
     res.json({
-      releaseCode: "v1.12",
-      appVersion: "1.8.15",
-      buildNumber: 15,
+      releaseCode: "v1.13",
+      appVersion: "1.8.16",
+      buildNumber: 16,
       notes: "Cập nhật avatar ảnh thật và đồng bộ hồ sơ nearby gần realtime; thông báo cuộc gọi Android dùng kênh ưu tiên cao để nổi bật khi KINI ở nền hoặc vừa đóng. Giữ nguyên video call, screen share và nearby; 50 km và 100 km luôn miễn phí.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.12",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.12/KINI-Release-v1.12.apk",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.13",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.13/KINI-Release-v1.13.apk",
     });
   });
 

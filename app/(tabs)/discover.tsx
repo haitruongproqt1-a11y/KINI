@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, AppState, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { Avatar, FormField, KiniBottomSheet, KiniButton, KiniCard, KiniSwitch, PrimaryButton, kiniColors } from "@/components/kini-ui";
 import { ScreenContainer } from "@/components/screen-container";
@@ -94,7 +94,9 @@ export default function DiscoverScreen() {
   }, [ageFrom, ageTo, filterGender, filterProvince, filterStatus, getLocation, profile?.lat, profile?.lng, query, radius, sort]);
   useEffect(() => { if (active === "explore" && profile?.lat !== null && profile?.lng !== null) void find(); }, [active, find, profile?.lat, profile?.lng]);
   useEffect(() => {
-    const refresh = setInterval(() => { void load(); if (active === "explore") void find(); }, 15000);
+    const refresh = setInterval(() => {
+      if (AppState.currentState === "active") { void load(); if (active === "explore") void find(); }
+    }, 60000);
     return () => clearInterval(refresh);
   }, [active, find, load]);
   const hiddenText = useMemo(() => profile?.hiddenUntil ? `đến ${new Date(profile.hiddenUntil).toLocaleDateString("vi-VN")}` : "vĩnh viễn", [profile?.hiddenUntil]);

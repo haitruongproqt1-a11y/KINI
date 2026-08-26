@@ -7,6 +7,7 @@ import { Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
+import { useKiniCall } from "@/features/webrtc-calling/call-provider";
 
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }) });
@@ -17,6 +18,10 @@ async function getPushToken() {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("messages", { name: "Tin nhắn KINI", importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], sound: "default" });
     await Notifications.setNotificationChannelAsync("calls", { name: "Cuộc gọi KINI", importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 500, 250, 500], sound: "default", lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC });
+    await Notifications.setNotificationCategoryAsync("incoming_call", [
+      { identifier: "ANSWER_CALL", buttonTitle: "Trả lời", options: { opensAppToForeground: true } },
+      { identifier: "DECLINE_CALL", buttonTitle: "Từ chối", options: { isDestructive: true, opensAppToForeground: true } },
+    ]);
   }
   const permissions = await Notifications.getPermissionsAsync();
   const finalStatus = permissions.status === "granted" ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
@@ -29,6 +34,7 @@ async function getPushToken() {
 export function PushNotificationManager() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const call = useKiniCall();
   const registeredForUser = useRef<number | null>(null);
   const register = trpc.push.register.useMutation();
   useEffect(() => {
@@ -45,11 +51,15 @@ export function PushNotificationManager() {
       const data = response.notification.request.content.data as { conversationId?: string | number; type?: string } | undefined;
       const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
-      if (conversationId) router.push(`/chat/${conversationId}` as never);
+      if (data?.type === "incoming_call") {
+        if (response.actionIdentifier === "ANSWER_CALL" && call.direction === "incoming" && call.conversationId === Number(conversationId)) void call.acceptIncomingCall();
+        if (response.actionIdentifier === "DECLINE_CALL" && call.direction === "incoming" && call.conversationId === Number(conversationId)) call.declineIncomingCall();
+      }
+      if (conversationId && response.actionIdentifier !== "ANSWER_CALL" && response.actionIdentifier !== "DECLINE_CALL") router.push(`/chat/${conversationId}` as never);
     };
     const subscription = Notifications.addNotificationResponseReceivedListener(openConversation);
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) openConversation(response); });
     return () => subscription.remove();
-  }, [router]);
+  }, [call, router]);
   return null;
 }
