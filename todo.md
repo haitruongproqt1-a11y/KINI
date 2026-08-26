@@ -170,3 +170,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bổ sung hàng rào quyền micro/camera, RTCView, cleanup stream/peer, candidate và audio route để giảm crash Android
 - [ ] Kiểm thử cuộc gọi thoại/video và chia sẻ màn hình giữa hai Android trên Wi-Fi và 4G sau APK Build 11
 - [x] Build, ký APK, tạo GitHub Release v1.8 và cập nhật feed KINI 1.8.11 · Build 11
+- [x] Sửa chia sẻ màn hình Android để giữ video call hiện có và truyền đúng màn hình sang người nhận
+- [x] Sửa teardown WebRTC/native khi một trong hai bên kết thúc cuộc gọi, không treo hoặc buộc đóng ứng dụng
+- [x] Khôi phục media hai chiều cho chế độ gọi thoại và điều phối audio session an toàn với nhạc chuông
+- [x] Thiết kế lại giao diện gọi đến/gọi đi với avatar, trạng thái rõ ràng và các nút nhận/từ chối/kết thúc dễ dùng
+- [ ] Kiểm thử hai Android rồi phát hành APK KINI sửa cuộc gọi lên GitHub

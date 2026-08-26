@@ -1,4 +1,4 @@
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { useAudioPlayer } from "expo-audio";
 import { useEffect } from "react";
 
 import type { CallDirection, CallStatus } from "../services/types";
@@ -12,10 +12,9 @@ export function useCallSounds(status: CallStatus, direction: CallDirection) {
   const ringback = useAudioPlayer(ringbackSound);
 
   useEffect(() => {
-    void setAudioModeAsync({ playsInSilentMode: true });
     incoming.loop = true;
     ringback.loop = true;
-  }, []);
+  }, [incoming, ringback]);
 
   useEffect(() => {
     const shouldRingIncoming = status === "ringing" && direction === "incoming";

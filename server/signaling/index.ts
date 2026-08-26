@@ -128,7 +128,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
         socket.emit("call:error", error instanceof Error ? error.message : "ICE candidate không hợp lệ.");
       }
     });
-    socket.on("call:end", (payload: SignalPayload) => {
+    socket.on("call:end", (payload: SignalPayload, acknowledge?: (result: { ok: boolean }) => void) => {
       void (async () => {
         try {
           const { callId } = readBaseSignal(payload);
@@ -136,8 +136,10 @@ export function registerCallSignaling(httpServer: HttpServer) {
           const pingMs = typeof payload.pingMs === "number" && Number.isFinite(payload.pingMs) ? payload.pingMs : undefined;
           await db.finishCall(userId, callId, outcome, pingMs);
           await relay("call:end", payload, { outcome });
+          acknowledge?.({ ok: true });
         } catch (error) {
           socket.emit("call:error", error instanceof Error ? error.message : "Không thể kết thúc cuộc gọi.");
+          acknowledge?.({ ok: false });
         }
       })();
     });

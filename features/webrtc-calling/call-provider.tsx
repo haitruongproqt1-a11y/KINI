@@ -11,10 +11,9 @@ const CallContext = createContext<CallController | null>(null);
 
 function CallOverlay({ call }: { call: CallController }) {
   const peer = call.peer ?? { title: "Bạn KINI", initials: "K", color: "#1677FF" };
-  return <>
-    <VoiceCall call={call} title={peer.title} initials={peer.initials} color={peer.color} />
-    <VideoCall call={call} title={peer.title} />
-  </>;
+  if (call.mode === "voice") return <VoiceCall call={call} title={peer.title} initials={peer.initials} color={peer.color} />;
+  if (call.mode === "video") return <VideoCall call={call} title={peer.title} initials={peer.initials} color={peer.color} />;
+  return null;
 }
 
 export function CallProvider({ children }: PropsWithChildren) {

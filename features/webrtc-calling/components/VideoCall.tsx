@@ -1,49 +1,59 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { kiniColors } from "@/components/kini-ui";
+import { Avatar, kiniColors } from "@/components/kini-ui";
 import { formatCallDuration, formatCallPing } from "@/lib/kini-call-format";
-import { CallControls } from "./CallControls";
+import { CallControls, IncomingCallActions } from "./CallControls";
 import { RtcVideo } from "./RtcVideo";
 import { ScreenShare } from "./ScreenShare";
 
-export function VideoCall({ call, title }: { call: any; title: string }) {
+function callStatus(call: any, incoming: boolean) {
+  if (incoming) return "Cuộc gọi video đến";
+  if (call.status === "ringing") return "Đang gọi…";
+  if (call.status === "connecting") return "Đang kết nối bảo mật…";
+  if (call.status === "connected") return `Đang gọi · ${formatCallDuration(call.elapsedSeconds)}`;
+  return call.error ?? "Cuộc gọi đã kết thúc";
+}
+
+export function VideoCall({ call, title, initials, color }: { call: any; title: string; initials: string; color: string }) {
   const insets = useSafeAreaInsets();
   const visible = call.mode === "video" && call.status !== "idle";
   const incoming = call.status === "ringing" && call.direction === "incoming";
   const primaryStream = call.isScreenSharing ? call.screenStream : call.remoteScreenStream ?? call.remoteStream;
   const previewStream = call.isScreenSharing
     ? (call.cameraEnabled ? call.localStream : null)
-    : call.remoteScreenStream && call.remoteStream
-      ? call.remoteStream
-      : (call.localStream && call.cameraEnabled ? call.localStream : null);
+    : call.remoteScreenStream && call.remoteStream ? call.remoteStream : (call.localStream && call.cameraEnabled ? call.localStream : null);
   const previewMirrored = call.isScreenSharing || !call.remoteScreenStream;
-  return <Modal visible={visible} animationType="slide" onRequestClose={call.endCall}>
-    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }]}>
+  return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => void call.endCall()}>
+    <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
       <RtcVideo stream={primaryStream} style={styles.remote} />
+      <View pointerEvents="none" style={styles.shade} />
       {previewStream ? <RtcVideo stream={previewStream} mirrored={previewMirrored} style={styles.local} /> : null}
-      <View style={styles.top}><Text style={styles.name}>{title}</Text><Text style={styles.state}>{incoming ? "Cuộc gọi video đến" : call.status === "ringing" ? "Đang đổ chuông…" : call.status === "connecting" ? "Đang kết nối…" : call.status === "connected" ? `Đang gọi · ${formatCallDuration(call.elapsedSeconds)}` : call.error ?? "Đã kết thúc"}</Text>{call.status === "connected" ? <Text style={styles.quality}>{formatCallPing(call.pingMs)}</Text> : null}</View>
-      {incoming ? <View style={styles.incomingRow}>
-        <TouchableOpacity onPress={call.declineIncomingCall} style={[styles.answer, styles.decline]}><MaterialIcons name="call-end" color={kiniColors.white} size={26} /><Text style={styles.answerText}>Từ chối</Text></TouchableOpacity>
-        <TouchableOpacity onPress={call.acceptIncomingCall} style={[styles.answer, styles.accept]}><MaterialIcons name="videocam" color={kiniColors.white} size={26} /><Text style={styles.answerText}>Nhận</Text></TouchableOpacity>
-      </View> : <View style={styles.bottom}><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.toggleCamera} onSwitchCamera={call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></View>}
+      {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}</View>}
+      <View style={styles.bottom}>
+        {incoming ? <><Text style={styles.actionHint}>Trả lời bằng video hoặc từ chối</Text><IncomingCallActions mode="video" onDecline={call.declineIncomingCall} onAccept={call.acceptIncomingCall} /></> : <><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.toggleCamera} onSwitchCamera={call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></>}
+      </View>
     </View>
   </Modal>;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#071729" },
+  screen: { flex: 1, overflow: "hidden", backgroundColor: "#071729", paddingHorizontal: 16 },
   remote: { ...StyleSheet.absoluteFillObject },
-  local: { position: "absolute", right: 16, top: 90, width: 108, height: 156, borderRadius: 14, overflow: "hidden", borderWidth: 2, borderColor: kiniColors.white },
-  top: { paddingHorizontal: 18, paddingTop: 10 },
-  name: { color: kiniColors.white, fontSize: 18, fontWeight: "900" },
-  state: { color: "#C5D8EC", fontSize: 12, marginTop: 4 },
-  quality: { color: "#91C9FF", fontSize: 12, marginTop: 4, fontWeight: "800" },
-  bottom: { marginTop: "auto", alignItems: "center", gap: 18, paddingHorizontal: 18 },
-  incomingRow: { marginTop: "auto", paddingHorizontal: 36, flexDirection: "row", justifyContent: "space-between" },
-  answer: { width: 86, alignItems: "center", gap: 8 },
-  accept: {},
-  decline: {},
-  answerText: { color: kiniColors.white, fontSize: 12, fontWeight: "800" },
+  shade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(2, 16, 32, 0.25)" },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 10, borderRadius: 18, backgroundColor: "rgba(4, 20, 38, 0.54)" },
+  topIdentity: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  topCopy: { flex: 1 },
+  name: { color: kiniColors.white, fontSize: 17, fontWeight: "900" },
+  state: { color: "#D0E1F1", fontSize: 12, fontWeight: "600", marginTop: 2 },
+  ping: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 6, backgroundColor: "rgba(52,139,211,0.70)" },
+  pingText: { color: kiniColors.white, fontSize: 11, fontWeight: "800" },
+  local: { position: "absolute", right: 18, top: 110, width: 108, height: 156, borderRadius: 16, overflow: "hidden", borderWidth: 2, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "#163B5F" },
+  incomingIdentity: { alignItems: "center", marginTop: "auto", marginBottom: "auto" },
+  avatarRing: { padding: 7, borderRadius: 52, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  incomingName: { color: kiniColors.white, maxWidth: 300, fontSize: 28, lineHeight: 34, fontWeight: "900", marginTop: 18 },
+  incomingState: { color: "#D2E3F2", fontSize: 15, fontWeight: "600", marginTop: 7 },
+  bottom: { alignItems: "center", marginTop: "auto", paddingTop: 18, paddingBottom: 3, gap: 16, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: "rgba(4, 21, 38, 0.62)" },
+  actionHint: { color: "#C5D9EA", fontSize: 12, fontWeight: "700" },
 });

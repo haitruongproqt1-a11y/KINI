@@ -15,13 +15,12 @@ import type { CallMode, IceCandidatePayload, SessionDescriptionPayload } from ".
 export type NativePeer = RTCPeerConnection;
 export type NativeStream = MediaStream;
 
-function setSpeakerRoute(enabled: boolean) {
-  void setAudioModeAsync({
+async function configureCallAudio(speakerEnabled: boolean) {
+  await setAudioModeAsync({
     allowsRecording: true,
     playsInSilentMode: true,
-    shouldRouteThroughEarpiece: !enabled,
-  }).catch(() => {
-    // WebRTC giữ audio session riêng; route thất bại không được làm hỏng cuộc gọi.
+    interruptionMode: "doNotMix",
+    shouldRouteThroughEarpiece: !speakerEnabled,
   });
 }
 
@@ -46,12 +45,16 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
   });
-  setSpeakerRoute(mode === "video");
+  try { await configureCallAudio(mode === "video"); } catch { /* WebRTC vẫn tiếp tục nếu audio route bị hệ điều hành chặn. */ }
   return stream;
 }
 
 export async function createDisplayMedia(): Promise<NativeStream> {
   return mediaDevices.getDisplayMedia();
+}
+
+export function streamFromTrack(track: MediaStreamTrack): NativeStream {
+  return new MediaStream([track]);
 }
 
 export function candidateToPayload(candidate: RTCIceCandidate): IceCandidatePayload {
@@ -73,15 +76,16 @@ export function stopStream(stream: NativeStream | null | undefined) {
     stream?.getTracks?.().forEach((track) => {
       try { if (track.readyState !== "ended") track.stop(); } catch { /* Track đã được native release. */ }
     });
+    try { stream?.release?.(false); } catch { /* Stream native đã được release. */ }
   } catch { /* Stream không còn hợp lệ sau khi peer đóng. */ }
 }
 
 export function setMuted(stream: NativeStream | null, muted: boolean) {
-  stream?.getAudioTracks().forEach((track) => { track.enabled = !muted; });
+  try { stream?.getAudioTracks().forEach((track) => { track.enabled = !muted; }); } catch { /* Stream đã đóng. */ }
 }
 
 export function setCameraEnabled(stream: NativeStream | null, enabled: boolean) {
-  stream?.getVideoTracks().forEach((track) => { track.enabled = enabled; });
+  try { stream?.getVideoTracks().forEach((track) => { track.enabled = enabled; }); } catch { /* Stream đã đóng. */ }
 }
 
 export function switchCamera(stream: NativeStream | null) {
@@ -90,7 +94,7 @@ export function switchCamera(stream: NativeStream | null) {
 }
 
 export function setSpeakerEnabled(enabled: boolean) {
-  setSpeakerRoute(enabled);
+  void configureCallAudio(enabled).catch(() => {});
 }
 
 export function stopInCall() {
