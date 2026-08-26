@@ -71,6 +71,13 @@
       "when": 1787741299108,
       "tag": "0009_white_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1787762484837,
+      "tag": "0010_red_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

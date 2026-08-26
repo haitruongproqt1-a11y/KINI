@@ -180,3 +180,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khi chia sẻ màn hình, ẩn camera preview, ưu tiên toàn màn hình và ổn định bitrate/frame để giảm nhòe/nhấp nháy
 - [x] Gộp tin nhắn và lịch sử cuộc gọi vào một timeline sắp xếp chính xác theo created/start time
 - [x] Kiểm thử code/Android prebuild và phát hành APK KINI sau đợt sửa media/timeline lên GitHub Release v1.10
+- [x] Tạo dữ liệu hồ sơ nearby, vị trí, discoverable và hidden_until cho tài khoản KINI thật
+- [x] Xây API lưu hồ sơ/vị trí, toggle ẩn 24h/7 ngày/vĩnh viễn và tìm nearby Haversine không hiển thị user đang ẩn
+- [x] Bảo đảm 50 km và 100 km luôn miễn phí; từ chối radius lớn hơn 100 km không dùng điều kiện VIP
+- [x] Thêm Tab Tìm Quanh Đây với quyền vị trí, loading, tab Tôi, tab Khám phá, bộ lọc và chi tiết người dùng
+- [ ] Hiển thị avatar khi camera tắt và giữ nguyên các tab/chat/call đang hoạt động
+- [ ] Kiểm thử hai tài khoản: hidden không thấy trong nearby, hết hạn tự bật lại, sort khoảng cách/tìm tên-tỉnh
+- [ ] Phát hành APK KINI có Tab Tìm Quanh Đây lên GitHub và cập nhật feed trong app

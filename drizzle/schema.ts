@@ -1,4 +1,4 @@
-import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, double, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /** Tài khoản xác thực do OAuth quản lý. */
 export const users = mysqlTable("users", {
@@ -53,6 +53,30 @@ export const conversations = mysqlTable("conversations", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
 });
+
+/** Hồ sơ vị trí riêng cho Tìm Quanh Đây; không làm thay đổi bảng tài khoản hoặc chat hiện có. */
+export const kiniUsers = mysqlTable("kini_users", {
+  id: int("id").autoincrement().primaryKey(),
+  kiniUserId: int("kiniUserId").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  avatar: varchar("avatar", { length: 1024 }),
+  gender: mysqlEnum("gender", ["male", "female", "other", "prefer_not"]),
+  status: mysqlEnum("status", ["single", "dating", "married", "complicated", "prefer_not"]),
+  province: varchar("province", { length: 128 }),
+  birthYear: int("birthYear"),
+  bio: text("bio"),
+  job: varchar("job", { length: 128 }),
+  lat: double("lat"),
+  lng: double("lng"),
+  isDiscoverable: boolean("isDiscoverable").default(true).notNull(),
+  hiddenUntil: timestamp("hiddenUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("kini_users_user_id_unique").on(table.kiniUserId),
+  index("kini_users_discovery_idx").on(table.isDiscoverable, table.hiddenUntil),
+  index("kini_users_coordinates_idx").on(table.lat, table.lng),
+]);
 
 export const conversationParticipants = mysqlTable("conversation_participants", {
   id: int("id").autoincrement().primaryKey(),
@@ -160,6 +184,7 @@ export const callSessions = mysqlTable("call_sessions", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
+export type KiniUser = typeof kiniUsers.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type ChatMessage = typeof messages.$inferSelect;
 export type CallSession = typeof callSessions.$inferSelect;

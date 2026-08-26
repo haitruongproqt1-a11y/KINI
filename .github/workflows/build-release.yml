@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.13
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.14
         required: true
-        default: v1.8.13
+        default: v1.8.14
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.10
+        description: Mã GitHub Release nhận APK, ví dụ v1.11
         required: true
-        default: v1.10
+        default: v1.11
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.13 · Build 13. Gọi thoại Android không còn bị Expo Audio ghi đè route WebRTC; camera tắt thay sender bằng null và phía nhận hiện avatar thay frame cũ; screen share ẩn camera preview, ưu tiên toàn màn hình/tuning bitrate; lịch sử call được gộp theo đúng mốc thời gian cùng tin nhắn."
+              --notes "KINI 1.8.14 · Build 14. Thêm Tab Tìm Quanh Đây: hồ sơ vị trí KINI, quyền ẩn 24h/7 ngày/vĩnh viễn, tìm kiếm Haversine theo tên/tỉnh/tuổi/tình trạng, và bán kính 50–100 km luôn miễn phí."
           fi

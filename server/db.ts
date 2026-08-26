@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, like, lt, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
@@ -8,6 +8,7 @@ import {
   conversationParticipants,
   conversations,
   friendRequests,
+  kiniUsers,
   type InsertUser,
   messageReceipts,
   messages,
@@ -23,6 +24,50 @@ let _db: ReturnType<typeof drizzle> | null = null;
 const profileColors = ["#1677FF", "#6956E8", "#00A889", "#FF7A8A", "#D86FCA", "#F5A524"];
 const receiptRank = { sent: 1, delivered: 2, read: 3 } as const;
 const transientDatabaseCodes = new Set(["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "PROTOCOL_CONNECTION_LOST", "ER_CON_COUNT_ERROR"]);
+const nearbyGenders = ["male", "female", "other", "prefer_not"] as const;
+const nearbyStatuses = ["single", "dating", "married", "complicated", "prefer_not"] as const;
+const nearbyDurations = ["24h", "7d", "permanent"] as const;
+export const MAX_FREE_DISCOVERY_RADIUS_KM = 100;
+
+export type NearbyGender = (typeof nearbyGenders)[number];
+export type NearbyStatus = (typeof nearbyStatuses)[number];
+export type NearbyDuration = (typeof nearbyDurations)[number];
+
+export type NearbyProfileInput = {
+  gender?: NearbyGender | null;
+  status?: NearbyStatus | null;
+  province?: string | null;
+  birthYear?: number | null;
+  bio?: string | null;
+  job?: string | null;
+};
+
+function cleanNearbyText(value: string | null | undefined, maxLength: number) {
+  const normalized = value?.trim().replace(/\s+/g, " ") ?? "";
+  return normalized ? normalized.slice(0, maxLength) : null;
+}
+
+export function calculateHaversineKm(latA: number, lngA: number, latB: number, lngB: number) {
+  const toRadians = (value: number) => value * Math.PI / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(latB - latA);
+  const dLng = toRadians(lngB - lngA);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(latA)) * Math.cos(toRadians(latB)) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function resolveHiddenUntil(isDiscoverable: boolean, duration?: NearbyDuration, now = Date.now()) {
+  if (isDiscoverable || duration === "permanent" || !duration) return null;
+  return new Date(now + (duration === "24h" ? 24 : 7 * 24) * 60 * 60 * 1000);
+}
+
+async function refreshExpiredNearbyVisibility(db: Awaited<ReturnType<typeof requireDb>>) {
+  await db.update(kiniUsers).set({ isDiscoverable: true, hiddenUntil: null }).where(and(
+    eq(kiniUsers.isDiscoverable, false),
+    isNotNull(kiniUsers.hiddenUntil),
+    lt(kiniUsers.hiddenUntil, new Date()),
+  ));
+}
 
 function normalizeSecret(value: string) {
   return value.trim().toLocaleLowerCase("vi-VN");
@@ -384,6 +429,114 @@ export async function updateSecurityQuestion(userId: number, input: { securityQu
     securityAnswerHash: hashSecret(input.securityAnswer),
   }).where(eq(userProfiles.id, profile.id));
   return { updated: true } as const;
+}
+
+/** Tạo/lấy hồ sơ discovery, lấy tên và avatar KINI từ hồ sơ tài khoản thật. */
+export async function getNearbyProfile(userId: number, fallbackName?: string | null) {
+  const db = await requireDb();
+  await refreshExpiredNearbyVisibility(db);
+  const profile = await getOrCreateProfile(userId, fallbackName);
+  const nearby = (await db.select().from(kiniUsers).where(eq(kiniUsers.kiniUserId, userId)).limit(1))[0];
+  return {
+    ...(nearby ?? { kiniUserId: userId, name: profile.displayName, avatar: null, gender: null, status: null, province: null, birthYear: null, bio: null, job: null, lat: null, lng: null, isDiscoverable: true, hiddenUntil: null }),
+    avatarColor: profile.avatarColor,
+    setupComplete: Boolean(nearby?.gender && nearby?.province && nearby?.birthYear),
+  };
+}
+
+export async function saveNearbyProfile(userId: number, fallbackName: string | null | undefined, input: NearbyProfileInput) {
+  const db = await requireDb();
+  const profile = await getOrCreateProfile(userId, fallbackName);
+  const birthYear = input.birthYear ?? null;
+  if (birthYear !== null && (birthYear < 1900 || birthYear > new Date().getFullYear() - 18)) throw new Error("Bạn cần đủ 18 tuổi để bật Tìm Quanh Đây.");
+  const values = {
+    kiniUserId: userId,
+    name: profile.displayName.slice(0, 128),
+    avatar: null,
+    gender: input.gender ?? null,
+    status: input.status ?? null,
+    province: cleanNearbyText(input.province, 128),
+    birthYear,
+    bio: cleanNearbyText(input.bio, 500),
+    job: cleanNearbyText(input.job, 128),
+  };
+  await db.insert(kiniUsers).values(values).onDuplicateKeyUpdate({ set: { ...values, updatedAt: new Date() } });
+  return getNearbyProfile(userId, fallbackName);
+}
+
+export async function updateNearbyLocation(userId: number, fallbackName: string | null | undefined, lat: number, lng: number) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) throw new Error("Tọa độ KINI không hợp lệ.");
+  await getNearbyProfile(userId, fallbackName);
+  const db = await requireDb();
+  const existing = (await db.select().from(kiniUsers).where(eq(kiniUsers.kiniUserId, userId)).limit(1))[0];
+  if (!existing) {
+    const profile = await getOrCreateProfile(userId, fallbackName);
+    await db.insert(kiniUsers).values({ kiniUserId: userId, name: profile.displayName.slice(0, 128), avatar: null, lat, lng });
+  } else {
+    await db.update(kiniUsers).set({ lat, lng }).where(eq(kiniUsers.kiniUserId, userId));
+  }
+  return { updated: true } as const;
+}
+
+export async function toggleNearbyDiscovery(userId: number, fallbackName: string | null | undefined, isDiscoverable: boolean, duration?: NearbyDuration) {
+  const profile = await getOrCreateProfile(userId, fallbackName);
+  const db = await requireDb();
+  const hiddenUntil = resolveHiddenUntil(isDiscoverable, duration);
+  const existing = (await db.select({ id: kiniUsers.id }).from(kiniUsers).where(eq(kiniUsers.kiniUserId, userId)).limit(1))[0];
+  if (existing) await db.update(kiniUsers).set({ isDiscoverable, hiddenUntil }).where(eq(kiniUsers.kiniUserId, userId));
+  else await db.insert(kiniUsers).values({ kiniUserId: userId, name: profile.displayName.slice(0, 128), avatar: null, isDiscoverable, hiddenUntil });
+  return getNearbyProfile(userId, fallbackName);
+}
+
+export async function listNearbyUsers(userId: number, input: { lat: number; lng: number; radius: number; gender?: NearbyGender; province?: string; ageFrom?: number; ageTo?: number; status?: NearbyStatus; q?: string; sort?: "near" | "far"; page?: number }) {
+  if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng) || input.lat < -90 || input.lat > 90 || input.lng < -180 || input.lng > 180) throw new Error("Vị trí tìm kiếm không hợp lệ.");
+  if (!Number.isFinite(input.radius) || input.radius <= 0 || input.radius > MAX_FREE_DISCOVERY_RADIUS_KM) throw new Error("KINI hỗ trợ miễn phí bán kính tối đa 100 km.");
+  const db = await requireDb();
+  await refreshExpiredNearbyVisibility(db);
+  const conditions = [
+    ne(kiniUsers.kiniUserId, userId),
+    eq(kiniUsers.isDiscoverable, true),
+    or(isNull(kiniUsers.hiddenUntil), lt(kiniUsers.hiddenUntil, new Date())),
+    isNotNull(kiniUsers.lat),
+    isNotNull(kiniUsers.lng),
+  ];
+  if (input.gender) conditions.push(eq(kiniUsers.gender, input.gender));
+  if (input.status) conditions.push(eq(kiniUsers.status, input.status));
+  if (input.province?.trim()) conditions.push(eq(kiniUsers.province, input.province.trim().slice(0, 128)));
+  if (input.q?.trim()) {
+    const query = `%${input.q.trim().slice(0, 64)}%`;
+    conditions.push(or(like(kiniUsers.name, query), like(kiniUsers.province, query)));
+  }
+  const currentYear = new Date().getFullYear();
+  const minAge = Math.max(18, input.ageFrom ?? 18);
+  const maxAge = Math.min(100, input.ageTo ?? 100);
+  if (minAge > maxAge) throw new Error("Khoảng tuổi không hợp lệ.");
+  conditions.push(sql`${kiniUsers.birthYear} IS NOT NULL AND ${kiniUsers.birthYear} BETWEEN ${currentYear - maxAge} AND ${currentYear - minAge}`);
+  const rows = await db.select({ nearby: kiniUsers, avatarColor: userProfiles.avatarColor })
+    .from(kiniUsers)
+    .leftJoin(userProfiles, eq(userProfiles.userId, kiniUsers.kiniUserId))
+    .where(and(...conditions))
+    .limit(300);
+  const page = Math.max(1, Math.min(50, Math.floor(input.page ?? 1)));
+  const matches = rows.map(({ nearby, avatarColor }) => {
+    const distanceKm = calculateHaversineKm(input.lat, input.lng, nearby.lat!, nearby.lng!);
+    return {
+      userId: nearby.kiniUserId,
+      name: nearby.name,
+      avatar: nearby.avatar,
+      avatarColor: avatarColor ?? "#1677FF",
+      gender: nearby.gender,
+      status: nearby.status,
+      province: nearby.province,
+      birthYear: nearby.birthYear,
+      age: nearby.birthYear ? currentYear - nearby.birthYear : null,
+      bio: nearby.bio,
+      job: nearby.job,
+      distanceKm: Math.round(distanceKm * 10) / 10,
+    };
+  }).filter((item) => item.distanceKm <= input.radius)
+    .sort((left, right) => input.sort === "far" ? right.distanceKm - left.distanceKm : left.distanceKm - right.distanceKm);
+  return { users: matches.slice((page - 1) * 30, page * 30), page, total: matches.length, radius: input.radius };
 }
 
 export async function searchProfiles(currentUserId: number, query: string) {

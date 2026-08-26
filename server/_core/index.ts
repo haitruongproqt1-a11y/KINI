@@ -66,6 +66,94 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
+  async function authenticateKiniApi(req: express.Request, res: express.Response) {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user) {
+        res.status(401).json({ error: "Bạn cần đăng nhập để dùng Tìm Quanh Đây." });
+        return null;
+      }
+      return user;
+    } catch {
+      res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại." });
+      return null;
+    }
+  }
+
+  app.get("/api/profile/me", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    try {
+      res.json(await db.getNearbyProfile(user.id, user.name));
+    } catch (error) {
+      res.status(503).json({ error: error instanceof Error ? error.message : "Không thể tải hồ sơ Tìm Quanh Đây." });
+    }
+  });
+
+  app.post("/api/profile/save", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    const allowedGender = ["male", "female", "other", "prefer_not"] as const;
+    const allowedStatus = ["single", "dating", "married", "complicated", "prefer_not"] as const;
+    const gender = allowedGender.includes(req.body?.gender) ? req.body.gender : null;
+    const status = allowedStatus.includes(req.body?.status) ? req.body.status : null;
+    const birthYear = req.body?.birthYear === null || req.body?.birthYear === undefined || req.body?.birthYear === "" ? null : Number(req.body.birthYear);
+    if (birthYear !== null && (!Number.isInteger(birthYear))) {
+      res.status(400).json({ error: "Năm sinh không hợp lệ." });
+      return;
+    }
+    try {
+      res.json(await db.saveNearbyProfile(user.id, user.name, { gender, status, birthYear, province: typeof req.body?.province === "string" ? req.body.province : null, bio: typeof req.body?.bio === "string" ? req.body.bio : null, job: typeof req.body?.job === "string" ? req.body.job : null }));
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Không thể lưu hồ sơ." });
+    }
+  });
+
+  app.post("/api/location/update", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    try {
+      res.json(await db.updateNearbyLocation(user.id, user.name, Number(req.body?.lat), Number(req.body?.lng)));
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Không thể cập nhật vị trí." });
+    }
+  });
+
+  app.post("/api/discovery/toggle", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    const duration = ["24h", "7d", "permanent"].includes(req.body?.duration) ? req.body.duration as "24h" | "7d" | "permanent" : undefined;
+    if (typeof req.body?.is_discoverable !== "boolean") {
+      res.status(400).json({ error: "Trạng thái hiển thị không hợp lệ." });
+      return;
+    }
+    try {
+      res.json(await db.toggleNearbyDiscovery(user.id, user.name, req.body.is_discoverable, duration));
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Không thể cập nhật quyền riêng tư." });
+    }
+  });
+
+  app.get("/api/users/nearby", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    const gender = ["male", "female", "other", "prefer_not"].includes(String(req.query.gender)) ? String(req.query.gender) as db.NearbyGender : undefined;
+    const status = ["single", "dating", "married", "complicated", "prefer_not"].includes(String(req.query.status)) ? String(req.query.status) as db.NearbyStatus : undefined;
+    try {
+      res.json(await db.listNearbyUsers(user.id, {
+        lat: Number(req.query.lat), lng: Number(req.query.lng), radius: Number(req.query.radius ?? 50), gender, status,
+        province: typeof req.query.province === "string" ? req.query.province : undefined,
+        ageFrom: req.query.age_from ? Number(req.query.age_from) : undefined,
+        ageTo: req.query.age_to ? Number(req.query.age_to) : undefined,
+        q: typeof req.query.q === "string" ? req.query.q : undefined,
+        sort: req.query.sort === "far" ? "far" : "near",
+        page: req.query.page ? Number(req.query.page) : 1,
+      }));
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Không thể tìm người quanh đây." });
+    }
+  });
+
   app.get("/api/call/ice", async (req, res) => {
     let user;
     try {

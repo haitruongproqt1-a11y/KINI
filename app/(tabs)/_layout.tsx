@@ -39,7 +39,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="contacts" options={{ title: "Danh bạ", tabBarIcon: ({ color }) => <MaterialIcons size={26} name="contacts" color={color} /> }} />
-      <Tabs.Screen name="discover" options={{ title: "Khám phá", tabBarIcon: ({ color }) => <MaterialIcons size={26} name="explore" color={color} /> }} />
+      <Tabs.Screen name="discover" options={{ title: "Quanh đây", tabBarIcon: ({ color }) => <MaterialIcons size={26} name="explore" color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: "Cá nhân", tabBarIcon: ({ color }) => <MaterialIcons size={26} name="person" color={color} /> }} />
     </Tabs>
   );
