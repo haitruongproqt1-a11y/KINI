@@ -92,6 +92,7 @@ export const appRouter = router({
   chat: router({
     list: protectedProcedure.input(z.object({ filter: z.enum(["all", "unread", "direct", "group"]).default("all") })).query(({ ctx, input }) => db.listConversations(ctx.user.id, input.filter)),
     openDirect: protectedProcedure.input(z.object({ friendUserId: z.number().int().positive() })).mutation(({ ctx, input }) => db.getOrCreateDirectConversation(ctx.user.id, input.friendUserId)),
+    presence: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).query(({ ctx, input }) => db.getDirectConversationPresence(ctx.user.id, input.conversationId)),
     messages: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).query(({ ctx, input }) => db.getConversationMessages(ctx.user.id, input.conversationId)),
     send: protectedProcedure.input(z.object({
       conversationId: z.number().int().positive(),

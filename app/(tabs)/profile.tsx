@@ -33,8 +33,8 @@ export default function ProfileScreen() {
   if (profileQuery.isLoading || !profileQuery.data) return <ScreenContainer><View style={styles.loading}><ActivityIndicator size="large" color={kiniColors.blue} /><Text style={styles.loadingText}>Đang tải hồ sơ KINI…</Text></View></ScreenContainer>;
   const profile = profileQuery.data;
   const selectedQuestion = securityQuestions.find((item) => item.id === question) ?? securityQuestions[0];
-  const appVersion = Constants.expoConfig?.version ?? "1.8.7";
-  const androidBuild = Constants.expoConfig?.android?.versionCode ?? Constants.nativeBuildVersion ?? "7";
+  const appVersion = Constants.expoConfig?.version ?? "1.8.8";
+  const androidBuild = Constants.expoConfig?.android?.versionCode ?? Constants.nativeBuildVersion ?? "8";
   const releaseDisplay = `KINI ${appVersion} · Build ${androidBuild} · Android ổn định`;
   const save = () => { if (!username.trim() || !displayName.trim()) return setNotice("Tên tài khoản và KINI ID không được để trống."); update.mutate({ username: username.trim(), displayName: displayName.trim() }); };
   const saveSecurity = () => { if (answer.trim().length < 2) return setNotice("Câu trả lời cần ít nhất 2 ký tự."); updateSecurity.mutate({ securityQuestion: question, securityAnswer: answer.trim() }); };

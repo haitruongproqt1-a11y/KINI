@@ -40,7 +40,7 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.8.7",
+  version: "1.8.8",
   // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
   platforms: ["android", "web"],
   orientation: "portrait",
@@ -57,9 +57,21 @@ const config: ExpoConfig = {
     // Buộc Android thu nhỏ vùng app khi bàn phím mở để không che composer trong chat.
     softwareKeyboardLayoutMode: "resize",
     predictiveBackGestureEnabled: false,
-    versionCode: 7,
+    versionCode: 8,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO"],
+    permissions: [
+      "POST_NOTIFICATIONS",
+      "READ_MEDIA_IMAGES",
+      "READ_MEDIA_VIDEO",
+      "CAMERA",
+      "RECORD_AUDIO",
+      "ACCESS_NETWORK_STATE",
+      "CHANGE_NETWORK_STATE",
+      "MODIFY_AUDIO_SETTINGS",
+      "INTERNET",
+      "FOREGROUND_SERVICE",
+      "FOREGROUND_SERVICE_MEDIA_PROJECTION",
+    ],
     intentFilters: [
       {
         action: "VIEW",
@@ -82,7 +94,7 @@ const config: ExpoConfig = {
   extra: {
     // Android không thể gọi relative /api như web preview, nên APK dùng domain production ổn định.
     apiBaseUrl: "https://kinimobile-cr7qe9vh.manus.space",
-    releaseCode: "v1.4",
+    releaseCode: "v1.5",
   },
   plugins: [
     "expo-router",
@@ -104,6 +116,14 @@ const config: ExpoConfig = {
     ],
     "expo-document-picker",
     "expo-audio",
+    [
+      "@config-plugins/react-native-webrtc",
+      {
+        cameraPermission: "Cho phép KINI sử dụng camera để gọi video.",
+        microphonePermission: "Cho phép KINI sử dụng micro để gọi thoại và video.",
+      },
+    ],
+    "./plugins/with-kini-webrtc-screen-share",
     [
       "expo-video",
       {

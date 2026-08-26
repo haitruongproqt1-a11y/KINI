@@ -141,3 +141,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Chuyển upload media mới sang URL PUT ký trực tiếp và giữ API upload cũ cho APK đang dùng
 - [x] Giữ khung nhập/gửi tin hoạt động khi upload nền và chừa safe area cho các bảng chọn Android
 - [x] Kiểm thử hồi quy và phát hành KINI 1.8.7 · Build 7 / GitHub Release v1.4
+
+- [x] Hiển thị trạng thái online hoặc thời điểm hoạt động gần nhất dưới tên trong đầu cuộc trò chuyện
+- [x] Thiết kế signaling cuộc gọi theo tài khoản KINI và đánh giá hạ tầng realtime phù hợp
+- [x] Thêm mô-đun gọi thoại, video và chia sẻ màn hình WebRTC cho Android
+- [ ] Kiểm thử cuộc gọi hai thiết bị, quyền camera/micro và các tình huống lỗi mạng
+- [ ] Tăng phiên bản, tự build APK GitHub Release và cập nhật feed sau tính năng gọi

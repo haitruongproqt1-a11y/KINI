@@ -219,6 +219,46 @@ export async function listUserSessions(userId: number) {
   return db.select().from(userSessions).where(eq(userSessions.userId, userId)).orderBy(desc(userSessions.lastActiveAt)).limit(30);
 }
 
+/** Trả về hoạt động gần nhất của người còn lại trong cuộc trò chuyện riêng tư mà người gọi được phép xem. */
+export async function getDirectConversationPresence(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertParticipant(userId, conversationId);
+
+  const conversation = await db.select({ kind: conversations.kind }).from(conversations).where(eq(conversations.id, conversationId)).limit(1);
+  if (conversation[0]?.kind !== "direct") {
+    return { isOnline: false, lastActiveAt: null };
+  }
+
+  const participants = await db.select({ userId: conversationParticipants.userId })
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.conversationId, conversationId));
+  const otherUserId = participants.find((participant) => participant.userId !== userId)?.userId;
+  if (!otherUserId) return { isOnline: false, lastActiveAt: null };
+
+  const activeSession = await db.select({ lastActiveAt: userSessions.lastActiveAt })
+    .from(userSessions)
+    .where(and(eq(userSessions.userId, otherUserId), isNull(userSessions.revokedAt)))
+    .orderBy(desc(userSessions.lastActiveAt))
+    .limit(1);
+  const lastActiveAt = activeSession[0]?.lastActiveAt ?? null;
+  const isOnline = Boolean(lastActiveAt && Date.now() - new Date(lastActiveAt).getTime() <= 90_000);
+  return { isOnline, lastActiveAt };
+}
+
+/** Trả về người nhận duy nhất của cuộc gọi P2P trong hội thoại trực tiếp mà người gọi là thành viên. */
+export async function getDirectConversationPeerUserIds(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertParticipant(userId, conversationId);
+  const conversation = await db.select({ kind: conversations.kind }).from(conversations).where(eq(conversations.id, conversationId)).limit(1);
+  if (conversation[0]?.kind !== "direct") throw new Error("Cuộc gọi chỉ hỗ trợ hội thoại riêng tư.");
+  const participants = await db.select({ userId: conversationParticipants.userId })
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.conversationId, conversationId));
+  const peers = participants.filter((participant) => participant.userId !== userId).map((participant) => participant.userId);
+  if (peers.length !== 1) throw new Error("Không xác định được người nhận cuộc gọi.");
+  return peers;
+}
+
 export async function updateActiveUserSessionDevice(userId: number, sessionId: string, device: { deviceName: string; platform: string }) {
   const db = await requireDb();
   await db.update(userSessions).set({

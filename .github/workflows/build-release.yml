@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.7
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.8
         required: true
-        default: v1.8.7
+        default: v1.8.8
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.4
+        description: Mã GitHub Release nhận APK, ví dụ v1.5
         required: true
-        default: v1.4
+        default: v1.5
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.7 · Build 7. Upload ảnh, video và tệp truyền byte trực tiếp vào kho media qua URL ký để tiến trình phản ánh dữ liệu thực; vẫn có thể nhập và gửi tin nhắn khi upload nền, đồng thời các bảng chọn media tránh thanh điều hướng Android."
+              --notes "KINI 1.8.8 · Build 8. Đầu chat hiển thị online/lần hoạt động thật. Bổ sung cuộc gọi thoại, video và chia sẻ màn hình WebRTC trong hội thoại riêng tư, với signaling xác thực theo phiên KINI và STUN/TURN dự phòng. APK này cần được kiểm thử trên hai thiết bị Android trước khi dùng rộng rãi."
           fi
