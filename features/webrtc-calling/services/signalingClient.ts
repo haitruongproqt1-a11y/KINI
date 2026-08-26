@@ -9,6 +9,7 @@ type SignalEvents = {
   offer: (signal: CallSignal) => void;
   answer: (signal: CallSignal) => void;
   candidate: (signal: CallSignal) => void;
+  media: (signal: CallSignal) => void;
   end: (signal: CallSignal) => void;
   error: (message: string) => void;
 };
@@ -17,6 +18,7 @@ export type KiniSignalClient = {
   emitOffer: (signal: Omit<CallSignal, "fromUserId">) => void;
   emitAnswer: (signal: Omit<CallSignal, "fromUserId">) => void;
   emitCandidate: (signal: Omit<CallSignal, "fromUserId">) => void;
+  emitMedia: (signal: Pick<CallSignal, "callId" | "conversationId" | "cameraEnabled">) => void;
   emitEnd: (signal: Pick<CallSignal, "callId" | "conversationId"> & { outcome?: CallSignal["outcome"]; pingMs?: number }) => Promise<void>;
   disconnect: () => void;
 };
@@ -37,12 +39,14 @@ export async function createKiniSignalClient(events: SignalEvents): Promise<Kini
   socket.on("call:offer", events.offer);
   socket.on("call:answer", events.answer);
   socket.on("call:candidate", events.candidate);
+  socket.on("call:media", events.media);
   socket.on("call:end", events.end);
 
   const client: KiniSignalClient = {
     emitOffer: (signal) => socket.emit("call:offer", signal),
     emitAnswer: (signal) => socket.emit("call:answer", signal),
     emitCandidate: (signal) => socket.emit("call:candidate", signal),
+    emitMedia: (signal) => socket.emit("call:media", signal),
     emitEnd: async (signal) => {
       if (!socket.connected) return;
       await new Promise<void>((resolve) => {

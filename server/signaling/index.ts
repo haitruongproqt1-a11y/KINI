@@ -16,6 +16,7 @@ type SignalPayload = {
   pingMs?: unknown;
   renegotiate?: unknown;
   screenSharing?: unknown;
+  cameraEnabled?: unknown;
 };
 
 function readBaseSignal(payload: SignalPayload) {
@@ -76,7 +77,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
     const userId = Number(socket.data.userId);
     socket.join(`kini-user:${userId}`);
 
-    const relay = async (event: "call:answer" | "call:candidate" | "call:end", payload: SignalPayload, extra: Record<string, unknown> = {}) => {
+    const relay = async (event: "call:answer" | "call:candidate" | "call:media" | "call:end", payload: SignalPayload, extra: Record<string, unknown> = {}) => {
       try {
         const { callId, conversationId } = readBaseSignal(payload);
         const peers = await db.getDirectConversationPeerUserIds(userId, conversationId);
@@ -127,6 +128,10 @@ export function registerCallSignaling(httpServer: HttpServer) {
       } catch (error) {
         socket.emit("call:error", error instanceof Error ? error.message : "ICE candidate không hợp lệ.");
       }
+    });
+    socket.on("call:media", (payload: SignalPayload) => {
+      if (typeof payload.cameraEnabled !== "boolean") return socket.emit("call:error", "Trạng thái camera không hợp lệ.");
+      void relay("call:media", payload, { cameraEnabled: payload.cameraEnabled });
     });
     socket.on("call:end", (payload: SignalPayload, acknowledge?: (result: { ok: boolean }) => void) => {
       void (async () => {

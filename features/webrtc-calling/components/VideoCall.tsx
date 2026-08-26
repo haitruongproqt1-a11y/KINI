@@ -20,15 +20,15 @@ export function VideoCall({ call, title, initials, color }: { call: any; title: 
   const insets = useSafeAreaInsets();
   const visible = call.mode === "video" && call.status !== "idle";
   const incoming = call.status === "ringing" && call.direction === "incoming";
-  const primaryStream = call.isScreenSharing ? call.screenStream : call.remoteScreenStream ?? call.remoteStream;
-  const previewStream = call.isScreenSharing
-    ? (call.cameraEnabled ? call.localStream : null)
-    : call.remoteScreenStream && call.remoteStream ? call.remoteStream : (call.localStream && call.cameraEnabled ? call.localStream : null);
-  const previewMirrored = call.isScreenSharing || !call.remoteScreenStream;
+  const isScreenActive = call.isScreenSharing || Boolean(call.remoteScreenStream);
+  const primaryStream = call.isScreenSharing ? call.screenStream : call.remoteScreenStream ?? (call.remoteCameraEnabled ? call.remoteStream : null);
+  const previewStream = isScreenActive ? null : (call.localStream && call.cameraEnabled ? call.localStream : null);
+  const previewMirrored = true;
   return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => void call.endCall()}>
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
-      <RtcVideo stream={primaryStream} style={styles.remote} />
+      <RtcVideo stream={primaryStream} objectFit={isScreenActive ? "contain" : "cover"} style={styles.remote} />
       <View pointerEvents="none" style={styles.shade} />
+      {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>Camera đang tắt</Text></View> : null}
       {previewStream ? <RtcVideo stream={previewStream} mirrored={previewMirrored} style={styles.local} /> : null}
       {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}</View>}
       <View style={styles.bottom}>
@@ -51,6 +51,9 @@ const styles = StyleSheet.create({
   pingText: { color: kiniColors.white, fontSize: 11, fontWeight: "800" },
   local: { position: "absolute", right: 18, top: 110, width: 108, height: 156, borderRadius: 16, overflow: "hidden", borderWidth: 2, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "#163B5F" },
   incomingIdentity: { alignItems: "center", marginTop: "auto", marginBottom: "auto" },
+  cameraOff: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 8 },
+  cameraOffTitle: { color: kiniColors.white, fontSize: 23, fontWeight: "900", marginTop: 10 },
+  cameraOffText: { color: "#C7DBED", fontSize: 14, fontWeight: "600" },
   avatarRing: { padding: 7, borderRadius: 52, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   incomingName: { color: kiniColors.white, maxWidth: 300, fontSize: 28, lineHeight: 34, fontWeight: "900", marginTop: 18 },
   incomingState: { color: "#D2E3F2", fontSize: 15, fontWeight: "600", marginTop: 7 },

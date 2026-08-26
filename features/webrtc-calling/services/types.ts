@@ -26,4 +26,5 @@ export type CallSignal = {
   pingMs?: number;
   renegotiate?: boolean;
   screenSharing?: boolean;
+  cameraEnabled?: boolean;
 };

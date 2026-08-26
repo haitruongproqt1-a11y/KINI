@@ -16,6 +16,9 @@ export type NativePeer = RTCPeerConnection;
 export type NativeStream = MediaStream;
 
 async function configureCallAudio(speakerEnabled: boolean) {
+  // WebRTC quản lý AudioDeviceModule/voice focus riêng trên Android. Không để expo-audio
+  // ghi đè audio mode trong lúc call voice, vì một số máy Android sẽ rớt media/DTLS.
+  if (Platform.OS === "android") return;
   await setAudioModeAsync({
     allowsRecording: true,
     playsInSilentMode: true,
@@ -41,12 +44,30 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
     const denied = Object.values(permissions).some((result) => result !== PermissionsAndroid.RESULTS.GRANTED);
     if (denied) throw new Error(mode === "video" ? "KINI cần quyền micro và camera để gọi video." : "KINI cần quyền micro để gọi thoại.");
   }
+  try { await configureCallAudio(mode === "video"); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
   const stream = await mediaDevices.getUserMedia({
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
   });
-  try { await configureCallAudio(mode === "video"); } catch { /* WebRTC vẫn tiếp tục nếu audio route bị hệ điều hành chặn. */ }
   return stream;
+}
+
+/** Ưu tiên nét chữ/màn hình và giảm thay đổi bitrate khung hình khi chia sẻ trên mạng di động. */
+export async function stabilizeScreenShareSender(sender: any) {
+  try {
+    const parameters = sender?.getParameters?.();
+    if (!parameters || !Array.isArray(parameters.encodings)) return;
+    parameters.degradationPreference = "maintain-resolution";
+    parameters.encodings.forEach((encoding: any) => {
+      encoding.active = true;
+      encoding.maxBitrate = 2_500_000;
+      encoding.maxFramerate = 12;
+      encoding.scaleResolutionDownBy = 1;
+    });
+    await sender.setParameters(parameters);
+  } catch {
+    // Một số Android cũ không hỗ trợ sender parameters; share vẫn tiếp tục với mặc định WebRTC.
+  }
 }
 
 export async function createDisplayMedia(): Promise<NativeStream> {
@@ -94,9 +115,9 @@ export function switchCamera(stream: NativeStream | null) {
 }
 
 export function setSpeakerEnabled(enabled: boolean) {
-  void configureCallAudio(enabled).catch(() => {});
+  if (Platform.OS !== "android") void configureCallAudio(enabled).catch(() => {});
 }
 
 export function stopInCall() {
-  void setAudioModeAsync({ allowsRecording: false, shouldRouteThroughEarpiece: false }).catch(() => {});
+  if (Platform.OS !== "android") void setAudioModeAsync({ allowsRecording: false, shouldRouteThroughEarpiece: false }).catch(() => {});
 }

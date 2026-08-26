@@ -175,3 +175,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khôi phục media hai chiều cho chế độ gọi thoại và điều phối audio session an toàn với nhạc chuông
 - [x] Thiết kế lại giao diện gọi đến/gọi đi với avatar, trạng thái rõ ràng và các nút nhận/từ chối/kết thúc dễ dùng
 - [x] Kiểm thử code/Android prebuild, phát hành APK KINI sửa cuộc gọi lên GitHub Release v1.9
+- [x] Sửa gọi thoại để audio hai chiều kết nối ổn định mà không ảnh hưởng video call
+- [x] Khi tắt camera, ẩn frame cuối và hiển thị avatar/trạng thái như gọi thoại ở phía bên kia
+- [x] Khi chia sẻ màn hình, ẩn camera preview, ưu tiên toàn màn hình và ổn định bitrate/frame để giảm nhòe/nhấp nháy
+- [x] Gộp tin nhắn và lịch sử cuộc gọi vào một timeline sắp xếp chính xác theo created/start time
+- [ ] Kiểm thử hai Android và phát hành APK KINI sau đợt sửa media/timeline

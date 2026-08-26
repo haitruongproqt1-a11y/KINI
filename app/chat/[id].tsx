@@ -106,6 +106,10 @@ type CallLog = {
   isOutgoing: boolean;
 };
 
+type TimelineItem =
+  | { entryType: "message"; key: string; timestamp: number; message: Message }
+  | { entryType: "call"; key: string; timestamp: number; call: CallLog };
+
 function callLogCopy(item: CallLog) {
   const at = new Date(item.answeredAt ?? item.startedAt).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
   if (item.status === "missed") return item.isOutgoing ? `Không trả lời · ${at}` : `Cuộc gọi nhỡ · ${at}`;
@@ -116,16 +120,11 @@ function callLogCopy(item: CallLog) {
   return "Đang đổ chuông…";
 }
 
-function CallHistory({ calls }: { calls: CallLog[] }) {
-  if (!calls.length) return null;
-  return <View style={styles.callHistory}>
-    {calls.slice(0, 5).map((call) => {
-      const missed = call.status === "missed" || call.status === "declined" || call.status === "failed";
-      return <View key={call.id} style={styles.callLogRow}>
-        <MaterialIcons name={call.mode === "video" ? "videocam" : "call"} size={17} color={missed ? kiniColors.coral : kiniColors.blue} />
-        <View style={styles.callLogCopy}><Text style={[styles.callLogTitle, missed && styles.callLogMissed]}>{call.isOutgoing ? "Cuộc gọi đi" : "Cuộc gọi đến"}</Text><Text style={styles.callLogDetail}>{callLogCopy(call)}</Text></View>
-      </View>;
-    })}
+function CallTimelineEntry({ call }: { call: CallLog }) {
+  const missed = call.status === "missed" || call.status === "declined" || call.status === "failed";
+  return <View style={styles.callTimeline}>
+    <MaterialIcons name={call.mode === "video" ? "videocam" : "call"} size={17} color={missed ? kiniColors.coral : kiniColors.blue} />
+    <View style={styles.callLogCopy}><Text style={[styles.callLogTitle, missed && styles.callLogMissed]}>{call.isOutgoing ? "Cuộc gọi đi" : "Cuộc gọi đến"}</Text><Text style={styles.callLogDetail}>{callLogCopy(call)}</Text></View>
   </View>;
 }
 
@@ -201,7 +200,7 @@ export default function ChatScreen() {
   const conversationId = Number(parsed.id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const listRef = useRef<FlatList<Message>>(null);
+  const listRef = useRef<FlatList<TimelineItem>>(null);
   const { user, isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
   const [selected, setSelected] = useState<Message | null>(null);
@@ -273,6 +272,11 @@ export default function ChatScreen() {
     const serverClientIds = new Set(serverMessages.map((message) => message.clientMessageId).filter(Boolean));
     return [...serverMessages, ...optimisticMessages.filter((message) => !message.clientMessageId || !serverClientIds.has(message.clientMessageId))].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [messagesQuery.data, optimisticMessages]);
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const messageItems = thread.map((message) => ({ entryType: "message" as const, key: `message-${message.id}`, timestamp: new Date(message.createdAt).getTime(), message }));
+    const callItems = ((callsQuery.data ?? []) as CallLog[]).map((call) => ({ entryType: "call" as const, key: `call-${call.id}`, timestamp: new Date(call.startedAt).getTime(), call }));
+    return [...messageItems, ...callItems].sort((left, right) => left.timestamp - right.timestamp || left.key.localeCompare(right.key));
+  }, [callsQuery.data, thread]);
   const saveMedia = async () => {
     const media = selected;
     setSelected(null);
@@ -328,15 +332,14 @@ export default function ChatScreen() {
       </View>
       <FlatList
         ref={listRef}
-        data={thread}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <MessageBubble item={item} isMine={item.senderId === user?.id} onLongPress={setSelected} onOpenMedia={setViewer} />}
+        data={timeline}
+        keyExtractor={(item) => item.key}
+        renderItem={({ item }) => item.entryType === "message" ? <MessageBubble item={item.message} isMine={item.message.senderId === user?.id} onLongPress={setSelected} onOpenMedia={setViewer} /> : <CallTimelineEntry call={item.call} />}
         contentContainerStyle={styles.thread}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         onContentSizeChange={scrollToLatest}
         ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
-        ListFooterComponent={<CallHistory calls={(callsQuery.data ?? []) as CallLog[]} />}
       />
       <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
@@ -376,6 +379,7 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: "row", alignItems: "center" },
   thread: { flexGrow: 1, paddingHorizontal: 14, paddingBottom: 16, paddingTop: 10, gap: 7 },
   callHistory: { marginHorizontal: 4, marginBottom: 12, borderRadius: 14, backgroundColor: kiniColors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: kiniColors.line, overflow: "hidden" },
+  callTimeline: { alignSelf: "center", minWidth: 220, maxWidth: "86%", marginVertical: 4, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, backgroundColor: kiniColors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: kiniColors.line },
   callLogRow: { minHeight: 52, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kiniColors.line },
   callLogCopy: { flex: 1 },
   callLogTitle: { color: kiniColors.navy, fontSize: 13, fontWeight: "800" },

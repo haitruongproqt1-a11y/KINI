@@ -24,4 +24,17 @@ describe("KINI WebRTC Android safety", () => {
     expect(hook).toContain("await signal?.emitEnd");
     expect(nativeService).toContain("interruptionMode: \"doNotMix\"");
   });
+
+  it("không để audio mode Expo ghi đè WebRTC Android và thay camera sender khi tắt/bật", () => {
+    expect(nativeService).toContain('if (Platform.OS === "android") return;');
+    expect(hook).toContain("cameraSenderRef.current");
+    expect(hook).toContain("emitMedia({ callId: callIdRef.current");
+    expect(hook).toContain("await sender.replaceTrack(nextEnabled ? track : null)");
+  });
+
+  it("tune sender screen share để ưu tiên ổn định và độ phân giải", () => {
+    expect(nativeService).toContain("degradationPreference = \"maintain-resolution\"");
+    expect(nativeService).toContain("encoding.maxBitrate = 2_500_000");
+    expect(hook).toContain("await stabilizeScreenShareSender(transceiver.sender)");
+  });
 });
