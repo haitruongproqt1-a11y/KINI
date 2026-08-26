@@ -137,3 +137,7 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bỏ viền xanh không cần thiết ở trình xem ảnh và video
 - [x] Cố định khung soạn tin theo bàn phím Android để xem nội dung và gửi nhanh
 - [x] Tăng version/build, build APK mới tự động, tạo GitHub Release và cập nhật update feed
+
+- [x] Chuyển upload media mới sang URL PUT ký trực tiếp và giữ API upload cũ cho APK đang dùng
+- [x] Giữ khung nhập/gửi tin hoạt động khi upload nền và chừa safe area cho các bảng chọn Android
+- [ ] Kiểm thử hồi quy và phát hành KINI 1.8.7 · Build 7 / GitHub Release v1.4

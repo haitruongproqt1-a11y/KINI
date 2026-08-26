@@ -5,7 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
-import { storagePut } from "../storage";
+import { storagePresignPut, storagePut } from "../storage";
 import { appRouter } from "../routers";
 import * as db from "../db";
 import { sdk } from "./sdk";
@@ -63,13 +63,65 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  app.post("/api/media/upload", express.raw({ type: "application/octet-stream", limit: "70mb" }), async (req, res) => {
+  app.post("/api/media/presign", async (req, res) => {
+    let user;
     try {
-      const user = await sdk.authenticateRequest(req);
-      if (!user) {
-        res.status(401).json({ error: "Bạn cần đăng nhập để tải media." });
-        return;
-      }
+      user = await sdk.authenticateRequest(req);
+    } catch (error) {
+      console.warn("[MediaPresign] authentication failed:", error instanceof Error ? error.message : error);
+      res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại trước khi tải media." });
+      return;
+    }
+
+    if (!user) {
+      res.status(401).json({ error: "Bạn cần đăng nhập để tải media." });
+      return;
+    }
+
+    const rawName = typeof req.body?.name === "string" ? req.body.name : "media";
+    const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "media";
+    const type = typeof req.body?.contentType === "string"
+      ? req.body.contentType.split(";", 1)[0].slice(0, 120)
+      : "application/octet-stream";
+    const declaredSize = Number(req.body?.size);
+    if (!Number.isFinite(declaredSize) || declaredSize <= 0 || declaredSize > 70_000_000) {
+      res.status(400).json({ error: "Kích thước media không hợp lệ hoặc vượt quá giới hạn 70 MB." });
+      return;
+    }
+
+    try {
+      const key = `kini/${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const presigned = await storagePresignPut(key);
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        url: presigned.url,
+        uploadUrl: presigned.uploadUrl,
+        name: safeName,
+        contentType: type || "application/octet-stream",
+        size: declaredSize,
+      });
+    } catch (error) {
+      console.error("[MediaPresign] storage failed:", error instanceof Error ? error.message : error);
+      res.status(502).json({ error: "Không thể chuẩn bị kho lưu media. Vui lòng thử lại sau." });
+    }
+  });
+
+  app.post("/api/media/upload", express.raw({ type: "application/octet-stream", limit: "70mb" }), async (req, res) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch (error) {
+      console.warn("[MediaUpload] authentication failed:", error instanceof Error ? error.message : error);
+      res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại trước khi tải media." });
+      return;
+    }
+
+    if (!user) {
+      res.status(401).json({ error: "Bạn cần đăng nhập để tải media." });
+      return;
+    }
+
+    try {
       const binaryBody = Buffer.isBuffer(req.body) ? req.body : null;
       const legacyBody = binaryBody ? null : req.body as { data?: string; name?: string; contentType?: string; size?: number | null };
       const data = binaryBody ?? (typeof legacyBody?.data === "string" ? Buffer.from(legacyBody.data, "base64") : null);
