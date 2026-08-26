@@ -40,13 +40,13 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.8.5",
+  version: "1.8.6",
   // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
   platforms: ["android", "web"],
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
-  userInterfaceStyle: "automatic",
+  userInterfaceStyle: "light",
   newArchEnabled: true,
   android: {
     adaptiveIcon: {
@@ -57,7 +57,7 @@ const config: ExpoConfig = {
     // Buộc Android thu nhỏ vùng app khi bàn phím mở để không che composer trong chat.
     softwareKeyboardLayoutMode: "resize",
     predictiveBackGestureEnabled: false,
-    versionCode: 5,
+    versionCode: 6,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO"],
     intentFilters: [
@@ -82,7 +82,7 @@ const config: ExpoConfig = {
   extra: {
     // Android không thể gọi relative /api như web preview, nên APK dùng domain production ổn định.
     apiBaseUrl: "https://kinimobile-cr7qe9vh.manus.space",
-    releaseCode: "v1.2",
+    releaseCode: "v1.3",
   },
   plugins: [
     "expo-router",
@@ -119,7 +119,7 @@ const config: ExpoConfig = {
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#FFFFFF",
         },
       },
     ],

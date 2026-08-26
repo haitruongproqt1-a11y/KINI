@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.5
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.6
         required: true
-        default: v1.8.5
+        default: v1.8.6
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.2
+        description: Mã GitHub Release nhận APK, ví dụ v1.3
         required: true
-        default: v1.2
+        default: v1.3
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.5 · Build 5. APK Android đã ký, gồm nút cập nhật trong Cá nhân, chống trùng tin nhắn, upload ảnh/video có tiến trình và sửa vùng nhập chat Android."
+              --notes "KINI 1.8.6 · Build 6. APK Android đã ký với giao diện sáng dễ đọc, tên thiết bị hiện tại chính xác, media không còn viền xanh và khung soạn tin đi cùng bàn phím Android."
           fi

@@ -219,6 +219,16 @@ export async function listUserSessions(userId: number) {
   return db.select().from(userSessions).where(eq(userSessions.userId, userId)).orderBy(desc(userSessions.lastActiveAt)).limit(30);
 }
 
+export async function updateActiveUserSessionDevice(userId: number, sessionId: string, device: { deviceName: string; platform: string }) {
+  const db = await requireDb();
+  await db.update(userSessions).set({
+    deviceName: device.deviceName.slice(0, 128),
+    platform: device.platform.slice(0, 24),
+    lastActiveAt: new Date(),
+  }).where(and(eq(userSessions.id, sessionId), eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
+  return { updated: true } as const;
+}
+
 export async function revokeUserSession(userId: number, sessionId: string) {
   const db = await requireDb();
   await db.update(userSessions).set({ revokedAt: new Date() }).where(and(eq(userSessions.id, sessionId), eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));

@@ -94,7 +94,7 @@ export default function RootLayout() {
               <Stack.Screen name="chat/[id]" />
               <Stack.Screen name="oauth/callback" />
             </Stack>
-            <StatusBar style="auto" />
+            <StatusBar style="dark" backgroundColor="#FFFFFF" />
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

@@ -62,6 +62,11 @@ export const appRouter = router({
   sessions: router({
     list: protectedProcedure.query(({ ctx }) => db.listUserSessions(ctx.user.id)),
     revoke: protectedProcedure.input(z.object({ sessionId: z.string().uuid() })).mutation(({ ctx, input }) => db.revokeUserSession(ctx.user.id, input.sessionId)),
+    identifyCurrent: protectedProcedure.input(z.object({ deviceName: z.string().trim().min(1).max(128), platform: z.enum(["android", "ios", "web"]) })).mutation(({ ctx, input }) => {
+      const sessionId = (ctx.user as typeof ctx.user & { sessionId?: string }).sessionId;
+      if (!sessionId) throw new Error("Không xác định được phiên đăng nhập hiện tại.");
+      return db.updateActiveUserSessionDevice(ctx.user.id, sessionId, input);
+    }),
   }),
   profile: router({
     me: protectedProcedure.query(({ ctx }) => db.getOrCreateProfile(ctx.user.id, ctx.user.name)),

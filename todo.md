@@ -131,3 +131,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Tạo workflow GitHub Actions build APK Android từ tag KINI và lưu artifact
 - [x] Chạy workflow cho tag v1.8.5, lấy APK Build 5 và tạo Release v1.2 tự động
 - [x] Cấp khóa ký APK cho workflow qua endpoint xác thực GitHub OIDC, không lưu khóa trong mã nguồn
+
+- [x] Hiển thị đúng tên thiết bị hiện hoạt và chỉ hiển thị một phiên đang hoạt động trong Cá nhân
+- [x] Làm sáng toàn bộ giao diện KINI, tăng tương phản và khả năng nhìn thấy thao tác
+- [x] Bỏ viền xanh không cần thiết ở trình xem ảnh và video
+- [x] Cố định khung soạn tin theo bàn phím Android để xem nội dung và gửi nhanh
+- [ ] Tăng version/build, build APK mới tự động, tạo GitHub Release và cập nhật update feed

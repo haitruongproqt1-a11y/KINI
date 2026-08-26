@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, To
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AuthLink, FormField, kiniColors, PrimaryButton } from "@/components/kini-ui";
+import { getKiniDeviceIdentity } from "@/lib/kini-device";
 import { completeKiniSession } from "@/lib/kini-session";
 import { trpc } from "@/lib/trpc";
 import { securityQuestions } from "@/shared/security-questions";
@@ -27,7 +28,7 @@ export function KiniPasswordAuth({ onSessionReady }: { onSessionReady: () => Pro
   const recoveryQuery = trpc.auth.recoveryQuestion.useQuery({ username }, { enabled: mode === "recover" && username.trim().length >= 3 });
   const reset = trpc.auth.resetPassword.useMutation();
   const selectedQuestion = securityQuestions.find((item) => item.id === question) ?? securityQuestions[0];
-  const device = { platform: Platform.OS, deviceName: Platform.OS === "ios" ? "Thiết bị iOS" : Platform.OS === "android" ? "Thiết bị Android" : "Trình duyệt web" };
+  const device = getKiniDeviceIdentity();
   const recovery = recoveryQuery.data;
   const withTimeout = async <T,>(request: Promise<T>) => Promise.race<T>([request, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Kết nối đang chậm. Vui lòng kiểm tra mạng và thử lại.")), 15000))]);
   const readableError = (error: unknown, fallback: string) => {
