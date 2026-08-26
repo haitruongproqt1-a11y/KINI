@@ -40,7 +40,7 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.8.4",
+  version: "1.8.5",
   // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
   platforms: ["android", "web"],
   orientation: "portrait",
@@ -54,8 +54,10 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/images/android-icon-foreground.png",
     },
     edgeToEdgeEnabled: true,
+    // Buộc Android thu nhỏ vùng app khi bàn phím mở để không che composer trong chat.
+    softwareKeyboardLayoutMode: "resize",
     predictiveBackGestureEnabled: false,
-    versionCode: 4,
+    versionCode: 5,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO"],
     intentFilters: [
@@ -97,7 +99,7 @@ const config: ExpoConfig = {
     [
       "expo-image-picker",
       {
-        photosPermission: "Cho phép KINI truy cập thư viện ảnh để gửi ảnh và album trong cuộc trò chuyện.",
+        photosPermission: "Cho phép KINI truy cập thư viện ảnh để gửi ảnh và video trong cuộc trò chuyện.",
       },
     ],
     "expo-document-picker",

@@ -1,43 +1,162 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
 import { kiniColors } from "@/components/kini-ui";
 import { uploadMedia } from "@/lib/media";
 
-type Attachment = { id: string; kind: "image" | "album" | "video" | "file" | "sticker"; name: string; uri?: string; attachmentUrls?: string[]; contentType?: string; size?: number | null; count?: number };
+type Attachment = { id: string; kind: "image" | "video" | "file" | "sticker"; name: string; uri?: string; contentType?: string; size?: number | null };
 type AttachmentAction = { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; color: string; onPress: () => void };
+type UploadPreview = { uri?: string; kind: "image" | "video" | "file"; name: string };
+
 const stickers = ["👍", "❤️", "😂", "🎉", "✨", "🥳", "👏", "😎"];
 
-export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, replyingTo, onClearReply }: { onSendText: (value: string) => void; onSendAttachment: (attachment: Attachment) => void; pasteNonce?: number; replyingTo?: string | null; onClearReply?: () => void }) {
-  const [value, setValue] = useState(""); const [showActions, setShowActions] = useState(false); const [showStickers, setShowStickers] = useState(false); const [isUploading, setIsUploading] = useState(false); const [uploadProgress, setUploadProgress] = useState(0); const [uploadLabel, setUploadLabel] = useState("");
-  useEffect(() => { if (!pasteNonce) return; Clipboard.getStringAsync().then((text) => { if (text) setValue((current) => current ? `${current} ${text}` : text); }).catch(() => undefined); }, [pasteNonce]);
-  const send = () => { if (!value.trim() || isUploading) return; onSendText(value); setValue(""); };
-  const uploadOne = async (asset: ImagePicker.ImagePickerAsset, kind: "image" | "video", index = 0, total = 1) => {
+export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, replyingTo, onClearReply, bottomInset = 0, onInputFocus }: {
+  onSendText: (value: string) => void;
+  onSendAttachment: (attachment: Attachment) => void;
+  pasteNonce?: number;
+  replyingTo?: string | null;
+  onClearReply?: () => void;
+  bottomInset?: number;
+  onInputFocus?: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const [showActions, setShowActions] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadLabel, setUploadLabel] = useState("");
+  const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
+
+  useEffect(() => {
+    if (!pasteNonce) return;
+    Clipboard.getStringAsync()
+      .then((text) => { if (text) setValue((current) => current ? `${current} ${text}` : text); })
+      .catch(() => undefined);
+  }, [pasteNonce]);
+
+  const send = () => {
+    const content = value.trim();
+    if (!content || isUploading) return;
+    onSendText(content);
+    setValue("");
+  };
+
+  const uploadAsset = async (asset: ImagePicker.ImagePickerAsset, kind: "image" | "video") => {
     const name = asset.fileName ?? `${kind}-${Date.now()}.${kind === "video" ? "mp4" : "jpg"}`;
-    return uploadMedia(asset.uri, name, asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"), asset.fileSize, (part) => setUploadProgress(Math.min(99, Math.round(((index + part / 100) / total) * 100))));
-  };
-  const selectImages = async (album: boolean) => {
-    setShowActions(false); if (Platform.OS !== "web") { const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (!permission.granted) { Alert.alert("Cần quyền truy cập", "KINI cần quyền thư viện ảnh để gửi hình ảnh."); return; } }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: album, selectionLimit: album ? 12 : 1, quality: 0.82 }); if (result.canceled || !result.assets.length) return;
-    setIsUploading(true); setUploadProgress(0); setUploadLabel(album ? `Đang tải album 0/${result.assets.length}…` : "Đang tải ảnh…");
+    setShowActions(false);
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadLabel(kind === "video" ? "Đang gửi video" : "Đang gửi ảnh");
+    setUploadPreview({ uri: asset.uri, kind, name });
     try {
-      const uploaded = []; for (let index = 0; index < result.assets.length; index += 1) { setUploadLabel(album ? `Đang tải album ${index + 1}/${result.assets.length}…` : "Đang tải ảnh…"); uploaded.push(await uploadOne(result.assets[index], "image", index, result.assets.length)); }
-      if (album) onSendAttachment({ id: `${Date.now()}-album`, kind: "album", name: `Album ${uploaded.length} ảnh`, uri: uploaded[0].url, attachmentUrls: uploaded.map((item) => item.url), contentType: "image/jpeg", count: uploaded.length });
-      else onSendAttachment({ id: `${Date.now()}-image`, kind: "image", name: uploaded[0].name, uri: uploaded[0].url, contentType: uploaded[0].contentType, size: uploaded[0].size });
-    } catch (error) { Alert.alert("Không thể gửi media", error instanceof Error ? error.message : "Vui lòng thử lại."); } finally { setIsUploading(false); setUploadProgress(0); setUploadLabel(""); }
+      const uploaded = await uploadMedia(
+        asset.uri,
+        name,
+        asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),
+        asset.fileSize,
+        setUploadProgress,
+      );
+      onSendAttachment({ id: `${Date.now()}-${kind}`, kind, name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size });
+    } catch (error) {
+      Alert.alert("Không thể gửi media", error instanceof Error ? error.message : "Vui lòng kiểm tra kết nối và thử lại.");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadLabel("");
+      setUploadPreview(null);
+    }
   };
+
+  const requestMediaAccess = async (message: string) => {
+    if (Platform.OS === "web") return true;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.granted) return true;
+    Alert.alert("Cần quyền truy cập", message);
+    return false;
+  };
+
+  const selectImage = async () => {
+    if (!await requestMediaAccess("KINI cần quyền thư viện ảnh để gửi hình ảnh.")) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: false, quality: 0.72 });
+    if (!result.canceled && result.assets.length) await uploadAsset(result.assets[0], "image");
+  };
+
   const selectVideo = async () => {
-    setShowActions(false); if (Platform.OS !== "web") { const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (!permission.granted) { Alert.alert("Cần quyền truy cập", "KINI cần quyền thư viện để chọn video."); return; } }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsMultipleSelection: false, videoMaxDuration: 300 }); if (result.canceled || !result.assets.length) return;
-    setIsUploading(true); setUploadProgress(0); setUploadLabel("Đang tải video…"); try { const uploaded = await uploadOne(result.assets[0], "video"); onSendAttachment({ id: `${Date.now()}-video`, kind: "video", name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size }); } catch (error) { Alert.alert("Không thể gửi video", error instanceof Error ? error.message : "Vui lòng thử lại."); } finally { setIsUploading(false); setUploadProgress(0); setUploadLabel(""); }
+    if (!await requestMediaAccess("KINI cần quyền thư viện để chọn video.")) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsMultipleSelection: false, videoMaxDuration: 300 });
+    if (!result.canceled && result.assets.length) await uploadAsset(result.assets[0], "video");
   };
+
   const selectDocument = async () => {
-    setShowActions(false); const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }); if (result.canceled || !result.assets.length) return; const file = result.assets[0]; setIsUploading(true); setUploadProgress(0); setUploadLabel("Đang tải tệp…"); try { const uploaded = await uploadMedia(file.uri, file.name, file.mimeType ?? "application/octet-stream", file.size, setUploadProgress); onSendAttachment({ id: `${Date.now()}-file`, kind: "file", name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size }); } catch (error) { Alert.alert("Không thể gửi tệp", error instanceof Error ? error.message : "Vui lòng thử lại."); } finally { setIsUploading(false); setUploadProgress(0); setUploadLabel(""); }
+    setShowActions(false);
+    const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
+    if (result.canceled || !result.assets.length) return;
+    const file = result.assets[0];
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadLabel("Đang gửi tệp");
+    setUploadPreview({ kind: "file", name: file.name });
+    try {
+      const uploaded = await uploadMedia(file.uri, file.name, file.mimeType ?? "application/octet-stream", file.size, setUploadProgress);
+      onSendAttachment({ id: `${Date.now()}-file`, kind: "file", name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size });
+    } catch (error) {
+      Alert.alert("Không thể gửi tệp", error instanceof Error ? error.message : "Vui lòng kiểm tra kết nối và thử lại.");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadLabel("");
+      setUploadPreview(null);
+    }
   };
-  const actions: AttachmentAction[] = [{ icon: "image", label: "Ảnh", color: "#1677FF", onPress: () => void selectImages(false) }, { icon: "photo-library", label: "Album", color: "#6956E8", onPress: () => void selectImages(true) }, { icon: "videocam", label: "Video", color: "#14A77A", onPress: () => void selectVideo() }, { icon: "insert-drive-file", label: "Tệp", color: "#F5A524", onPress: () => void selectDocument() }];
-  return <View style={styles.wrapper}>{replyingTo ? <View style={styles.replying}><View style={styles.replyLine} /><View style={styles.replyCopy}><Text style={styles.replyLabel}>Đang trả lời</Text><Text numberOfLines={1} style={styles.replyText}>{replyingTo}</Text></View><TouchableOpacity onPress={onClearReply} style={styles.replyClose}><MaterialIcons name="close" size={19} color={kiniColors.muted} /></TouchableOpacity></View> : null}{isUploading ? <View style={styles.uploading}><Text style={styles.uploadingText}>{uploadLabel} {uploadProgress}%</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${uploadProgress}%` }]} /></View></View> : null}<View style={styles.composer}><TouchableOpacity disabled={isUploading} onPress={() => setShowActions(true)} style={styles.control}><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity><TextInput editable={!isUploading} value={value} onChangeText={setValue} onSubmitEditing={send} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" style={styles.input} multiline />{value.trim() ? <TouchableOpacity disabled={isUploading} onPress={send} style={styles.send}><MaterialIcons name="send" size={19} color={kiniColors.white} /></TouchableOpacity> : <TouchableOpacity disabled={isUploading} onPress={() => setShowStickers(true)} style={styles.control}><MaterialIcons name="sentiment-satisfied-alt" size={24} color={kiniColors.blue} /></TouchableOpacity>}</View><Modal visible={showActions} transparent animationType="fade" onRequestClose={() => setShowActions(false)}><TouchableOpacity activeOpacity={1} onPress={() => setShowActions(false)} style={styles.modalBackdrop}><View style={styles.actionSheet}>{actions.map((action) => <TouchableOpacity key={action.label} onPress={action.onPress} style={styles.actionItem}><View style={[styles.actionIcon, { backgroundColor: `${action.color}18` }]}><MaterialIcons name={action.icon} size={25} color={action.color} /></View><Text style={styles.actionLabel}>{action.label}</Text></TouchableOpacity>)}</View></TouchableOpacity></Modal><Modal visible={showStickers} transparent animationType="slide" onRequestClose={() => setShowStickers(false)}><View style={styles.stickerBackdrop}><View style={styles.stickerSheet}><View style={styles.sheetHandle} /><View style={styles.stickerHeader}><Text style={styles.stickerTitle}>Sticker KINI</Text><TouchableOpacity onPress={() => setShowStickers(false)}><MaterialIcons name="close" size={23} color={kiniColors.navy} /></TouchableOpacity></View><View style={styles.stickerGrid}>{stickers.map((sticker) => <TouchableOpacity key={sticker} onPress={() => { onSendAttachment({ id: `${Date.now()}-${sticker}`, kind: "sticker", name: sticker }); setShowStickers(false); }} style={styles.sticker}><Text style={styles.stickerText}>{sticker}</Text></TouchableOpacity>)}</View></View></View></Modal></View>;
+
+  const actions: AttachmentAction[] = [
+    { icon: "image", label: "Ảnh", color: "#1677FF", onPress: () => void selectImage() },
+    { icon: "videocam", label: "Video", color: "#14A77A", onPress: () => void selectVideo() },
+    { icon: "insert-drive-file", label: "Tệp", color: "#F5A524", onPress: () => void selectDocument() },
+  ];
+
+  return (
+    <View style={[styles.wrapper, { paddingBottom: Math.max(bottomInset, 10) }]}>
+      {replyingTo ? <View style={styles.replying}><View style={styles.replyLine} /><View style={styles.replyCopy}><Text style={styles.replyLabel}>Đang trả lời</Text><Text numberOfLines={1} style={styles.replyText}>{replyingTo}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Bỏ trả lời" onPress={onClearReply} style={styles.replyClose}><MaterialIcons name="close" size={19} color={kiniColors.muted} /></TouchableOpacity></View> : null}
+      {isUploading ? <View style={styles.uploading} accessibilityLabel={`${uploadLabel} ${uploadProgress}%`}>
+        <View style={styles.previewFrame}>
+          {uploadPreview?.kind === "image" && uploadPreview.uri ? <Image source={{ uri: uploadPreview.uri }} style={styles.previewImage} /> : <View style={[styles.previewFallback, uploadPreview?.kind === "video" && styles.previewVideo]}><MaterialIcons name={uploadPreview?.kind === "video" ? "videocam" : "insert-drive-file"} size={25} color={kiniColors.white} /></View>}
+          <View style={styles.progressOverlay}><ActivityIndicator size="large" color={kiniColors.white} /><Text style={styles.progressPercent}>{uploadProgress}%</Text></View>
+        </View>
+        <View style={styles.uploadCopy}><Text numberOfLines={1} style={styles.uploadingText}>{uploadLabel}</Text><Text numberOfLines={1} style={styles.uploadingName}>{uploadPreview?.name}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${uploadProgress}%` }]} /></View></View>
+      </View> : null}
+      <View style={styles.composer}>
+        <TouchableOpacity disabled={isUploading} onPress={() => setShowActions(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Gửi ảnh, video hoặc tệp"><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
+        <TextInput editable={!isUploading} value={value} onChangeText={setValue} onSubmitEditing={send} onFocus={onInputFocus} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" blurOnSubmit={false} style={styles.input} multiline />
+        {value.trim() ? <TouchableOpacity disabled={isUploading} onPress={send} style={styles.send} accessibilityRole="button" accessibilityLabel="Gửi tin nhắn"><MaterialIcons name="send" size={19} color={kiniColors.white} /></TouchableOpacity> : <TouchableOpacity disabled={isUploading} onPress={() => setShowStickers(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Chọn sticker"><MaterialIcons name="sentiment-satisfied-alt" size={24} color={kiniColors.blue} /></TouchableOpacity>}
+      </View>
+      <Modal visible={showActions} transparent animationType="fade" onRequestClose={() => setShowActions(false)}><TouchableOpacity activeOpacity={1} onPress={() => setShowActions(false)} style={styles.modalBackdrop}><View style={styles.actionSheet}>{actions.map((action) => <TouchableOpacity key={action.label} onPress={action.onPress} style={styles.actionItem} accessibilityRole="button" accessibilityLabel={`Gửi ${action.label}`}><View style={[styles.actionIcon, { backgroundColor: `${action.color}18` }]}><MaterialIcons name={action.icon} size={25} color={action.color} /></View><Text style={styles.actionLabel}>{action.label}</Text></TouchableOpacity>)}</View></TouchableOpacity></Modal>
+      <Modal visible={showStickers} transparent animationType="slide" onRequestClose={() => setShowStickers(false)}><View style={styles.stickerBackdrop}><View style={[styles.stickerSheet, { paddingBottom: Math.max(bottomInset, 24) }]}><View style={styles.sheetHandle} /><View style={styles.stickerHeader}><Text style={styles.stickerTitle}>Sticker KINI</Text><TouchableOpacity onPress={() => setShowStickers(false)} accessibilityRole="button" accessibilityLabel="Đóng sticker"><MaterialIcons name="close" size={23} color={kiniColors.navy} /></TouchableOpacity></View><View style={styles.stickerGrid}>{stickers.map((sticker) => <TouchableOpacity key={sticker} onPress={() => { onSendAttachment({ id: `${Date.now()}-${sticker}`, kind: "sticker", name: sticker }); setShowStickers(false); }} style={styles.sticker} accessibilityRole="button" accessibilityLabel={`Gửi sticker ${sticker}`}><Text style={styles.stickerText}>{sticker}</Text></TouchableOpacity>)}</View></View></View></Modal>
+    </View>
+  );
 }
-const styles = StyleSheet.create({ wrapper: { backgroundColor: kiniColors.white, borderTopColor: kiniColors.line, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 }, uploading: { paddingHorizontal: 8, paddingBottom: 8, gap: 5 }, uploadingText: { color: kiniColors.muted, fontSize: 12 }, progressTrack: { height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: "#DCE8F6" }, progressFill: { height: "100%", borderRadius: 3, backgroundColor: kiniColors.blue }, replying: { minHeight: 42, paddingHorizontal: 7, paddingBottom: 8, alignItems: "center", flexDirection: "row", gap: 9 }, replyLine: { width: 3, height: 30, borderRadius: 2, backgroundColor: kiniColors.blue }, replyCopy: { flex: 1, gap: 2 }, replyLabel: { color: kiniColors.blue, fontSize: 11, fontWeight: "800" }, replyText: { color: kiniColors.muted, fontSize: 12 }, replyClose: { width: 30, height: 30, alignItems: "center", justifyContent: "center" }, composer: { alignItems: "flex-end", flexDirection: "row", gap: 5 }, control: { alignItems: "center", justifyContent: "center", width: 38, height: 42 }, input: { flex: 1, minHeight: 42, maxHeight: 106, borderRadius: 21, backgroundColor: kiniColors.cloud, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, color: kiniColors.navy, fontSize: 15, lineHeight: 20 }, send: { width: 38, height: 38, borderRadius: 19, backgroundColor: kiniColors.blue, alignItems: "center", justifyContent: "center", marginBottom: 2 }, modalBackdrop: { flex: 1, backgroundColor: "rgba(18,38,63,0.28)", justifyContent: "flex-end" }, actionSheet: { backgroundColor: kiniColors.white, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 36, flexDirection: "row", justifyContent: "space-between" }, actionItem: { alignItems: "center", gap: 8, minWidth: 66 }, actionIcon: { width: 54, height: 54, borderRadius: 18, alignItems: "center", justifyContent: "center" }, actionLabel: { color: kiniColors.navy, fontSize: 13, fontWeight: "700" }, stickerBackdrop: { flex: 1, backgroundColor: "rgba(18,38,63,0.28)", justifyContent: "flex-end" }, stickerSheet: { backgroundColor: kiniColors.white, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 34 }, sheetHandle: { width: 38, height: 4, backgroundColor: "#D6DEE8", borderRadius: 2, alignSelf: "center" }, stickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 18 }, stickerTitle: { color: kiniColors.navy, fontSize: 17, fontWeight: "900" }, stickerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, sticker: { width: "23%", aspectRatio: 1, backgroundColor: kiniColors.cloud, borderRadius: 16, alignItems: "center", justifyContent: "center" }, stickerText: { fontSize: 31 } });
+
+const styles = StyleSheet.create({
+  wrapper: { backgroundColor: kiniColors.white, borderTopColor: kiniColors.line, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingTop: 8 },
+  uploading: { marginHorizontal: 2, marginBottom: 8, borderRadius: 14, padding: 8, backgroundColor: kiniColors.cloud, flexDirection: "row", gap: 9, alignItems: "center" },
+  previewFrame: { width: 58, height: 58, overflow: "hidden", borderRadius: 12, backgroundColor: kiniColors.navy },
+  previewImage: { width: "100%", height: "100%" },
+  previewFallback: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: kiniColors.blue },
+  previewVideo: { backgroundColor: "#176C58" },
+  progressOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(5, 19, 36, 0.5)" },
+  progressPercent: { marginTop: -2, color: kiniColors.white, fontSize: 10, fontWeight: "900" },
+  uploadCopy: { flex: 1, gap: 3 },
+  uploadingText: { color: kiniColors.navy, fontSize: 12, fontWeight: "800" },
+  uploadingName: { color: kiniColors.muted, fontSize: 11 },
+  progressTrack: { height: 5, marginTop: 2, borderRadius: 4, overflow: "hidden", backgroundColor: "#DCE8F6" },
+  progressFill: { height: "100%", borderRadius: 4, backgroundColor: kiniColors.blue },
+  replying: { minHeight: 42, paddingHorizontal: 7, paddingBottom: 8, alignItems: "center", flexDirection: "row", gap: 9 },
+  replyLine: { width: 3, height: 30, borderRadius: 2, backgroundColor: kiniColors.blue }, replyCopy: { flex: 1, gap: 2 }, replyLabel: { color: kiniColors.blue, fontSize: 11, fontWeight: "800" }, replyText: { color: kiniColors.muted, fontSize: 12 }, replyClose: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+  composer: { alignItems: "flex-end", flexDirection: "row", gap: 5 }, control: { alignItems: "center", justifyContent: "center", width: 38, height: 42 }, input: { flex: 1, minHeight: 42, maxHeight: 106, borderRadius: 21, backgroundColor: kiniColors.cloud, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, color: kiniColors.navy, fontSize: 15, lineHeight: 20 }, send: { width: 38, height: 38, borderRadius: 19, backgroundColor: kiniColors.blue, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(18,38,63,0.28)", justifyContent: "flex-end" }, actionSheet: { backgroundColor: kiniColors.white, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 42, paddingTop: 24, paddingBottom: 36, flexDirection: "row", justifyContent: "space-between" }, actionItem: { alignItems: "center", gap: 8, minWidth: 66 }, actionIcon: { width: 54, height: 54, borderRadius: 18, alignItems: "center", justifyContent: "center" }, actionLabel: { color: kiniColors.navy, fontSize: 13, fontWeight: "700" },
+  stickerBackdrop: { flex: 1, backgroundColor: "rgba(18,38,63,0.28)", justifyContent: "flex-end" }, stickerSheet: { backgroundColor: kiniColors.white, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 10 }, sheetHandle: { width: 38, height: 4, backgroundColor: "#D6DEE8", borderRadius: 2, alignSelf: "center" }, stickerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 18 }, stickerTitle: { color: kiniColors.navy, fontSize: 17, fontWeight: "900" }, stickerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, sticker: { width: "23%", aspectRatio: 1, backgroundColor: kiniColors.cloud, borderRadius: 16, alignItems: "center", justifyContent: "center" }, stickerText: { fontSize: 31 },
+});

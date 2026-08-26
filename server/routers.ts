@@ -96,6 +96,7 @@ export const appRouter = router({
       attachmentUrls: z.string().max(20000).optional(),
       attachmentName: z.string().max(255).optional(),
       replyToMessageId: z.number().int().positive().optional(),
+      clientMessageId: z.string().uuid().optional(),
     })).mutation(async ({ ctx, input }) => {
       const result = await db.sendMessage(ctx.user.id, input);
       const profile = await db.getOrCreateProfile(ctx.user.id, ctx.user.name);

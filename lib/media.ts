@@ -1,7 +1,8 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { Platform } from "react-native";
 
 import { getApiBaseUrl } from "@/constants/oauth";
-import { apiCall } from "@/lib/_core/api";
+import * as Auth from "@/lib/_core/auth";
 
 export type UploadedMedia = {
   url: string;
@@ -17,22 +18,34 @@ function absoluteMediaUrl(path: string) {
 }
 
 export async function uploadMedia(uri: string, name: string, contentType = "application/octet-stream", size?: number | null, onProgress?: (progress: number) => void): Promise<UploadedMedia> {
-  onProgress?.(5);
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-  onProgress?.(20);
-  let progress = 20;
-  const timer = setInterval(() => {
-    progress = Math.min(90, progress + 4);
-    onProgress?.(progress);
-  }, 180);
+  const endpoint = `${getApiBaseUrl().replace(/\/+$/, "")}/api/media/upload`;
+  const token = await Auth.getSessionToken();
+  const headers = {
+    "Content-Type": "application/octet-stream",
+    "X-KINI-File-Name": name,
+    "X-KINI-File-Type": contentType,
+    "X-KINI-File-Size": String(size ?? 0),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
   let result: { url: string; name: string; contentType: string; size?: number | null };
-  try {
-    result = await apiCall<{ url: string; name: string; contentType: string; size?: number | null }>("/api/media/upload", {
-    method: "POST",
-    body: JSON.stringify({ data: base64, name, contentType, size: size ?? null }),
+  if (Platform.OS === "web") {
+    onProgress?.(5);
+    const fileResponse = await fetch(uri);
+    const blob = await fileResponse.blob();
+    const response = await fetch(endpoint, { method: "POST", headers, body: blob });
+    if (!response.ok) throw new Error((await response.json().catch(() => null) as { error?: string } | null)?.error || "Không thể tải media lên máy chủ.");
+    result = await response.json() as typeof result;
+  } else {
+    const task = FileSystem.createUploadTask(endpoint, uri, {
+      httpMethod: "POST",
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers,
+    }, ({ totalBytesSent, totalBytesExpectedToSend }) => {
+      if (totalBytesExpectedToSend > 0) onProgress?.(Math.min(99, Math.round((totalBytesSent / totalBytesExpectedToSend) * 100)));
     });
-  } finally {
-    clearInterval(timer);
+    const response = await task.uploadAsync();
+    if (!response || response.status < 200 || response.status >= 300) throw new Error("Không thể tải media lên máy chủ.");
+    result = JSON.parse(response.body) as typeof result;
   }
   onProgress?.(100);
   return { ...result, url: absoluteMediaUrl(result.url) };

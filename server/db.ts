@@ -400,18 +400,30 @@ export async function getConversationMessages(userId: number, conversationId: nu
   });
 }
 
-export async function sendMessage(userId: number, input: { conversationId: number; kind: "text" | "image" | "album" | "video" | "file" | "sticker"; content: string; attachmentUrl?: string; attachmentUrls?: string; attachmentName?: string; replyToMessageId?: number }) {
+export async function sendMessage(userId: number, input: { conversationId: number; kind: "text" | "image" | "album" | "video" | "file" | "sticker"; content: string; attachmentUrl?: string; attachmentUrls?: string; attachmentName?: string; replyToMessageId?: number; clientMessageId?: string }) {
   const db = await requireDb();
   await assertParticipant(userId, input.conversationId);
-  const inserted = await db.insert(messages).values({ ...input, senderId: userId });
-  const messageId = Number(inserted[0].insertId);
+  const findExisting = async () => input.clientMessageId
+    ? (await db.select({ id: messages.id }).from(messages).where(and(eq(messages.senderId, userId), eq(messages.clientMessageId, input.clientMessageId))).limit(1))[0]
+    : undefined;
+  const existing = await findExisting();
+  if (existing) return { id: existing.id, status: "sent" as const, recipientUserIds: [], duplicate: true };
+  let messageId: number;
+  try {
+    const inserted = await db.insert(messages).values({ ...input, senderId: userId });
+    messageId = Number(inserted[0].insertId);
+  } catch (error) {
+    const concurrent = await findExisting();
+    if (concurrent) return { id: concurrent.id, status: "sent" as const, recipientUserIds: [], duplicate: true };
+    throw error;
+  }
   const recipients = await db.select().from(conversationParticipants).where(and(eq(conversationParticipants.conversationId, input.conversationId), ne(conversationParticipants.userId, userId)));
   if (recipients.length) await db.insert(messageReceipts).values(recipients.map((recipient) => ({ messageId, userId: recipient.userId, status: "sent" as const })));
   await Promise.all([
     db.update(conversations).set({ lastMessageAt: new Date(), lastMessagePreview: input.content.slice(0, 255) }).where(eq(conversations.id, input.conversationId)),
     recipients.length ? db.update(conversationParticipants).set({ unreadCount: sql`${conversationParticipants.unreadCount} + 1` }).where(and(eq(conversationParticipants.conversationId, input.conversationId), ne(conversationParticipants.userId, userId))) : Promise.resolve(),
   ]);
-  return { id: messageId, status: "sent" as const, recipientUserIds: recipients.map((recipient) => recipient.userId) };
+  return { id: messageId, status: "sent" as const, recipientUserIds: recipients.map((recipient) => recipient.userId), duplicate: false };
 }
 
 export async function markConversationRead(userId: number, conversationId: number) {

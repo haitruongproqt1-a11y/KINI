@@ -62,23 +62,26 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  app.post("/api/media/upload", async (req, res) => {
+  app.post("/api/media/upload", express.raw({ type: "application/octet-stream", limit: "70mb" }), async (req, res) => {
     try {
       const user = await sdk.authenticateRequest(req);
       if (!user) {
         res.status(401).json({ error: "Bạn cần đăng nhập để tải media." });
         return;
       }
-      const { data, name, contentType, size } = req.body as { data?: string; name?: string; contentType?: string; size?: number | null };
-      if (!data || typeof data !== "string" || data.length > 70_000_000) {
+      const binaryBody = Buffer.isBuffer(req.body) ? req.body : null;
+      const legacyBody = binaryBody ? null : req.body as { data?: string; name?: string; contentType?: string; size?: number | null };
+      const data = binaryBody ?? (typeof legacyBody?.data === "string" ? Buffer.from(legacyBody.data, "base64") : null);
+      if (!data || data.length === 0 || data.length > 70_000_000) {
         res.status(400).json({ error: "Dữ liệu media không hợp lệ hoặc vượt quá giới hạn." });
         return;
       }
-      const safeName = String(name || "media").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
-      const type = String(contentType || "application/octet-stream").split(";")[0].slice(0, 120);
+      const safeName = String(req.header("x-kini-file-name") || legacyBody?.name || "media").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+      const type = String(req.header("x-kini-file-type") || legacyBody?.contentType || "application/octet-stream").split(";")[0].slice(0, 120);
+      const declaredSize = Number(req.header("x-kini-file-size") || legacyBody?.size || data.length);
       const key = `kini/${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-      const uploaded = await storagePut(key, Buffer.from(data, "base64"), type);
-      res.json({ url: uploaded.url, name: safeName, contentType: type, size: typeof size === "number" ? size : null });
+      const uploaded = await storagePut(key, data, type);
+      res.json({ url: uploaded.url, name: safeName, contentType: type, size: Number.isFinite(declaredSize) ? declaredSize : null });
     } catch (error) {
       console.error("[MediaUpload] failed:", error);
       res.status(500).json({ error: "Không thể tải media lên máy chủ." });

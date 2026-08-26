@@ -1,0 +1,71 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Linking from "expo-linking";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { kiniColors } from "@/components/kini-ui";
+import { getApiBaseUrl } from "@/constants/oauth";
+
+type ReleaseUpdate = {
+  releaseCode: string;
+  appVersion: string;
+  buildNumber: number;
+  notes: string;
+  releaseUrl: string;
+  apkUrl: string;
+};
+
+export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
+  const [update, setUpdate] = useState<ReleaseUpdate | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+
+  const check = useCallback(async () => {
+    setChecking(true);
+    setError(null);
+    try {
+      const response = await fetch(`${getApiBaseUrl().replace(/\/+$/, "")}/api/update/latest`);
+      if (!response.ok) throw new Error("Máy chủ cập nhật chưa phản hồi.");
+      const latest = await response.json() as ReleaseUpdate;
+      setUpdate(Number(latest.buildNumber) > currentBuild && latest.apkUrl ? latest : null);
+    } catch {
+      setError("Chưa thể kiểm tra bản cập nhật. Hãy thử lại khi có mạng.");
+    } finally {
+      setChecking(false);
+    }
+  }, [currentBuild]);
+
+  useEffect(() => { void check(); }, [check]);
+
+  const openUpdate = async () => {
+    if (!update) return;
+    setOpening(true);
+    try {
+      await Linking.openURL(update.apkUrl || update.releaseUrl);
+    } catch {
+      Alert.alert("Không thể mở cập nhật", "Vui lòng thử lại hoặc mở GitHub Release trong trình duyệt.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return <View style={[styles.card, update ? styles.updateCard : styles.currentCard]}>
+    <View style={[styles.icon, update ? styles.updateIcon : styles.currentIcon]}><MaterialIcons name={update ? "system-update" : "verified"} size={21} color={update ? kiniColors.white : kiniColors.green} /></View>
+    <View style={styles.copy}>
+      <Text style={styles.title}>{update ? "Có bản KINI mới" : "Cập nhật ứng dụng"}</Text>
+      <Text style={styles.description}>{checking ? "Đang kiểm tra GitHub Release…" : error ?? (update ? `KINI ${update.appVersion} · ${update.releaseCode}` : "Bạn đang dùng bản APK mới nhất được phát hành.")}</Text>
+      {update ? <Text numberOfLines={2} style={styles.notes}>{update.notes}</Text> : null}
+    </View>
+    {update ? <TouchableOpacity style={styles.updateButton} accessibilityRole="button" accessibilityLabel="Tải và cập nhật KINI" disabled={opening} onPress={() => void openUpdate()}>{opening ? <ActivityIndicator color={kiniColors.white} size="small" /> : <Text style={styles.updateButtonText}>Cập nhật</Text>}</TouchableOpacity> : <TouchableOpacity style={styles.checkButton} accessibilityRole="button" accessibilityLabel="Kiểm tra cập nhật KINI" disabled={checking} onPress={() => void check()}>{checking ? <ActivityIndicator color={kiniColors.blue} size="small" /> : <MaterialIcons name="refresh" size={20} color={kiniColors.blue} />}</TouchableOpacity>}
+    {error ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Thử lại kiểm tra cập nhật" onPress={() => void check()} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity> : null}
+  </View>;
+}
+
+const styles = StyleSheet.create({
+  card: { marginTop: 14, minHeight: 82, borderRadius: 17, padding: 13, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  currentCard: { backgroundColor: "#F2FBF6", borderWidth: 1, borderColor: "#D7F1E2" }, updateCard: { backgroundColor: "#ECF4FF", borderWidth: 1, borderColor: "#CFE2FF" },
+  icon: { width: 39, height: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, currentIcon: { backgroundColor: kiniColors.white }, updateIcon: { backgroundColor: kiniColors.blue },
+  copy: { flex: 1, gap: 3, minWidth: 170 }, title: { color: kiniColors.navy, fontSize: 14, fontWeight: "900" }, description: { color: kiniColors.muted, fontSize: 11, lineHeight: 16 }, notes: { color: kiniColors.blue, fontSize: 10, lineHeight: 14 },
+  checkButton: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: kiniColors.white }, updateButton: { minWidth: 87, height: 37, borderRadius: 12, backgroundColor: kiniColors.blue, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }, updateButtonText: { color: kiniColors.white, fontSize: 12, fontWeight: "900" }, retry: { width: "100%", paddingLeft: 49 }, retryText: { color: kiniColors.blue, fontSize: 12, fontWeight: "800" },
+});

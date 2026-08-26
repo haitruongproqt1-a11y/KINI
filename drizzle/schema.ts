@@ -70,6 +70,8 @@ export const messages = mysqlTable("messages", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
   senderId: int("senderId").notNull(),
+  /** UUID do thiết bị tạo; cùng người gửi chỉ được lưu một lần để chống gửi trùng khi mạng chập chờn. */
+  clientMessageId: varchar("clientMessageId", { length: 64 }),
   kind: mysqlEnum("kind", ["text", "image", "album", "video", "file", "sticker"]).default("text").notNull(),
   content: text("content").notNull(),
   attachmentUrl: varchar("attachmentUrl", { length: 1024 }),
@@ -81,6 +83,7 @@ export const messages = mysqlTable("messages", {
 }, (table) => [
   index("messages_conversation_created_idx").on(table.conversationId, table.createdAt),
   index("messages_sender_idx").on(table.senderId),
+  uniqueIndex("messages_sender_client_unique").on(table.senderId, table.clientMessageId),
 ]);
 
 /** Trạng thái trên thiết bị người nhận: sent → delivered → read. */

@@ -112,3 +112,14 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Kiểm thử đăng ký/đăng nhập, cập nhật và bố cục Android
 - [x] Lưu checkpoint và đồng bộ GitHub bản sửa kết nối/cập nhật
 - [x] Tăng KINI lên phiên bản và Android Build mới cho bản sửa này
+
+- [x] Xác nhận trạng thái private/public của repository KINI và lỗi 404
+- [x] Thiết lập link tải GitHub phù hợp với quyền truy cập đã được người dùng xác nhận
+
+- [x] Giữ nguyên chức năng ổn định và áp dụng quy trình chỉnh sửa có kiểm soát, kiểm thử trước khi phát hành
+- [x] Chống hiển thị trùng tin nhắn của người gửi và cải thiện đồng bộ phản hồi tức thời
+- [x] Bỏ lựa chọn Album trùng chức năng, giữ gửi ảnh và hoàn thiện gửi ảnh/video
+- [x] Hiển thị vòng tròn tiến trình upload ngay giữa ảnh hoặc video đang gửi
+- [x] Sửa vùng soạn tin nhắn tránh bàn phím và thanh điều hướng Android, tự cuộn tới ô nhập khi gõ
+- [x] Đưa kiểm tra phiên bản mới và nút tải/cập nhật APK GitHub vào mục Cá nhân
+- [ ] Tăng version/build, kiểm thử hồi quy và chuẩn bị tag nguồn cho bản sửa mới
