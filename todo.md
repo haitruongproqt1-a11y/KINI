@@ -186,4 +186,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm Tab Tìm Quanh Đây với quyền vị trí, loading, tab Tôi, tab Khám phá, bộ lọc và chi tiết người dùng
 - [ ] Hiển thị avatar khi camera tắt và giữ nguyên các tab/chat/call đang hoạt động
 - [ ] Kiểm thử hai tài khoản: hidden không thấy trong nearby, hết hạn tự bật lại, sort khoảng cách/tìm tên-tỉnh
-- [ ] Phát hành APK KINI có Tab Tìm Quanh Đây lên GitHub và cập nhật feed trong app
+- [x] Phát hành APK KINI có Tab Tìm Quanh Đây lên GitHub Release v1.11 và cập nhật feed trong app
