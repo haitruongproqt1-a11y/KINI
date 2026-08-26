@@ -146,4 +146,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thiết kế signaling cuộc gọi theo tài khoản KINI và đánh giá hạ tầng realtime phù hợp
 - [x] Thêm mô-đun gọi thoại, video và chia sẻ màn hình WebRTC cho Android
 - [ ] Kiểm thử cuộc gọi hai thiết bị, quyền camera/micro và các tình huống lỗi mạng
-- [ ] Tăng phiên bản, tự build APK GitHub Release và cập nhật feed sau tính năng gọi
+- [x] Tăng phiên bản, tự build APK GitHub Release và cập nhật feed sau tính năng gọi
