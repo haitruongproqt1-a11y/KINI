@@ -74,6 +74,7 @@ export const appRouter = router({
       username: usernameSchema,
       displayName: z.string().trim().min(1).max(128),
       avatarColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+      avatarUrl: z.union([z.string().url().max(1024), z.null()]).optional(),
       securityQuestion: z.string().trim().max(255).optional(),
       securityAnswerHash: z.string().max(255).optional(),
     })).mutation(({ ctx, input }) => db.updateProfile(ctx.user.id, input)),

@@ -187,3 +187,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [ ] Hiển thị avatar khi camera tắt và giữ nguyên các tab/chat/call đang hoạt động
 - [ ] Kiểm thử hai tài khoản: hidden không thấy trong nearby, hết hạn tự bật lại, sort khoảng cách/tìm tên-tỉnh
 - [x] Phát hành APK KINI có Tab Tìm Quanh Đây lên GitHub Release v1.11 và cập nhật feed trong app
+
+- [x] Đồng bộ avatar và hồ sơ nearby gần realtime trên các màn hình KINI
+- [x] Tạo notification channel cuộc gọi Android ưu tiên cao, hiển thị khi ứng dụng ở nền hoặc vừa đóng
+- [ ] Kiểm thử hồi quy push, avatar, nearby và gọi thoại/video trên hai Android thật
+- [x] Tăng phiên bản KINI và lưu checkpoint phát hành sau đợt nâng cấp realtime/thông báo

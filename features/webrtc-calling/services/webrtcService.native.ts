@@ -1,5 +1,6 @@
 import { setAudioModeAsync } from "expo-audio";
 import { PermissionsAndroid, Platform } from "react-native";
+import InCallManager from "react-native-incall-manager";
 import {
   mediaDevices,
   MediaStream,
@@ -15,9 +16,9 @@ import type { CallMode, IceCandidatePayload, SessionDescriptionPayload } from ".
 export type NativePeer = RTCPeerConnection;
 export type NativeStream = MediaStream;
 
-async function configureCallAudio(speakerEnabled: boolean) {
-  // WebRTC quản lý AudioDeviceModule/voice focus riêng trên Android. Không để expo-audio
-  // ghi đè audio mode trong lúc call voice, vì một số máy Android sẽ rớt media/DTLS.
+let androidVoiceAudioActive = false;
+
+async function configureExpoAudio(speakerEnabled: boolean) {
   if (Platform.OS === "android") return;
   await setAudioModeAsync({
     allowsRecording: true,
@@ -25,6 +26,22 @@ async function configureCallAudio(speakerEnabled: boolean) {
     interruptionMode: "doNotMix",
     shouldRouteThroughEarpiece: !speakerEnabled,
   });
+}
+
+async function configureCallAudio(speakerEnabled: boolean, mode: CallMode) {
+  // Android dùng InCallManager để WebRTC giữ audio focus và route ổn định.
+  if (Platform.OS === "android") {
+    if (mode !== "voice") return;
+    try {
+      InCallManager.start({ media: "audio", auto: true });
+      InCallManager.setForceSpeakerphoneOn(speakerEnabled);
+      androidVoiceAudioActive = true;
+    } catch {
+      // Không để lỗi audio route native làm crash hoặc chặn signaling.
+    }
+    return;
+  }
+  await configureExpoAudio(speakerEnabled);
 }
 
 type IceServer = { urls: string | string[]; username?: string; credential?: string };
@@ -44,7 +61,7 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
     const denied = Object.values(permissions).some((result) => result !== PermissionsAndroid.RESULTS.GRANTED);
     if (denied) throw new Error(mode === "video" ? "KINI cần quyền micro và camera để gọi video." : "KINI cần quyền micro để gọi thoại.");
   }
-  try { await configureCallAudio(mode === "video"); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
+  try { await configureCallAudio(mode === "video", mode); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
   const stream = await mediaDevices.getUserMedia({
     audio: true,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
@@ -114,10 +131,21 @@ export function switchCamera(stream: NativeStream | null) {
   track?._switchCamera?.();
 }
 
-export function setSpeakerEnabled(enabled: boolean) {
-  if (Platform.OS !== "android") void configureCallAudio(enabled).catch(() => {});
+export function setSpeakerEnabled(enabled: boolean, mode: CallMode = "video") {
+  if (Platform.OS === "android") {
+    if (mode !== "voice" || !androidVoiceAudioActive) return;
+    try { InCallManager.setForceSpeakerphoneOn(enabled); } catch { /* Route native không còn hợp lệ. */ }
+    return;
+  }
+  void configureCallAudio(enabled, mode).catch(() => {});
 }
 
 export function stopInCall() {
-  if (Platform.OS !== "android") void setAudioModeAsync({ allowsRecording: false, shouldRouteThroughEarpiece: false }).catch(() => {});
+  if (Platform.OS === "android") {
+    if (!androidVoiceAudioActive) return;
+    try { InCallManager.stop(); } catch { /* Audio session đã được hệ điều hành giải phóng. */ }
+    androidVoiceAudioActive = false;
+    return;
+  }
+  void setAudioModeAsync({ allowsRecording: false, shouldRouteThroughEarpiece: false }).catch(() => {});
 }

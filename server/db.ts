@@ -406,7 +406,7 @@ export async function getOrCreateProfile(userId: number, fallbackName?: string |
   return created[0];
 }
 
-export async function updateProfile(userId: number, input: { username: string; displayName: string; avatarColor?: string; securityQuestion?: string; securityAnswerHash?: string }) {
+export async function updateProfile(userId: number, input: { username: string; displayName: string; avatarColor?: string; avatarUrl?: string | null; securityQuestion?: string; securityAnswerHash?: string }) {
   const db = await requireDb();
   const duplicate = await db.select().from(userProfiles).where(eq(userProfiles.username, input.username)).limit(1);
   if (duplicate[0] && duplicate[0].userId !== userId) throw new Error("Tên người dùng KINI đã được sử dụng.");
@@ -415,10 +415,14 @@ export async function updateProfile(userId: number, input: { username: string; d
     username: input.username,
     displayName: input.displayName,
     ...(input.avatarColor ? { avatarColor: input.avatarColor } : {}),
+    ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
     ...(input.securityQuestion !== undefined ? { securityQuestion: input.securityQuestion } : {}),
     ...(input.securityAnswerHash !== undefined ? { securityAnswerHash: input.securityAnswerHash } : {}),
   }).where(eq(userProfiles.userId, userId));
-  return getOrCreateProfile(userId);
+  const updated = await getOrCreateProfile(userId);
+  const nearby = await db.select({ id: kiniUsers.id }).from(kiniUsers).where(eq(kiniUsers.kiniUserId, userId)).limit(1);
+  if (nearby[0]) await db.update(kiniUsers).set({ name: updated.displayName.slice(0, 128), avatar: updated.avatarUrl ?? null }).where(eq(kiniUsers.id, nearby[0].id));
+  return updated;
 }
 
 export async function updateSecurityQuestion(userId: number, input: { securityQuestion: string; securityAnswer: string }) {
@@ -438,7 +442,8 @@ export async function getNearbyProfile(userId: number, fallbackName?: string | n
   const profile = await getOrCreateProfile(userId, fallbackName);
   const nearby = (await db.select().from(kiniUsers).where(eq(kiniUsers.kiniUserId, userId)).limit(1))[0];
   return {
-    ...(nearby ?? { kiniUserId: userId, name: profile.displayName, avatar: null, gender: null, status: null, province: null, birthYear: null, bio: null, job: null, lat: null, lng: null, isDiscoverable: true, hiddenUntil: null }),
+    ...(nearby ?? { kiniUserId: userId, name: profile.displayName, avatar: profile.avatarUrl ?? null, gender: null, status: null, province: null, birthYear: null, bio: null, job: null, lat: null, lng: null, isDiscoverable: true, hiddenUntil: null }),
+    avatar: nearby?.avatar ?? profile.avatarUrl ?? null,
     avatarColor: profile.avatarColor,
     setupComplete: Boolean(nearby?.gender && nearby?.province && nearby?.birthYear),
   };
@@ -452,7 +457,7 @@ export async function saveNearbyProfile(userId: number, fallbackName: string | n
   const values = {
     kiniUserId: userId,
     name: profile.displayName.slice(0, 128),
-    avatar: null,
+    avatar: profile.avatarUrl ?? null,
     gender: input.gender ?? null,
     status: input.status ?? null,
     province: cleanNearbyText(input.province, 128),
@@ -512,18 +517,18 @@ export async function listNearbyUsers(userId: number, input: { lat: number; lng:
   const maxAge = Math.min(100, input.ageTo ?? 100);
   if (minAge > maxAge) throw new Error("Khoảng tuổi không hợp lệ.");
   conditions.push(sql`${kiniUsers.birthYear} IS NOT NULL AND ${kiniUsers.birthYear} BETWEEN ${currentYear - maxAge} AND ${currentYear - minAge}`);
-  const rows = await db.select({ nearby: kiniUsers, avatarColor: userProfiles.avatarColor })
+  const rows = await db.select({ nearby: kiniUsers, avatarColor: userProfiles.avatarColor, avatarUrl: userProfiles.avatarUrl })
     .from(kiniUsers)
     .leftJoin(userProfiles, eq(userProfiles.userId, kiniUsers.kiniUserId))
     .where(and(...conditions))
     .limit(300);
   const page = Math.max(1, Math.min(50, Math.floor(input.page ?? 1)));
-  const matches = rows.map(({ nearby, avatarColor }) => {
+  const matches = rows.map(({ nearby, avatarColor, avatarUrl }) => {
     const distanceKm = calculateHaversineKm(input.lat, input.lng, nearby.lat!, nearby.lng!);
     return {
       userId: nearby.kiniUserId,
       name: nearby.name,
-      avatar: nearby.avatar,
+      avatar: nearby.avatar ?? avatarUrl ?? null,
       avatarColor: avatarColor ?? "#1677FF",
       gender: nearby.gender,
       status: nearby.status,

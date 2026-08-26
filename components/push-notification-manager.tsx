@@ -14,7 +14,10 @@ if (Platform.OS !== "web") {
 
 async function getPushToken() {
   if (Platform.OS === "web" || !Device.isDevice) return null;
-  if (Platform.OS === "android") await Notifications.setNotificationChannelAsync("messages", { name: "Tin nhắn KINI", importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], sound: "default" });
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("messages", { name: "Tin nhắn KINI", importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], sound: "default" });
+    await Notifications.setNotificationChannelAsync("calls", { name: "Cuộc gọi KINI", importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 500, 250, 500], sound: "default", lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC });
+  }
   const permissions = await Notifications.getPermissionsAsync();
   const finalStatus = permissions.status === "granted" ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
   if (finalStatus !== "granted") return null;
@@ -39,7 +42,8 @@ export function PushNotificationManager() {
   useEffect(() => {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {
-      const rawId = response.notification.request.content.data?.conversationId;
+      const data = response.notification.request.content.data as { conversationId?: string | number; type?: string } | undefined;
+      const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
       if (conversationId) router.push(`/chat/${conversationId}` as never);
     };

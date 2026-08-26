@@ -348,7 +348,7 @@ export function useWebRTC(enabled = true) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể thay đổi camera." }));
     }
   }, [state.cameraEnabled, state.mode]);
-  const toggleSpeaker = useCallback(() => setState((current) => { const speakerEnabled = !current.speakerEnabled; setSpeakerEnabledOnDevice(speakerEnabled); return { ...current, speakerEnabled }; }), []);
+  const toggleSpeaker = useCallback(() => setState((current) => { const speakerEnabled = !current.speakerEnabled; setSpeakerEnabledOnDevice(speakerEnabled, current.mode ?? "video"); return { ...current, speakerEnabled }; }), []);
   const switchCamera = useCallback(() => switchCameraOnStream(state.localStream), [state.localStream]);
 
   const stopScreenShare = useCallback(async () => {

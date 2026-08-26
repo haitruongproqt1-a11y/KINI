@@ -20,6 +20,7 @@ export const userProfiles = mysqlTable("user_profiles", {
   username: varchar("username", { length: 64 }).notNull(),
   displayName: varchar("displayName", { length: 128 }).notNull(),
   avatarColor: varchar("avatarColor", { length: 16 }).default("#1677FF").notNull(),
+  avatarUrl: varchar("avatarUrl", { length: 1024 }),
   securityQuestion: varchar("securityQuestion", { length: 255 }),
   securityAnswerHash: varchar("securityAnswerHash", { length: 255 }),
   passwordHash: varchar("passwordHash", { length: 255 }),

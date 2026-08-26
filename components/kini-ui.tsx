@@ -1,5 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { type ReactNode } from "react";
+import { Image } from "expo-image";
+import { type ReactNode, useEffect, useState } from "react";
 import { Modal, StyleSheet, Switch, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 
 export const kiniColors = {
@@ -14,10 +15,14 @@ export const kiniColors = {
   white: "#FFFFFF",
 };
 
-export function Avatar({ initials, color, size = 48 }: { initials: string; color: string; size?: number }) {
+export function Avatar({ initials, color, size = 48, imageUri }: { initials: string; color: string; size?: number; imageUri?: string | null }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [imageUri]);
+  const showImage = Boolean(imageUri) && !imageFailed;
   return (
-    <View style={[styles.avatar, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.33 }]}>{initials}</Text>
+    <View style={[styles.avatar, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]}> 
+      {showImage ? <Image source={{ uri: imageUri! }} contentFit="cover" style={StyleSheet.absoluteFillObject} onError={() => setImageFailed(true)} /> : null}
+      <Text style={[styles.avatarText, { fontSize: size * 0.33, opacity: showImage ? 0 : 1 }]}>{initials}</Text>
     </View>
   );
 }
@@ -85,7 +90,7 @@ export function AuthLink({ children, onPress }: { children: ReactNode; onPress: 
 }
 
 const styles = StyleSheet.create({
-  avatar: { alignItems: "center", justifyContent: "center" },
+  avatar: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   avatarText: { color: kiniColors.white, fontWeight: "800", letterSpacing: 0.2 },
   iconButton: { alignItems: "center", justifyContent: "center", width: 42, height: 42, borderRadius: 21 },
   fieldGroup: { gap: 7 },

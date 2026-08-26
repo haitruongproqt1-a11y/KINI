@@ -68,8 +68,8 @@ export async function sendIncomingCallPush(payload: IncomingCallPayload) {
     title: `Cuộc gọi ${payload.mode === "video" ? "video" : "thoại"} KINI`,
     body: `${payload.callerName} đang gọi cho bạn.`,
     priority: "high",
-    channelId: "messages",
-    data: { type: "incoming_call", conversationId: String(payload.conversationId), callId: payload.callId },
+    channelId: "calls",
+    data: { type: "incoming_call", conversationId: String(payload.conversationId), callId: payload.callId, mode: payload.mode, callerName: payload.callerName },
   }));
   if (!messages.length) return { delivered: 0 };
   try {
