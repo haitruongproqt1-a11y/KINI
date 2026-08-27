@@ -35,6 +35,8 @@ describe("KINI call UI", () => {
     expect(controls).toContain("attention onPress={onAccept}");
     expect(nativeService).toContain("InCallManager.stopRingback()");
     expect(webRtc).toContain("Dừng stream/audio/ringback cục bộ ngay");
+    expect(sounds).toContain("dừng cả player Expo và native tone");
+    expect(sounds).toContain("incoming.pause(); incoming.seekTo(0)");
   });
 
   it("đưa preview camera local lên trên RTC video và không render màn hình tự chia sẻ", () => {

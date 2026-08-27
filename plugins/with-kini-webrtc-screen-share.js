@@ -1,9 +1,167 @@
-const { withAndroidManifest, withMainApplication } = require("@expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
+const { withAndroidManifest, withDangerousMod, withMainApplication } = require("@expo/config-plugins");
 
 const MEDIA_PROJECTION_PERMISSIONS = [
   "android.permission.FOREGROUND_SERVICE",
   "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
+  "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+  "android.permission.SYSTEM_ALERT_WINDOW",
+  "android.permission.WAKE_LOCK",
 ];
+
+function nativeOverlaySource(packageName, deepLinkScheme) {
+  return `package ${packageName}.kini.screenshare
+
+import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.WindowManager
+import android.widget.TextView
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.uimanager.ViewManager
+
+class KiniScreenShareOverlayModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+  private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+  private var bubble: TextView? = null
+  private var params: WindowManager.LayoutParams? = null
+
+  override fun getName() = "KiniScreenShareOverlay"
+
+  @ReactMethod
+  fun hasPermission(promise: Promise) {
+    promise.resolve(Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context))
+  }
+
+  @ReactMethod
+  fun requestPermission(promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)) {
+      promise.resolve(true)
+      return
+    }
+    try {
+      val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      context.startActivity(intent)
+      promise.resolve(false)
+    } catch (error: Exception) {
+      promise.reject("overlay_permission", "Không thể mở phần cấp quyền hiển thị trên ứng dụng khác.", error)
+    }
+  }
+
+  @ReactMethod
+  fun show(initials: String, promise: Promise) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+      promise.reject("overlay_permission", "KINI chưa có quyền hiển thị nút quay lại trên màn hình chính.")
+      return
+    }
+    if (bubble != null) {
+      promise.resolve(true)
+      return
+    }
+    try {
+      val size = dp(58)
+      val layout = WindowManager.LayoutParams(
+        size,
+        size,
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+        PixelFormat.TRANSLUCENT,
+      ).apply {
+        gravity = Gravity.TOP or Gravity.END
+        x = dp(14)
+        y = dp(148)
+      }
+      val view = TextView(context).apply {
+        text = initials.ifBlank { "K" }.take(2).uppercase()
+        textSize = 18f
+        gravity = Gravity.CENTER
+        setTextColor(Color.WHITE)
+        contentDescription = "Quay lại chia sẻ màn hình KINI"
+        background = GradientDrawable().apply {
+          shape = GradientDrawable.OVAL
+          setColor(Color.rgb(83, 47, 150))
+          setStroke(dp(3), Color.argb(210, 255, 255, 255))
+        }
+      }
+      var startX = 0
+      var startY = 0
+      var initialX = 0
+      var initialY = 0
+      view.setOnTouchListener { _, event ->
+        when (event.actionMasked) {
+          MotionEvent.ACTION_DOWN -> {
+            initialX = layout.x
+            initialY = layout.y
+            startX = event.rawX.toInt()
+            startY = event.rawY.toInt()
+            true
+          }
+          MotionEvent.ACTION_MOVE -> {
+            layout.x = (initialX - (event.rawX.toInt() - startX)).coerceAtLeast(0)
+            layout.y = (initialY + (event.rawY.toInt() - startY)).coerceAtLeast(0)
+            windowManager.updateViewLayout(view, layout)
+            true
+          }
+          MotionEvent.ACTION_UP -> {
+            if (kotlin.math.abs(event.rawX.toInt() - startX) < dp(8) && kotlin.math.abs(event.rawY.toInt() - startY) < dp(8)) openKini()
+            true
+          }
+          else -> true
+        }
+      }
+      windowManager.addView(view, layout)
+      bubble = view
+      params = layout
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("overlay_show", "Không thể hiện nút quay lại chia sẻ màn hình.", error)
+    }
+  }
+
+  @ReactMethod
+  fun hide(promise: Promise) {
+    try {
+      bubble?.let { windowManager.removeView(it) }
+      bubble = null
+      params = null
+      promise.resolve(true)
+    } catch (error: Exception) {
+      bubble = null
+      params = null
+      promise.reject("overlay_hide", "Không thể ẩn nút quay lại chia sẻ màn hình.", error)
+    }
+  }
+
+  private fun openKini() {
+    val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
+    launch.data = Uri.parse("${deepLinkScheme}://call-restore")
+    launch.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+    context.startActivity(launch)
+  }
+
+  private fun dp(value: Int) = (value * context.resources.displayMetrics.density).toInt()
+}
+
+class KiniScreenShareOverlayPackage : ReactPackage {
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(KiniScreenShareOverlayModule(reactContext))
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+}
+`;
+}
 
 /** Bổ sung foreground service WebRTC cần thiết cho MediaProjection trên Android 14+. */
 module.exports = function withKiniWebRtcScreenShare(config) {
@@ -13,11 +171,20 @@ module.exports = function withKiniWebRtcScreenShare(config) {
     for (const permission of MEDIA_PROJECTION_PERMISSIONS) {
       if (!existing.has(permission)) permissions.push({ $: { "android:name": permission } });
     }
+    const application = mod.modResults.manifest.application?.[0];
+    if (application) {
+      const services = application.service ?? [];
+      const serviceName = "com.oney.WebRTCModule.MediaProjectionService";
+      const mediaProjectionService = services.find((service) => service.$?.["android:name"] === serviceName);
+      if (mediaProjectionService) mediaProjectionService.$["android:foregroundServiceType"] = "mediaProjection|microphone";
+      else services.push({ $: { "android:name": serviceName, "android:foregroundServiceType": "mediaProjection|microphone" } });
+      application.service = services;
+    }
     mod.modResults.manifest["uses-permission"] = permissions;
     return mod;
   });
 
-  return withMainApplication(config, (mod) => {
+  config = withMainApplication(config, (mod) => {
     if (mod.modResults.language !== "kt") return mod;
     let contents = mod.modResults.contents;
     if (!contents.includes("com.oney.WebRTCModule.WebRTCModuleOptions")) {
@@ -28,7 +195,25 @@ module.exports = function withKiniWebRtcScreenShare(config) {
     if (!contents.includes("enableMediaProjectionService") && contents.includes(marker)) {
       contents = contents.replace(marker, `${marker}\n    WebRTCModuleOptions.getInstance().enableMediaProjectionService = true`);
     }
+    if (!contents.includes("KiniScreenShareOverlayPackage")) {
+      const firstImport = contents.indexOf("import ");
+      const overlayImport = `import ${config.android.package}.kini.screenshare.KiniScreenShareOverlayPackage\n`;
+      if (firstImport >= 0) contents = `${contents.slice(0, firstImport)}${overlayImport}${contents.slice(firstImport)}`;
+      const packagesMarker = "PackageList(this).packages.apply {";
+      if (contents.includes(packagesMarker)) contents = contents.replace(packagesMarker, `${packagesMarker}\n              add(KiniScreenShareOverlayPackage())`);
+    }
     mod.modResults.contents = contents;
     return mod;
   });
+
+  return withDangerousMod(config, ["android", async (mod) => {
+    const packageName = config.android?.package;
+    if (!packageName) throw new Error("KINI screen share cần android.package.");
+    const target = path.join(mod.modRequest.platformProjectRoot, "app", "src", "main", "java", ...packageName.split("."), "kini", "screenshare", "KiniScreenShareOverlayModule.kt");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const deepLinkScheme = Array.isArray(config.scheme) ? config.scheme[0] : config.scheme;
+    if (!deepLinkScheme) throw new Error("KINI screen share cần Expo scheme.");
+    fs.writeFileSync(target, nativeOverlaySource(packageName, deepLinkScheme));
+    return mod;
+  }]);
 };

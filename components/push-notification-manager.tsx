@@ -109,11 +109,15 @@ export function PushNotificationManager() {
   }, []);
   useEffect(() => {
     if (Platform.OS === "web") return;
-    const handleIncomingCallUrl = (url: string | null) => {
-      if (!url) return;
-      const parsed = ExpoLinking.parse(url);
-      if (parsed.hostname === "session-replaced") return;
-      if (parsed.hostname !== "incoming-call") return;
+      const handleIncomingCallUrl = (url: string | null) => {
+        if (!url) return;
+        const parsed = ExpoLinking.parse(url);
+        if (parsed.hostname === "session-replaced") return;
+        if (parsed.hostname === "call-restore") {
+          call.restoreCall();
+          return;
+        }
+        if (parsed.hostname !== "incoming-call") return;
       const callId = typeof parsed.queryParams?.callId === "string" ? parsed.queryParams.callId : null;
       const action = parsed.queryParams?.action;
       if (!callId || (action !== "answer" && action !== "decline")) return;

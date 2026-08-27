@@ -297,3 +297,11 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Chỉ tạo full-screen incoming notification khi KINI ở nền hoặc màn hình Android đang khóa
 - [x] Giữ incoming call foreground trong UI KINI, không kích hoạt fullScreenIntent
 - [x] Kiểm thử Android prebuild, phát hành APK KINI cập nhật logic foreground call
+
+- [x] Xuất nguyên văn mã nguồn ba chế độ gọi vào FULL_3_CALL_MODES.md mà không chỉnh logic ứng dụng hoặc GitHub
+
+- [x] Sửa incoming voice/video call hiện màn KINI toàn màn hình khi app nền hoặc Android đang khóa
+- [x] Dừng ngay nhạc chuông/ringback ở mọi nhánh kết thúc, hủy hoặc từ chối call trên cả hai máy
+- [x] Giữ UI screen share hoạt động đến khi remote nhận stream và giữ audio/micro khi KINI vào nền
+- [x] Thêm nút quay lại cuộc gọi khi ra màn hình chính theo quyền Android overlay, chỉ trong lúc screen share
+- [ ] Kiểm thử hồi quy native Android/call, tăng phiên bản và phát hành APK KINI sửa lỗi nền/màn khóa

@@ -24,7 +24,7 @@ describe("KINI Android full-screen incoming call", () => {
   it("dùng full-screen intent im lặng cho Android nền và không tạo CallStyle banner", () => {
     expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
     expect(plugin).toContain("setSilent(true)");
-    expect(plugin).toContain("setTimeoutAfter(1_500L)");
+    expect(plugin).toContain("setTimeoutAfter(30_000L)");
     expect(plugin).toContain("bootstrap im lặng");
     expect(plugin).not.toContain("NotificationCompat.CallStyle.forIncomingCall");
     expect(plugin).toContain("ACTION_ANSWER");
@@ -38,6 +38,8 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("callerAvatar");
     expect(plugin).toContain("showMissedCall");
     expect(plugin).toContain("dismissIncomingCall");
+    expect(plugin).toContain("KiniTelecomBridge.dismissIncomingCall(callId)");
+    expect(plugin).toContain("activeConnections");
     expect(plugin).toContain("Nhận cuộc gọi");
     expect(plugin).toContain("actionButton(\"☎\"");
     expect(plugin).not.toContain("override fun onShowIncomingCallUi()");
@@ -48,5 +50,10 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("if (shouldUseFullScreen)");
     expect(plugin).toContain("KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)");
     expect(plugin).toContain("lifecycle-process:2.8.4");
+  });
+
+  it("gửi end push cho peer cả sau khi cuộc gọi đã được nhận", () => {
+    expect(pushServer).toContain('data: { type: "call_ended", callId: payload.callId }');
+    expect(readFileSync(resolve(import.meta.dirname, "../server/signaling/index.ts"), "utf8")).toContain("for (const peerUserId of peerUserIds) void sendCallEndedPush");
   });
 });

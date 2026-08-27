@@ -173,14 +173,17 @@ export function registerCallSignaling(httpServer: HttpServer) {
     socket.on("call:end", (payload: SignalPayload, acknowledge?: (result: { ok: boolean }) => void) => {
       void (async () => {
         try {
-          const { callId } = readBaseSignal(payload);
+          const { callId, conversationId } = readBaseSignal(payload);
           const outcome = payload.outcome === "declined" || payload.outcome === "cancelled" || payload.outcome === "failed" ? payload.outcome : "ended";
           const pingMs = typeof payload.pingMs === "number" && Number.isFinite(payload.pingMs) ? payload.pingMs : undefined;
           const pending = findPendingOffer(callId);
           await db.finishCall(userId, callId, outcome, pingMs);
           clearPendingOffer(callId);
+          // Sau khi đã nhận call, pending offer không còn tồn tại. Vẫn phải gửi FCM data-only
+          // để máy đang nền dừng native ringtone/ConnectionService và đóng Activity ngay.
+          const peerUserIds = await db.getDirectConversationPeerUserIds(userId, conversationId);
+          for (const peerUserId of peerUserIds) void sendCallEndedPush({ recipientUserId: peerUserId, callId });
           if (pending) {
-            void sendCallEndedPush({ recipientUserId: pending.calleeId, callId });
             if (pending.pending.fromUserId === userId && outcome !== "declined") {
               void sendMissedCallPush({ recipientUserId: pending.calleeId, callerName: pending.pending.caller && typeof pending.pending.caller === "object" && "title" in pending.pending.caller && typeof pending.pending.caller.title === "string" ? pending.pending.caller.title : "Bạn KINI", conversationId: pending.pending.conversationId, callId, mode: pending.pending.mode });
             }
