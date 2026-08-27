@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { createContext, useContext, useEffect, useMemo, useRef, type PropsWithChildren } from "react";
-import { Animated, AppState, Dimensions, PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, AppState, Dimensions, NativeModules, PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { VideoCall } from "./components/VideoCall";
@@ -11,6 +11,12 @@ import { Avatar, kiniColors } from "@/components/kini-ui";
 
 type CallController = ReturnType<typeof useWebRTC>;
 const CallContext = createContext<CallController | null>(null);
+const screenShareOverlay = NativeModules.KiniScreenShareOverlay as {
+  hasPermission?: () => Promise<boolean>;
+  requestPermission?: () => Promise<boolean>;
+  show?: (initials: string) => Promise<boolean>;
+  hide?: () => Promise<boolean>;
+} | undefined;
 
 function CallOverlay({ call }: { call: CallController }) {
   const peer = call.peer ?? { title: "Bạn KINI", initials: "K", color: "#1677FF" };
@@ -46,15 +52,42 @@ function MinimizedCall({ call, peer }: { call: CallController; peer: { title: st
 export function CallProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuth();
   const call = useWebRTC(isAuthenticated);
+  const overlayPermissionPrompted = useRef(false);
   useCallSounds(call.status, call.direction, call.mode, call.isScreenSharing);
   useEffect(() => {
+    if (call.isScreenSharing) {
+      void screenShareOverlay?.hasPermission?.().then((granted) => {
+        if (granted || overlayPermissionPrompted.current) return;
+        overlayPermissionPrompted.current = true;
+        Alert.alert(
+          "Nút quay lại khi đang chia sẻ",
+          "Cho phép KINI hiển thị nút tròn trên màn hình chính để quay lại cuộc gọi nhanh khi đang chia sẻ màn hình.",
+          [
+            { text: "Để sau", style: "cancel" },
+            { text: "Cho phép", onPress: () => { void screenShareOverlay?.requestPermission?.().catch(() => undefined); } },
+          ],
+        );
+      }).catch(() => undefined);
+      return;
+    }
+    overlayPermissionPrompted.current = false;
+    void screenShareOverlay?.hide?.().catch(() => undefined);
+  }, [call.isScreenSharing]);
+  useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
-      // Sau khi bấm Home, không thể vẽ overlay trên launcher nếu không xin quyền SYSTEM_ALERT_WINDOW.
-      // Thu nhỏ ngay giúp avatar quay lại call hiện sẵn khi người dùng mở lại KINI; incoming ringing vẫn không bị ẩn.
-      if ((nextState === "inactive" || nextState === "background") && call.status !== "idle") call.minimizeCall();
+      // Khi MediaProjection vừa xin quyền, Android chuyển inactive tạm thời; không được thu nhỏ sớm.
+      // Chỉ background thật sự mới đưa call về bubble và mở overlay hệ thống nếu người dùng đã cấp quyền.
+      if (nextState === "background" && call.status !== "idle") {
+        call.minimizeCall();
+        if (call.isScreenSharing) {
+          call.keepAudioActive();
+          void screenShareOverlay?.show?.(call.peer?.initials ?? "K").catch(() => undefined);
+        }
+      }
+      if (nextState === "active") void screenShareOverlay?.hide?.().catch(() => undefined);
     });
     return () => subscription.remove();
-  }, [call.minimizeCall, call.status]);
+  }, [call.isScreenSharing, call.keepAudioActive, call.minimizeCall, call.peer?.initials, call.status]);
   return <CallContext.Provider value={call}>{children}<CallOverlay call={call} /></CallContext.Provider>;
 }
 

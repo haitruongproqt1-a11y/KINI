@@ -6,6 +6,8 @@ const hook = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calli
 const provider = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/call-provider.tsx"), "utf8");
 const voice = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/components/VoiceCall.tsx"), "utf8");
 const video = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/components/VideoCall.tsx"), "utf8");
+const screenSharePlugin = readFileSync(resolve(import.meta.dirname, "../plugins/with-kini-webrtc-screen-share.js"), "utf8");
+const pushManager = readFileSync(resolve(import.meta.dirname, "../components/push-notification-manager.tsx"), "utf8");
 
 describe("KINI minimized call", () => {
   it("keeps WebRTC state alive while the overlay is minimized and can restore it", () => {
@@ -15,7 +17,12 @@ describe("KINI minimized call", () => {
     expect(provider).toContain("Quay lại cuộc gọi");
     expect(provider).toContain("Quay lại chia sẻ màn hình");
     expect(provider).toContain('AppState.addEventListener("change"');
-    expect(provider).toContain("SYSTEM_ALERT_WINDOW");
+    expect(screenSharePlugin).toContain("android.permission.SYSTEM_ALERT_WINDOW");
+    expect(provider).toContain("KiniScreenShareOverlay");
+    expect(provider).toContain("Nút quay lại khi đang chia sẻ");
+    expect(screenSharePlugin).toContain('://call-restore');
+    expect(pushManager).toContain('parsed.hostname === "call-restore"');
+    expect(pushManager).toContain("call.restoreCall()");
   });
 
   it("provides minimize controls for both voice and video without hiding incoming actions", () => {

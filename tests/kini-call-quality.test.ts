@@ -14,6 +14,7 @@ describe("KINI WebRTC call quality", () => {
     expect(nativeService).toContain("Microphone của call được giữ trên local stream riêng");
     expect(nativeService).toContain("keepCallAudioActive");
     expect(callHook).toContain("microphoneTrack");
+    expect(callHook).toContain("const keepAudioActive");
   });
 
   it("samples selected/nominated candidate pairs before displaying round-trip ping", () => {

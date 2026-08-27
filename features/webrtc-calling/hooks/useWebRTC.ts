@@ -382,6 +382,9 @@ export function useWebRTC(enabled = true) {
     }
   }, [state.cameraEnabled, state.mode]);
   const toggleSpeaker = useCallback(() => setState((current) => { const speakerEnabled = !current.speakerEnabled; setSpeakerEnabledOnDevice(speakerEnabled, current.mode ?? "video"); return { ...current, speakerEnabled }; }), []);
+  const keepAudioActive = useCallback(() => {
+    if (state.status !== "idle" && state.mode) keepCallAudioActive(state.speakerEnabled, state.mode);
+  }, [state.mode, state.speakerEnabled, state.status]);
   const switchCamera = useCallback(() => switchCameraOnStream(state.localStream), [state.localStream]);
 
   const stopScreenShare = useCallback(async () => {
@@ -511,5 +514,5 @@ export function useWebRTC(enabled = true) {
     };
   }, [cleanup, enabled, ensureSignal]);
 
-  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, handleIncomingNotificationAction, endCall, minimizeCall, restoreCall, toggleMute, toggleCamera, toggleSpeaker, switchCamera, toggleScreenShare, stopScreenShare };
+  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, handleIncomingNotificationAction, endCall, minimizeCall, restoreCall, toggleMute, toggleCamera, toggleSpeaker, keepAudioActive, switchCamera, toggleScreenShare, stopScreenShare };
 }

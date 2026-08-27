@@ -51,8 +51,11 @@ export function useCallSounds(status: CallStatus, direction: CallDirection, mode
   }, [direction, incoming, isScreenSharing, mode, ringback, status]);
 
   useEffect(() => () => {
-    if (!nativeVoiceRingback.current) return;
+    // Cleanup này là lớp bảo vệ cuối cùng: dừng cả player Expo và native tone
+    // nếu trạng thái call đổi/Provider bị unmount trước khi effect trạng thái chạy lại.
+    try { incoming.pause(); incoming.seekTo(0); } catch { /* Player đã release. */ }
+    try { ringback.pause(); ringback.seekTo(0); } catch { /* Player đã release. */ }
     try { InCallManager.stopRingback(); } catch { /* Native audio đã được giải phóng. */ }
     nativeVoiceRingback.current = false;
-  }, []);
+  }, [incoming, ringback]);
 }

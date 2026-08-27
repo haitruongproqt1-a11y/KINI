@@ -88,7 +88,9 @@ object KiniCallNotifier {
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setSilent(true)
       .setOnlyAlertOnce(true)
-      .setTimeoutAfter(1_500L)
+      // Một số ROM trì hoãn khởi động Activity từ FCM data-only khi máy đang khóa.
+      // Activity tự hủy bootstrap ở onResume; timeout dài chỉ là fallback nếu Android chặn mở UI.
+      .setTimeoutAfter(30_000L)
       .setFullScreenIntent(contentIntent, true)
       .build()
     notificationManager.notify(callId.hashCode(), notification)
@@ -140,6 +142,7 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
     if (data["type"] == "call_ended" || data["type"] == "call_cancelled") {
       data["callId"]?.let { callId ->
         KiniCallNotifier.cancelIncomingCall(this, callId)
+        KiniTelecomBridge.dismissIncomingCall(callId)
         KiniIncomingCallActivity.dismissIncomingCall(callId)
       }
       return
@@ -185,7 +188,26 @@ import android.telecom.TelecomManager
 
 object KiniTelecomBridge {
   private const val ACCOUNT_ID = "kini_voip"
+  private val activeConnections = mutableMapOf<String, KiniConnection>()
   private fun handle(context: Context) = PhoneAccountHandle(ComponentName(context, KiniConnectionService::class.java), ACCOUNT_ID)
+
+  fun attachIncomingConnection(connection: KiniConnection) {
+    synchronized(activeConnections) { activeConnections[connection.callId] = connection }
+  }
+
+  fun dismissIncomingCall(callId: String) {
+    val connection = synchronized(activeConnections) { activeConnections.remove(callId) } ?: return
+    try {
+      connection.setDisconnected(DisconnectCause(DisconnectCause.REMOTE))
+      connection.destroy()
+    } catch (_: Exception) {
+      // Connection có thể đã được Telecom hủy trước khi FCM end đến.
+    }
+  }
+
+  fun forgetIncomingCall(callId: String) {
+    synchronized(activeConnections) { activeConnections.remove(callId) }
+  }
 
   fun reportIncomingCall(context: Context, callId: String, callerName: String, mode: String) {
     try {
@@ -209,17 +231,19 @@ object KiniTelecomBridge {
 class KiniConnectionService : ConnectionService() {
   override fun onCreateIncomingConnection(phoneAccountHandle: PhoneAccountHandle, request: ConnectionRequest): Connection {
     val extras = request.extras
-    return KiniConnection(applicationContext, extras.getString(KiniCallNotifier.EXTRA_CALL_ID) ?: "", extras.getString(KiniCallNotifier.EXTRA_CALLER_NAME) ?: "Bạn KINI").apply {
+    val connection = KiniConnection(applicationContext, extras.getString(KiniCallNotifier.EXTRA_CALL_ID) ?: "", extras.getString(KiniCallNotifier.EXTRA_CALLER_NAME) ?: "Bạn KINI").apply {
       connectionProperties = Connection.PROPERTY_SELF_MANAGED
       setAddress(Uri.parse("kini:" + callId), TelecomManager.PRESENTATION_ALLOWED)
       setCallerDisplayName(callerName, TelecomManager.PRESENTATION_ALLOWED)
       setAudioModeIsVoip(true)
       setRinging()
     }
+    KiniTelecomBridge.attachIncomingConnection(connection)
+    return connection
   }
 }
 
-private class KiniConnection(private val context: Context, val callId: String, val callerName: String) : Connection() {
+class KiniConnection(private val context: Context, val callId: String, val callerName: String) : Connection() {
   override fun onAnswer() {
     setActive()
     KiniCallNotifier.cancelIncomingCall(context, callId)
@@ -228,12 +252,14 @@ private class KiniConnection(private val context: Context, val callId: String, v
   override fun onReject() {
     setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
     destroy()
+    KiniTelecomBridge.forgetIncomingCall(callId)
     KiniCallNotifier.cancelIncomingCall(context, callId)
     KiniIncomingCallActivity.openReactApp(context, callId, "decline")
   }
   override fun onDisconnect() {
     setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
     destroy()
+    KiniTelecomBridge.forgetIncomingCall(callId)
     KiniCallNotifier.cancelIncomingCall(context, callId)
   }
 }

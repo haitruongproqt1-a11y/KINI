@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.34
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.35
         required: true
-        default: v1.8.34
+        default: v1.8.35
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.31
+        description: Mã GitHub Release nhận APK, ví dụ v1.32
         required: true
-        default: v1.31
+        default: v1.32
         type: string
 
 permissions:
@@ -126,7 +126,10 @@ jobs:
         run: |
           mkdir -p release-output
           cp android/app/build/outputs/apk/release/app-release.apk "release-output/$APK_NAME"
-          sha256sum "release-output/$APK_NAME" | tee "release-output/$APK_NAME.sha256"
+          (
+            cd release-output
+            sha256sum "$APK_NAME" > "$APK_NAME.sha256"
+          )
 
       - name: Preserve APK build artifact
         uses: actions/upload-artifact@v4
@@ -148,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.34 · Build 34. Incoming call chỉ dùng full-screen bootstrap khi KINI ở nền hoặc thiết bị khóa; khi foreground sẽ đi vào màn gọi trong app, không tạo fullScreenIntent. FCM data-only, channel CALL ưu tiên cao và IncomingCallActivity màn khóa vẫn được giữ."
+              --notes "KINI 1.8.35 · Build 35. Sửa full-screen incoming call khi KINI ở nền/màn khóa và dừng ringtone/ringback qua FCM end data-only ở mọi trạng thái call. Chia sẻ màn hình giữ micro/audio khi app vào nền; sau khi cấp quyền Hiển thị trên ứng dụng khác, nút tròn có thể mở lại KINI từ màn hình chính."
           fi
