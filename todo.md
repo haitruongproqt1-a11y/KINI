@@ -232,4 +232,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Hiển thị tên người gửi và nội dung tin nhắn thật trong FCM
 - [x] Tạo incoming call Android toàn màn hình với Nghe/Từ chối khi KINI bị đóng
 - [x] Tích hợp ConnectionService và hành động FCM vào signaling/cuộc gọi KINI
-- [ ] Kiểm thử Android native, tăng phiên bản và phát hành APK incoming call mới
+- [x] Kiểm thử Android native, tăng phiên bản và phát hành APK incoming call mới
