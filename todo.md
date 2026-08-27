@@ -283,4 +283,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm phản hồi âm thanh cùng hoạt ảnh tinh tế khi tin nhắn gửi thành công
 - [x] Củng cố đường audio hai chiều trong quá trình chia sẻ màn hình Android
 - [x] Giữ nút quay lại call trong KINI, làm rõ giới hạn không phủ nổi ngoài ứng dụng sau khi bấm Home
-- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI cải thiện call/chat
+- [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI cải thiện call/chat
