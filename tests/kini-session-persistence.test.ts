@@ -19,5 +19,7 @@ describe("KINI session persistence and device replacement", () => {
     expect(auth).toContain("Đăng nhập trên thiết bị khác");
     expect(push).toContain('data?.type === "session_replaced"');
     expect(push).toContain("invalidateKiniSession");
+    expect(push).toContain("if (await Api.getMe()) return;");
+    expect(push).toContain("Push có thể được giao muộn");
   });
 });

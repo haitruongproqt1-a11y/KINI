@@ -229,9 +229,6 @@ class KiniConnectionService : ConnectionService() {
 }
 
 private class KiniConnection(private val context: Context, val callId: String, val callerName: String) : Connection() {
-  override fun onShowIncomingCallUi() {
-    KiniCallNotifier.showIncomingCall(context, callId, callerName, "voice")
-  }
   override fun onAnswer() {
     setActive()
     KiniCallNotifier.cancelIncomingCall(context, callId)

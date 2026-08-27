@@ -29,5 +29,6 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("dismissIncomingCall");
     expect(plugin).toContain("Nhận cuộc gọi");
     expect(plugin).toContain("actionButton(\"☎\"");
+    expect(plugin).not.toContain("override fun onShowIncomingCallUi()");
   });
 });

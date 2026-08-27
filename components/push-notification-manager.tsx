@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Alert, AppState, Linking, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
+import * as Api from "@/lib/_core/api";
 import { trpc } from "@/lib/trpc";
 import { invalidateKiniSession } from "@/lib/kini-session-events";
 import { useKiniCall } from "@/features/webrtc-calling/call-provider";
@@ -51,6 +52,16 @@ export function PushNotificationManager() {
   const registeredForUser = useRef<number | null>(null);
   const registrationInFlight = useRef(false);
   const register = trpc.push.register.useMutation();
+  const confirmSessionWasReplaced = useCallback(async () => {
+    try {
+      // Push có thể được giao muộn. Chỉ xóa phiên khi backend xác nhận token hiện tại đã bị thu hồi.
+      if (await Api.getMe()) return;
+      if (Platform.OS !== "web") Alert.alert("Đăng nhập trên thiết bị khác", "Tài khoản KINI này vừa được đăng nhập ở thiết bị khác. Phiên trên điện thoại này đã được đăng xuất để bảo vệ tài khoản.");
+      await invalidateKiniSession();
+    } catch {
+      // Mất mạng/5xx không phải bằng chứng session bị thay thế; giữ nguyên phiên đang dùng.
+    }
+  }, []);
   const registerPushToken = useCallback(async () => {
     if (!isAuthenticated || !user || registeredForUser.current === user.id || registrationInFlight.current) return;
     registrationInFlight.current = true;
@@ -78,7 +89,7 @@ export function PushNotificationManager() {
     const openConversation = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data as { conversationId?: string | number; callId?: string; type?: string } | undefined;
       if (data?.type === "session_replaced") {
-        void invalidateKiniSession();
+        void confirmSessionWasReplaced();
         return;
       }
       const rawId = data?.conversationId;
@@ -92,26 +103,25 @@ export function PushNotificationManager() {
     const subscription = Notifications.addNotificationResponseReceivedListener(openConversation);
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) openConversation(response); });
     return () => subscription.remove();
-  }, [call, router]);
+  }, [call, confirmSessionWasReplaced, router]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as { type?: string } | undefined;
       // App đang mở: phiên cũ bị thu hồi ngay khi server báo đăng nhập từ thiết bị mới.
       if (data?.type === "session_replaced") {
-        Alert.alert("Đăng nhập trên thiết bị khác", "Tài khoản KINI này vừa được đăng nhập ở thiết bị khác. Phiên trên điện thoại này đã được đăng xuất.");
-        void invalidateKiniSession();
+        void confirmSessionWasReplaced();
       }
     });
     return () => subscription.remove();
-  }, []);
+  }, [confirmSessionWasReplaced]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const handleIncomingCallUrl = (url: string | null) => {
       if (!url) return;
       const parsed = ExpoLinking.parse(url);
       if (parsed.hostname === "session-replaced") {
-        void invalidateKiniSession();
+        void confirmSessionWasReplaced();
         return;
       }
       if (parsed.hostname !== "incoming-call") return;
@@ -123,6 +133,6 @@ export function PushNotificationManager() {
     void Linking.getInitialURL().then(handleIncomingCallUrl);
     const linkSubscription = Linking.addEventListener("url", ({ url }) => handleIncomingCallUrl(url));
     return () => linkSubscription.remove();
-  }, [call]);
+  }, [call, confirmSessionWasReplaced]);
   return null;
 }

@@ -251,3 +251,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thiết kế hàng đợi upload toàn cục có trạng thái đang chờ/đang gửi/thành công/thất bại và tiến trình thumbnail
 - [x] Giữ gửi ảnh/video nền tiếp tục khi chuyển chat, đồng thời composer và nhắn tin văn bản vẫn dùng được
 - [x] Kiểm thử hồi quy upload nền ảnh/video và phát hành APK KINI mới
+
+- [x] Rà soát và loại notification thanh trạng thái trong lúc incoming call native KINI đang hiển thị toàn màn hình
+- [x] Cố định composer trở về đúng vị trí sau khi Android đóng bàn phím hoặc gửi tin nhắn
+- [x] Bảo vệ phiên đăng nhập trên đúng thiết bị, chỉ thu hồi khi hệ thống xác nhận phiên bị thay thế hoặc người dùng đăng xuất
+- [x] Tinh chỉnh WebRTC/âm thanh an toàn và rà soát giới hạn lưu trữ theo khả năng hạ tầng thực tế
+- [ ] Kiểm thử hồi quy cuối, build APK KINI chất lượng và phát hành GitHub Release mới
