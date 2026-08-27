@@ -288,4 +288,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Loại bỏ triệt để banner notification cuộc gọi đến nhưng giữ incoming call KINI toàn màn hình
 - [x] Dừng nhạc chờ ngay khi chia sẻ màn hình được bật trong cuộc gọi video
 - [x] Bảo đảm chuyển loa trong/loa ngoài hoạt động ở gọi thoại, gọi video và chia sẻ màn hình
-- [ ] Kiểm thử hồi quy audio/native call, tăng phiên bản và phát hành APK KINI mới
+- [x] Kiểm thử hồi quy audio/native call, tăng phiên bản và phát hành APK KINI mới
