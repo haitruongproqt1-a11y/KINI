@@ -228,3 +228,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Tích hợp google-services.json Firebase cho package com.app.kinimobile
 - [x] Xác minh Firebase OAuth và luồng đăng ký token push Android
 - [x] Kiểm thử, tăng phiên bản và phát hành APK Firebase/push mới
+
+- [x] Hiển thị tên người gửi và nội dung tin nhắn thật trong FCM
+- [x] Tạo incoming call Android toàn màn hình với Nghe/Từ chối khi KINI bị đóng
+- [x] Tích hợp ConnectionService và hành động FCM vào signaling/cuộc gọi KINI
+- [ ] Kiểm thử Android native, tăng phiên bản và phát hành APK incoming call mới

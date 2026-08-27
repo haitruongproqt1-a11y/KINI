@@ -7,6 +7,7 @@ import { getDb } from "./db";
 type PushPayload = { recipientUserIds: number[]; title: string; body: string; conversationId: number };
 type SecurityPayload = { userId: number; deviceName: string };
 type IncomingCallPayload = { recipientUserId: number; callerName: string; conversationId: number; callId: string; mode: "voice" | "video" };
+type EndedCallPayload = { recipientUserId: number; callId: string };
 type FirebaseServiceAccount = { project_id: string; client_email: string; private_key: string; token_uri?: string };
 type GenericNotification = { title: string; body: string; channelId: "messages" | "calls"; data: Record<string, string> };
 
@@ -73,18 +74,22 @@ async function sendFcmPushNotification(token: string, notification: GenericNotif
       body: JSON.stringify({
         message: {
           token,
-          notification: { title: notification.title, body: notification.body.slice(0, 160) },
           data: notification.data,
+          ...(notification.channelId === "messages" ? {
+            notification: { title: notification.title, body: notification.body.slice(0, 160) },
+          } : {}),
           android: {
             priority: "HIGH",
-            notification: {
-              channel_id: notification.channelId,
-              sound: "default",
-              default_sound: true,
-              default_vibrate_timings: true,
-              notification_priority: "PRIORITY_MAX",
-              visibility: notification.channelId === "calls" ? "PUBLIC" : "PRIVATE",
-            },
+            ...(notification.channelId === "messages" ? {
+              notification: {
+                channel_id: notification.channelId,
+                sound: "default",
+                default_sound: true,
+                default_vibrate_timings: true,
+                notification_priority: "PRIORITY_MAX",
+                visibility: "PRIVATE",
+              },
+            } : {}),
           },
         },
       }),
@@ -150,4 +155,19 @@ export async function sendIncomingCallPush(payload: IncomingCallPayload) {
     data: { type: "incoming_call", conversationId: String(payload.conversationId), callId: payload.callId, mode: payload.mode, callerName: payload.callerName },
   });
   return { delivered };
+}
+
+/** Chỉ gửi data-only đến native FCM token để đóng CallStyle/full-screen cũ, không tạo thông báo mới. */
+export async function sendCallEndedPush(payload: EndedCallPayload) {
+  const db = await getDb();
+  if (!db) return { delivered: 0 };
+  const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.recipientUserId));
+  const fcmTokens = devices.map((device) => device.expoPushToken).filter(isFcmPushToken);
+  const delivered = await Promise.all(fcmTokens.map((token) => sendFcmPushNotification(token, {
+    title: "",
+    body: "",
+    channelId: "calls",
+    data: { type: "call_ended", callId: payload.callId },
+  })));
+  return { delivered: delivered.filter(Boolean).length };
 }

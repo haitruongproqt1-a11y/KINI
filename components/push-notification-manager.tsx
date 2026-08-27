@@ -1,9 +1,10 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import * as ExpoLinking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState, Linking, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
@@ -87,5 +88,20 @@ export function PushNotificationManager() {
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) openConversation(response); });
     return () => subscription.remove();
   }, [call, router]);
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const handleIncomingCallUrl = (url: string | null) => {
+      if (!url) return;
+      const parsed = ExpoLinking.parse(url);
+      if (parsed.hostname !== "incoming-call") return;
+      const callId = typeof parsed.queryParams?.callId === "string" ? parsed.queryParams.callId : null;
+      const action = parsed.queryParams?.action;
+      if (!callId || (action !== "answer" && action !== "decline")) return;
+      call.handleIncomingNotificationAction(callId, action);
+    };
+    void Linking.getInitialURL().then(handleIncomingCallUrl);
+    const linkSubscription = Linking.addEventListener("url", ({ url }) => handleIncomingCallUrl(url));
+    return () => linkSubscription.remove();
+  }, [call]);
   return null;
 }

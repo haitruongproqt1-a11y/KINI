@@ -40,7 +40,7 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.8.20",
+  version: "1.8.21",
   // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
   platforms: ["android", "web"],
   orientation: "portrait",
@@ -57,7 +57,7 @@ const config: ExpoConfig = {
     // Buộc Android thu nhỏ vùng app khi bàn phím mở để không che composer trong chat.
     softwareKeyboardLayoutMode: "resize",
     predictiveBackGestureEnabled: false,
-    versionCode: 20,
+    versionCode: 21,
     package: env.androidPackage,
     googleServicesFile: "./google-services.json",
     permissions: [
@@ -96,7 +96,7 @@ const config: ExpoConfig = {
   extra: {
     // Android không thể gọi relative /api như web preview, nên APK dùng domain production ổn định.
     apiBaseUrl: "https://kinimobile-cr7qe9vh.manus.space",
-    releaseCode: "v1.17",
+    releaseCode: "v1.18",
   },
   plugins: [
     "expo-router",
@@ -132,6 +132,7 @@ const config: ExpoConfig = {
       },
     ],
     "./plugins/with-kini-webrtc-screen-share",
+    "./plugins/with-kini-incoming-call",
     [
       "expo-video",
       {

@@ -4,7 +4,7 @@ import { Server as SocketIOServer } from "socket.io";
 
 import * as db from "../db";
 import { sdk } from "../_core/sdk";
-import { sendIncomingCallPush } from "../push";
+import { sendCallEndedPush, sendIncomingCallPush } from "../push";
 
 type SignalPayload = {
   callId?: unknown;
@@ -26,6 +26,13 @@ function clearPendingOffer(callId: string) {
   for (const [calleeId, pending] of pendingOffersByCallee.entries()) {
     if (pending.callId === callId) pendingOffersByCallee.delete(calleeId);
   }
+}
+
+function findPendingOffer(callId: string) {
+  for (const [calleeId, pending] of pendingOffersByCallee.entries()) {
+    if (pending.callId === callId) return { calleeId, pending };
+  }
+  return null;
 }
 
 function readBaseSignal(payload: SignalPayload) {
@@ -127,6 +134,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
             pendingOffersByCallee.delete(created.calleeId);
             // Người gọi có thể đã tắt ứng dụng trước khi tự timeout; vẫn đóng phiên trong DB.
             void db.finishCall(userId, callId, "cancelled").catch(() => undefined);
+            void sendCallEndedPush({ recipientUserId: created.calleeId, callId });
           }, 55_000);
           void sendIncomingCallPush({ recipientUserId: created.calleeId, callerName: created.caller.title, conversationId, callId, mode });
         } catch (error) {
@@ -165,8 +173,10 @@ export function registerCallSignaling(httpServer: HttpServer) {
           const { callId } = readBaseSignal(payload);
           const outcome = payload.outcome === "declined" || payload.outcome === "cancelled" || payload.outcome === "failed" ? payload.outcome : "ended";
           const pingMs = typeof payload.pingMs === "number" && Number.isFinite(payload.pingMs) ? payload.pingMs : undefined;
+          const pending = findPendingOffer(callId);
           await db.finishCall(userId, callId, outcome, pingMs);
           clearPendingOffer(callId);
+          if (pending) void sendCallEndedPush({ recipientUserId: pending.calleeId, callId });
           await relay("call:end", payload, { outcome });
           acknowledge?.({ ok: true });
         } catch (error) {
@@ -180,6 +190,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
         if (pending.fromUserId !== userId) continue;
         pendingOffersByCallee.delete(calleeId);
         void db.finishCall(userId, pending.callId, "cancelled").catch(() => undefined);
+        void sendCallEndedPush({ recipientUserId: calleeId, callId: pending.callId });
         io.to(`kini-user:${calleeId}`).emit("call:end", {
           callId: pending.callId,
           conversationId: pending.conversationId,
