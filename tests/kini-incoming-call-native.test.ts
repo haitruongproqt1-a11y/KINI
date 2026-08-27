@@ -14,12 +14,15 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("android.telecom.ConnectionService");
   });
 
-  it("dùng CallStyle/fullScreenIntent với thao tác Nghe và Từ chối", () => {
+  it("dùng full-screen intent cho Android nền rồi tự hủy CallStyle khi màn KINI đã hiện", () => {
     expect(plugin).toContain("NotificationCompat.CallStyle.forIncomingCall");
     expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
+    expect(plugin).toContain("postDelayed");
+    expect(plugin).toContain("Full-screen KINI đã hiện");
     expect(plugin).toContain("ACTION_ANSWER");
     expect(plugin).toContain("ACTION_DECLINE");
     expect(pushServer).toContain("notification.channelId === \"messages\"");
+    expect(pushServer).toContain("Chỉ token FCM native nhận data-only");
     expect(pushServer).toContain("sendCallEndedPush");
     expect(pushServer).toContain("sendMissedCallPush");
     expect(plugin).toContain('data["type"] == "call_ended"');

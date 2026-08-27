@@ -4,12 +4,10 @@ import Constants from "expo-constants";
 import * as ExpoLinking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { Alert, AppState, Linking, Platform } from "react-native";
+import { AppState, Linking, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
-import * as Api from "@/lib/_core/api";
 import { trpc } from "@/lib/trpc";
-import { invalidateKiniSession } from "@/lib/kini-session-events";
 import { useKiniCall } from "@/features/webrtc-calling/call-provider";
 
 if (Platform.OS !== "web") {
@@ -29,6 +27,15 @@ async function getPushToken() {
   const permissions = await Notifications.getPermissionsAsync();
   const finalStatus = permissions.status === "granted" ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
   if (finalStatus !== "granted") return null;
+  // APK Android ưu tiên token FCM native để FirebaseMessagingService có thể mở incoming-call toàn màn hình.
+  if (Platform.OS === "android") {
+    try {
+      const nativeToken = await Notifications.getDevicePushTokenAsync();
+      if (typeof nativeToken.data === "string") return nativeToken.data;
+    } catch {
+      // Thiết bị cũ không có FCM native vẫn có thể nhận tin nhắn qua Expo khi cần.
+    }
+  }
   try {
     const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
     const result = projectId ? await Notifications.getExpoPushTokenAsync({ projectId }) : await Notifications.getExpoPushTokenAsync();
@@ -52,16 +59,6 @@ export function PushNotificationManager() {
   const registeredForUser = useRef<number | null>(null);
   const registrationInFlight = useRef(false);
   const register = trpc.push.register.useMutation();
-  const confirmSessionWasReplaced = useCallback(async () => {
-    try {
-      // Push có thể được giao muộn. Chỉ xóa phiên khi backend xác nhận token hiện tại đã bị thu hồi.
-      if (await Api.getMe()) return;
-      if (Platform.OS !== "web") Alert.alert("Đăng nhập trên thiết bị khác", "Tài khoản KINI này vừa được đăng nhập ở thiết bị khác. Phiên trên điện thoại này đã được đăng xuất để bảo vệ tài khoản.");
-      await invalidateKiniSession();
-    } catch {
-      // Mất mạng/5xx không phải bằng chứng session bị thay thế; giữ nguyên phiên đang dùng.
-    }
-  }, []);
   const registerPushToken = useCallback(async () => {
     if (!isAuthenticated || !user || registeredForUser.current === user.id || registrationInFlight.current) return;
     registrationInFlight.current = true;
@@ -88,10 +85,7 @@ export function PushNotificationManager() {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data as { conversationId?: string | number; callId?: string; type?: string } | undefined;
-      if (data?.type === "session_replaced") {
-        void confirmSessionWasReplaced();
-        return;
-      }
+      if (data?.type === "session_replaced") return;
       const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
       if (data?.type === "incoming_call") {
@@ -103,27 +97,22 @@ export function PushNotificationManager() {
     const subscription = Notifications.addNotificationResponseReceivedListener(openConversation);
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) openConversation(response); });
     return () => subscription.remove();
-  }, [call, confirmSessionWasReplaced, router]);
+  }, [call, router]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as { type?: string } | undefined;
-      // App đang mở: phiên cũ bị thu hồi ngay khi server báo đăng nhập từ thiết bị mới.
-      if (data?.type === "session_replaced") {
-        void confirmSessionWasReplaced();
-      }
+      // Chính sách KINI cho phép tài khoản dùng trên nhiều thiết bị; bỏ qua security push giao muộn từ APK cũ.
+      if (data?.type === "session_replaced") return;
     });
     return () => subscription.remove();
-  }, [confirmSessionWasReplaced]);
+  }, []);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const handleIncomingCallUrl = (url: string | null) => {
       if (!url) return;
       const parsed = ExpoLinking.parse(url);
-      if (parsed.hostname === "session-replaced") {
-        void confirmSessionWasReplaced();
-        return;
-      }
+      if (parsed.hostname === "session-replaced") return;
       if (parsed.hostname !== "incoming-call") return;
       const callId = typeof parsed.queryParams?.callId === "string" ? parsed.queryParams.callId : null;
       const action = parsed.queryParams?.action;
@@ -133,6 +122,6 @@ export function PushNotificationManager() {
     void Linking.getInitialURL().then(handleIncomingCallUrl);
     const linkSubscription = Linking.addEventListener("url", ({ url }) => handleIncomingCallUrl(url));
     return () => linkSubscription.remove();
-  }, [call, confirmSessionWasReplaced]);
+  }, [call]);
   return null;
 }

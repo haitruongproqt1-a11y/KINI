@@ -27,7 +27,7 @@ describe("Bảo mật và thông báo đẩy KINI", () => {
     expect(source).toContain("notification: { title: notification.title, body: notification.body.slice(0, 160) }");
     expect(source).toContain('notification.channelId === "messages"');
     expect(source).toContain("data: notification.data");
-    expect(source).toContain("session_replaced");
+    expect(source).not.toContain("sendNewDeviceLoginPush");
     expect(source).toContain("sendMissedCallPush");
     expect(source).toContain("callerAvatar");
   });

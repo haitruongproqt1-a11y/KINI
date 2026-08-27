@@ -40,7 +40,6 @@ import androidx.core.app.Person
 
 object KiniCallNotifier {
   const val CHANNEL_ID = "calls"
-  const val SECURITY_CHANNEL_ID = "messages"
   const val EXTRA_CALL_ID = "callId"
   const val EXTRA_CALLER_NAME = "callerName"
   const val EXTRA_CALLER_AVATAR = "callerAvatar"
@@ -96,30 +95,6 @@ object KiniCallNotifier {
     notificationManager.notify(("missed:" + callId).hashCode(), notification)
   }
 
-  fun showSessionReplaced(context: Context, deviceName: String) {
-    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      notificationManager.createNotificationChannel(NotificationChannel(SECURITY_CHANNEL_ID, "Bảo mật KINI", NotificationManager.IMPORTANCE_HIGH).apply {
-        description = "Cảnh báo đăng nhập KINI"
-        lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
-      })
-    }
-    val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-      data = android.net.Uri.parse("${deepLinkScheme}://session-replaced")
-      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-    }
-    val contentIntent = launch?.let { PendingIntent.getActivity(context, 604, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE) }
-    val notification = NotificationCompat.Builder(context, SECURITY_CHANNEL_ID)
-      .setSmallIcon(context.applicationInfo.icon)
-      .setPriority(NotificationCompat.PRIORITY_HIGH)
-      .setAutoCancel(true)
-      .setContentTitle("Cảnh báo đăng nhập KINI")
-      .setContentText("$deviceName vừa đăng nhập. Phiên này đã được đăng xuất.")
-      .apply { if (contentIntent != null) setContentIntent(contentIntent) }
-      .build()
-    notificationManager.notify("session-replaced".hashCode(), notification)
-  }
-
   fun cancelIncomingCall(context: Context, callId: String) {
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     manager.cancel(callId.hashCode())
@@ -160,17 +135,13 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
       KiniCallNotifier.showMissedCall(this, callId, data["callerName"] ?: "Bạn KINI", data["mode"] ?: "voice")
       return
     }
-    if (data["type"] == "session_replaced") {
-      KiniCallNotifier.showSessionReplaced(this, data["deviceName"] ?: "Thiết bị khác")
-      return
-    }
     if (data["type"] == "incoming_call") {
       val callId = data["callId"] ?: return
       val callerName = data["callerName"] ?: "Bạn KINI"
       val callerAvatar = data["callerAvatar"] ?: ""
       val mode = data["mode"] ?: "voice"
-      KiniTelecomBridge.reportIncomingCall(this, callId, callerName, mode)
       KiniCallNotifier.showIncomingCall(this, callId, callerName, mode, callerAvatar)
+      KiniTelecomBridge.reportIncomingCall(this, callId, callerName, mode)
       return
     }
     super.onMessageReceived(message)
@@ -283,6 +254,10 @@ class KiniIncomingCallActivity : Activity() {
   override fun onResume() {
     super.onResume()
     activeActivity = WeakReference(this)
+    // Full-screen KINI đã hiện; chờ notification được post xong rồi hủy CallStyle để không chồng banner lên UI.
+    android.os.Handler(mainLooper).postDelayed({
+      if (!isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingCall(this, callId)
+    }, 450)
   }
 
   override fun onDestroy() {

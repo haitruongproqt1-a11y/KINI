@@ -40,7 +40,7 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.8.27",
+  version: "1.8.28",
   // Web chỉ dùng cho preview và kiểm thử; bản cài đặt phát hành vẫn là APK Android.
   platforms: ["android", "web"],
   orientation: "portrait",
@@ -53,11 +53,12 @@ const config: ExpoConfig = {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/images/android-icon-foreground.png",
     },
+    // Expo SDK Android dùng edge-to-edge; từng màn phải chừa inset thật để không bị system bars che.
     edgeToEdgeEnabled: true,
     // Buộc Android thu nhỏ vùng app khi bàn phím mở để không che composer trong chat.
     softwareKeyboardLayoutMode: "resize",
     predictiveBackGestureEnabled: false,
-    versionCode: 27,
+    versionCode: 28,
     package: env.androidPackage,
     googleServicesFile: "./google-services.json",
     permissions: [
@@ -96,7 +97,7 @@ const config: ExpoConfig = {
   extra: {
     // Android không thể gọi relative /api như web preview, nên APK dùng domain production ổn định.
     apiBaseUrl: "https://kinimobile-cr7qe9vh.manus.space",
-    releaseCode: "v1.24",
+    releaseCode: "v1.25",
   },
   plugins: [
     "expo-router",

@@ -2,7 +2,7 @@ import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { invalidateKiniSession, subscribeKiniSessionInvalidated } from "@/lib/kini-session-events";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, AppState, Platform } from "react-native";
+import { AppState } from "react-native";
 
 type UseAuthOptions = {
   autoFetch?: boolean;
@@ -38,9 +38,8 @@ export function useAuth(options?: UseAuthOptions) {
         return;
       }
       if (!apiUser) {
-        if (Platform.OS !== "web") Alert.alert("Đăng nhập trên thiết bị khác", "Tài khoản KINI này vừa đăng nhập trên thiết bị khác. Phiên trên điện thoại này đã được đăng xuất để bảo vệ tài khoản.");
-        setUser(null);
-        await invalidateKiniSession();
+        // Không tự xóa thông tin đăng nhập cục bộ. Phiên chỉ bị xóa khi người dùng chủ động đăng xuất.
+        setError(new Error("Không thể xác minh phiên KINI lúc này. KINI sẽ giữ tài khoản hiện tại và tự thử lại."));
         return;
       }
       const userInfo: Auth.User = { id: apiUser.id, openId: apiUser.openId, name: apiUser.name, email: apiUser.email, loginMethod: apiUser.loginMethod, lastSignedIn: new Date(apiUser.lastSignedIn) };
@@ -77,7 +76,7 @@ export function useAuth(options?: UseAuthOptions) {
   useEffect(() => {
     if (autoFetch) {
       fetchUser();
-      // Kiểm tra nhanh khi app đang dùng để phiên cũ bị thu hồi trên máy khác quay về đăng nhập.
+      // Làm mới thông tin khi app đang dùng nhưng không tự đăng xuất nếu máy chủ tạm thời không xác minh được.
       const timer = setInterval(() => { if (AppState.currentState === "active") void fetchUser(); }, 12_000);
       const appState = AppState.addEventListener("change", (state) => { if (state === "active") void fetchUser(); });
       return () => { clearInterval(timer); appState.remove(); };

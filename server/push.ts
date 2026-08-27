@@ -5,7 +5,6 @@ import { pushDevices } from "../drizzle/schema";
 import { getDb } from "./db";
 
 type PushPayload = { recipientUserIds: number[]; title: string; body: string; conversationId: number };
-type SecurityPayload = { userId: number; deviceName: string };
 type IncomingCallPayload = { recipientUserId: number; callerName: string; callerAvatar?: string | null; conversationId: number; callId: string; mode: "voice" | "video" };
 type EndedCallPayload = { recipientUserId: number; callId: string };
 type MissedCallPayload = { recipientUserId: number; callerName: string; conversationId: number; callId: string; mode: "voice" | "video" };
@@ -137,27 +136,14 @@ export async function sendMessagePushNotification(payload: PushPayload) {
   return { delivered };
 }
 
-export async function sendNewDeviceLoginPush(payload: SecurityPayload) {
-  const db = await getDb();
-  if (!db) return { delivered: 0 };
-  const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.userId));
-  const notification: GenericNotification = { title: "Cảnh báo đăng nhập KINI", body: `${payload.deviceName} vừa đăng nhập vào tài khoản của bạn. Phiên cũ đã được đăng xuất.`, channelId: "messages", data: { type: "session_replaced", deviceName: payload.deviceName } };
-  const expoDelivered = await sendExpoPushNotifications(devices.map((device) => device.expoPushToken).filter(isExpoPushToken), notification);
-  // Native FCM dùng data-only để KiniFirebaseMessagingService tự xử lý logout/mở app, thay vì bị hệ thống giữ lại payload.
-  const fcmDelivered = await Promise.all(devices.map((device) => device.expoPushToken).filter(isFcmPushToken).map((token) => sendFcmPushNotification(token, {
-    ...notification,
-    channelId: "calls",
-  })));
-  const delivered = expoDelivered + fcmDelivered.filter(Boolean).length;
-  return { delivered };
-}
-
 /** Gửi notification nền khi KINI không có socket đang kết nối hoặc đã bị Android đóng. */
 export async function sendIncomingCallPush(payload: IncomingCallPayload) {
   const db = await getDb();
   if (!db) return { delivered: 0 };
   const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.recipientUserId));
-  const delivered = await sendToDevices(devices, {
+  // Chỉ token FCM native nhận data-only: activity incoming-call tự mở, không tạo banner notification.
+  const fcmTokens = devices.map((device) => device.expoPushToken).filter(isFcmPushToken);
+  const delivered = await Promise.all(fcmTokens.map((token) => sendFcmPushNotification(token, {
     title: `Cuộc gọi ${payload.mode === "video" ? "video" : "thoại"} KINI`,
     body: `${payload.callerName} đang gọi cho bạn.`,
     channelId: "calls",
@@ -169,8 +155,8 @@ export async function sendIncomingCallPush(payload: IncomingCallPayload) {
       callerName: payload.callerName,
       callerAvatar: payload.callerAvatar?.startsWith("/") ? `${kiniPublicUrl}${payload.callerAvatar}` : (payload.callerAvatar ?? ""),
     },
-  });
-  return { delivered };
+  })));
+  return { delivered: delivered.filter(Boolean).length };
 }
 
 /** Báo gọi nhỡ riêng biệt; native FCM chỉ hiển thị notification này khi người nhận đã không trả lời. */

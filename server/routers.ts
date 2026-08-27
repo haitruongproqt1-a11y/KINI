@@ -9,18 +9,17 @@ import { sdk } from "./_core/sdk";
 import * as db from "./db";
 import { isKiniUsernameValid } from "../shared/kini-chat";
 import { isSecurityQuestionId, securityQuestions } from "../shared/security-questions";
-import { sendMessagePushNotification, sendNewDeviceLoginPush } from "./push";
+import { sendMessagePushNotification } from "./push";
 
 const usernameSchema = z.string().trim().min(3, "Tên người dùng cần ít nhất 3 ký tự.").max(64).refine(isKiniUsernameValid, "Tên người dùng chỉ gồm chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang.");
 const messageKindSchema = z.enum(["text", "image", "album", "video", "file", "sticker"]);
 const passwordSchema = z.string().min(8, "Mật khẩu cần có ít nhất 8 ký tự.").max(128);
 
 async function createKiniSession(user: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: Date }, device: { deviceName?: string; platform?: string } = {}) {
-  const session = await db.createExclusiveUserSession(user.id, {
+  const session = await db.createUserSession(user.id, {
     deviceName: device.deviceName?.trim() || "Thiết bị KINI",
     platform: device.platform?.trim() || "unknown",
   });
-  if (session.replacedSessions > 0) void sendNewDeviceLoginPush({ userId: user.id, deviceName: device.deviceName?.trim() || "Thiết bị KINI" });
   return {
     sessionToken: await sdk.createSessionToken(user.openId, { name: user.name ?? "Thành viên KINI", sessionId: session.id }),
     user: { id: user.id, openId: user.openId, name: user.name, email: user.email, loginMethod: user.loginMethod, lastSignedIn: user.lastSignedIn },

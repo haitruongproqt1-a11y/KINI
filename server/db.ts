@@ -244,14 +244,12 @@ export async function removePushDevice(userId: number, expoPushToken: string) {
   return { removed: true };
 }
 
-export async function createExclusiveUserSession(userId: number, device: { deviceName: string; platform: string }) {
+/** Tạo phiên riêng cho từng thiết bị; không thu hồi các phiên đang hoạt động khác. */
+export async function createUserSession(userId: number, device: { deviceName: string; platform: string }) {
   const db = await requireDb();
-  const now = new Date();
-  const activeSessions = await db.select({ id: userSessions.id }).from(userSessions).where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
-  await db.update(userSessions).set({ revokedAt: now }).where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
   const id = randomUUID();
   await db.insert(userSessions).values({ id, userId, deviceName: device.deviceName.slice(0, 128), platform: device.platform.slice(0, 24) });
-  return { id, replacedSessions: activeSessions.length };
+  return { id };
 }
 
 export async function validateUserSession(userId: number, sessionId: string) {
