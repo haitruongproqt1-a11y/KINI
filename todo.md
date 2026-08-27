@@ -262,4 +262,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm thu hồi media ở trạng thái chờ/đang tải trước khi người nhận nhận được tin nhắn
 - [x] Hiển thị lỗi upload có nguyên nhân và retry an toàn, không để thumbnail 100% bị kẹt
 - [x] Thêm chip quay lại call/chia sẻ nổi nhỏ, trong suốt và kéo được trên mọi màn KINI
-- [ ] Kiểm thử hồi quy media/call và phát hành APK KINI sửa lỗi mới
+- [x] Kiểm thử hồi quy media/call và phát hành APK KINI sửa lỗi mới
