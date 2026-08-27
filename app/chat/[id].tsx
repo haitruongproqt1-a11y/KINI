@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Keyboard,
   KeyboardAvoidingView as NativeKeyboardAvoidingView,
@@ -246,6 +247,7 @@ export default function ChatScreen() {
   const [viewer, setViewer] = useState<Message | null>(null);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [pasteNonce, setPasteNonce] = useState(0);
+  const [androidKeyboardOverlap, setAndroidKeyboardOverlap] = useState(0);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 8000, refetchIntervalInBackground: false, staleTime: 1_500, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
@@ -279,8 +281,18 @@ export default function ChatScreen() {
     )));
   }, [messagesQuery.data]);
   useEffect(() => {
-    const listener = Keyboard.addListener("keyboardDidShow", scrollToLatest);
-    return () => listener.remove();
+    const showListener = Keyboard.addListener("keyboardDidShow", (event) => {
+      // Khi ROM không áp dụng adjustResize vì edge-to-edge, chỉ bù phần keyboard thật sự đang đè lên window.
+      if (Platform.OS === "android") {
+        const windowHeight = Dimensions.get("window").height;
+        const keyboardTop = event.endCoordinates.screenY;
+        setAndroidKeyboardOverlap(Math.max(0, Math.round(windowHeight - keyboardTop)));
+      }
+      scrollToLatest();
+      requestAnimationFrame(scrollToLatest);
+    });
+    const hideListener = Keyboard.addListener("keyboardDidHide", () => setAndroidKeyboardOverlap(0));
+    return () => { showListener.remove(); hideListener.remove(); };
   }, []);
 
   const sendOptimistically = (payload: { kind: Message["kind"]; content: string; attachmentName?: string; attachmentUrl?: string; replyToMessageId?: number }) => {
@@ -394,7 +406,9 @@ export default function ChatScreen() {
         onContentSizeChange={scrollToLatest}
         ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
       />
-      <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} onQueueAttachment={queueAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
+      <View style={androidKeyboardOverlap > 0 ? { marginBottom: androidKeyboardOverlap } : undefined}>
+        <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} onQueueAttachment={queueAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
+      </View>
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <View style={styles.viewer}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đóng trình xem media" onPress={() => setViewer(null)} style={styles.viewerClose}><MaterialIcons name="close" size={28} color={kiniColors.white} /></TouchableOpacity>

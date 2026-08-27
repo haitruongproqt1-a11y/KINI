@@ -326,10 +326,11 @@ export function useWebRTC(enabled = true) {
     const callId = callIdRef.current;
     const conversationId = conversationIdRef.current;
     const signal = signalRef.current;
+    // Dừng stream/audio/ringback cục bộ ngay. Signaling có thể chậm hoặc mất mạng, không được để nhạc chờ tiếp tục phát.
+    cleanup();
     try {
       if (callId && conversationId) await signal?.emitEnd({ callId, conversationId, outcome, ...(pingRef.current !== null ? { pingMs: pingRef.current } : {}) });
     } finally {
-      cleanup();
       endingRef.current = false;
     }
   }, [cleanup]);

@@ -11,5 +11,7 @@ describe("KINI Android composer layout", () => {
     expect(config).toContain("edgeToEdgeEnabled: true");
     expect(chat).toContain('behavior={Platform.OS === "ios" ? "padding" : undefined}');
     expect(chat).toContain("bottomInset={insets.bottom}");
+    expect(chat).toContain('Dimensions.get("window").height');
+    expect(chat).toContain("androidKeyboardOverlap");
   });
 });

@@ -146,6 +146,8 @@ export function setSpeakerEnabled(enabled: boolean, mode: CallMode = "video") {
 
 export function stopInCall() {
   if (Platform.OS === "android") {
+    // Ringback có thể bắt đầu trước audio session WebRTC; luôn dừng riêng dù session chưa kịp được đánh dấu active.
+    try { InCallManager.stopRingback(); } catch { /* Native ringback đã dừng hoặc chưa khởi tạo. */ }
     if (!androidVoiceAudioActive) return;
     try { InCallManager.stop(); } catch { /* Audio session đã được hệ điều hành giải phóng. */ }
     androidVoiceAudioActive = false;

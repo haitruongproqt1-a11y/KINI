@@ -269,3 +269,12 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Sửa safe-area trên/dưới để mọi màn KINI không bị che bởi system bars Android
 - [x] Giữ composer và bảng soạn tin luôn thấy được, trở về đúng vị trí khi bàn phím đóng
 - [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi phiên/call/chat
+
+- [ ] Sửa so sánh phiên bản để KINI 1.8.27 nhận đúng Release mới 1.8.28 trở lên
+- [ ] Sửa nút cập nhật để tải và mở cài đặt APK Android đúng khi có bản mới
+- [ ] Kiểm thử update feed, phát hành APK KINI sửa lỗi cập nhật trong ứng dụng
+
+- [x] Loại bỏ banner notification cuộc gọi đến trùng với màn KINI full-screen cho voice và video
+- [x] Dừng nhạc chờ ngay khi người gọi hoặc người nhận kết thúc cuộc gọi
+- [x] Khôi phục composer chat hiển thị trên bàn phím Android và vùng chat co giãn đúng
+- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi call/chat

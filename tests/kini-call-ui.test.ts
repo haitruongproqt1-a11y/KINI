@@ -9,6 +9,8 @@ const provider = readFileSync(resolve(project, "features/webrtc-calling/call-pro
 const sounds = readFileSync(resolve(project, "features/webrtc-calling/hooks/useCallSounds.ts"), "utf8");
 const controls = readFileSync(resolve(project, "features/webrtc-calling/components/CallControls.tsx"), "utf8");
 const nativeVideo = readFileSync(resolve(project, "features/webrtc-calling/components/RtcVideo.native.tsx"), "utf8");
+const nativeService = readFileSync(resolve(project, "features/webrtc-calling/services/webrtcService.native.ts"), "utf8");
+const webRtc = readFileSync(resolve(project, "features/webrtc-calling/hooks/useWebRTC.ts"), "utf8");
 
 describe("KINI call UI", () => {
   it("hiển thị avatar và action nhận/từ chối rõ ràng cho cuộc gọi đến", () => {
@@ -29,6 +31,8 @@ describe("KINI call UI", () => {
     expect(sounds).toContain('InCallManager.startRingback("_DTMF_")');
     expect(controls).toContain("attention onPress={onDecline}");
     expect(controls).toContain("attention onPress={onAccept}");
+    expect(nativeService).toContain("InCallManager.stopRingback()");
+    expect(webRtc).toContain("Dừng stream/audio/ringback cục bộ ngay");
   });
 
   it("đưa preview camera local lên trên RTC video và không render màn hình tự chia sẻ", () => {
