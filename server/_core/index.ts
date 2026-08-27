@@ -278,6 +278,7 @@ async function startServer() {
 
   // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
   app.get("/api/update/latest", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
     res.json({
       releaseCode: "v1.18",
       appVersion: "1.8.21",
