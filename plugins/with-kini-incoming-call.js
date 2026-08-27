@@ -63,19 +63,16 @@ object KiniCallNotifier {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     ensureChannel(notificationManager)
     val contentIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_OPEN, 101)
-    val answerIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_ANSWER, 102)
-    val declineIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_DECLINE, 103)
-    val caller = Person.Builder().setName(callerName).setImportant(true).build()
+    // Đây chỉ là bootstrap im lặng cho Android mở Activity full-screen; tuyệt đối không dùng CallStyle
+    // vì CallStyle hiển thị heads-up/banner chồng lên giao diện KINI có nút Nghe/Từ chối riêng.
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
       .setSmallIcon(context.applicationInfo.icon)
       .setCategory(NotificationCompat.CATEGORY_CALL)
       .setPriority(NotificationCompat.PRIORITY_MAX)
-      .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setOngoing(true)
-      .setAutoCancel(false)
-      .setColor(Color.rgb(22, 119, 255))
+      .setSilent(true)
+      .setOnlyAlertOnce(true)
+      .setTimeoutAfter(1_500L)
       .setFullScreenIntent(contentIntent, true)
-      .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, declineIntent, answerIntent))
       .build()
     notificationManager.notify(callId.hashCode(), notification)
   }
@@ -254,10 +251,8 @@ class KiniIncomingCallActivity : Activity() {
   override fun onResume() {
     super.onResume()
     activeActivity = WeakReference(this)
-    // Full-screen KINI đã hiện; chờ notification được post xong rồi hủy CallStyle để không chồng banner lên UI.
-    android.os.Handler(mainLooper).postDelayed({
-      if (!isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingCall(this, callId)
-    }, 450)
+    // Activity đã hiện: hủy lại bootstrap để notification không còn trong shade/status bar.
+    if (!isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingCall(this, callId)
   }
 
   override fun onDestroy() {

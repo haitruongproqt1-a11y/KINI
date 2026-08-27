@@ -46,7 +46,7 @@ function MinimizedCall({ call, peer }: { call: CallController; peer: { title: st
 export function CallProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuth();
   const call = useWebRTC(isAuthenticated);
-  useCallSounds(call.status, call.direction, call.mode);
+  useCallSounds(call.status, call.direction, call.mode, call.isScreenSharing);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       // Sau khi bấm Home, không thể vẽ overlay trên launcher nếu không xin quyền SYSTEM_ALERT_WINDOW.

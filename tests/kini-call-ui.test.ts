@@ -29,6 +29,8 @@ describe("KINI call UI", () => {
   it("phát nhạc chờ native cho gọi thoại Android và tạo phản hồi nhẹ cho cuộc gọi đến", () => {
     expect(sounds).toContain('mode === "voice"');
     expect(sounds).toContain('InCallManager.startRingback("_DTMF_")');
+    expect(sounds).toContain("isScreenSharing = false");
+    expect(sounds).toContain("!isScreenSharing");
     expect(controls).toContain("attention onPress={onDecline}");
     expect(controls).toContain("attention onPress={onAccept}");
     expect(nativeService).toContain("InCallManager.stopRingback()");

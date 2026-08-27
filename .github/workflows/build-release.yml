@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.30
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.31
         required: true
-        default: v1.8.30
+        default: v1.8.31
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.27
+        description: Mã GitHub Release nhận APK, ví dụ v1.28
         required: true
-        default: v1.27
+        default: v1.28
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.30 · Build 30. Rung nhẹ khi call kết nối, phản hồi âm thanh/hoạt ảnh sau khi gửi tin thành công, giữ mic/audio focus khi chia sẻ màn hình và tự thu nhỏ call khi KINI vào nền để nút quay lại hiện khi mở lại app. Incoming call vẫn dùng full-screen KINI và chỉ có notification tin nhắn/gọi nhỡ."
+              --notes "KINI 1.8.31 · Build 31. Incoming call Android dùng bootstrap full-screen im lặng, không còn CallStyle/banner; screen share chặn nhạc chờ; thao tác loa trong/loa ngoài tự khôi phục audio route cho thoại, video và chia sẻ màn hình. Chỉ notification tin nhắn/gọi nhỡ được giữ lại."
           fi

@@ -284,3 +284,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Củng cố đường audio hai chiều trong quá trình chia sẻ màn hình Android
 - [x] Giữ nút quay lại call trong KINI, làm rõ giới hạn không phủ nổi ngoài ứng dụng sau khi bấm Home
 - [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI cải thiện call/chat
+
+- [x] Loại bỏ triệt để banner notification cuộc gọi đến nhưng giữ incoming call KINI toàn màn hình
+- [x] Dừng nhạc chờ ngay khi chia sẻ màn hình được bật trong cuộc gọi video
+- [x] Bảo đảm chuyển loa trong/loa ngoài hoạt động ở gọi thoại, gọi video và chia sẻ màn hình
+- [ ] Kiểm thử hồi quy audio/native call, tăng phiên bản và phát hành APK KINI mới

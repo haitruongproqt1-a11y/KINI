@@ -151,8 +151,9 @@ export function switchCamera(stream: NativeStream | null) {
 
 export function setSpeakerEnabled(enabled: boolean, mode: CallMode = "video") {
   if (Platform.OS === "android") {
-    if (!androidVoiceAudioActive) return;
-    try { InCallManager.setForceSpeakerphoneOn(enabled); } catch { /* Route native không còn hợp lệ. */ }
+    // MediaProjection hoặc một cuộc gián đoạn ngắn có thể làm Android trả audio focus trước khi người dùng đổi loa.
+    // Tái áp dụng session trước khi đổi route để thoại, video và screen share đều dùng được loa trong/ngoài.
+    keepCallAudioActive(enabled, mode);
     return;
   }
   void configureCallAudio(enabled, mode).catch(() => {});

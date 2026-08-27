@@ -14,11 +14,12 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("android.telecom.ConnectionService");
   });
 
-  it("dùng full-screen intent cho Android nền rồi tự hủy CallStyle khi màn KINI đã hiện", () => {
-    expect(plugin).toContain("NotificationCompat.CallStyle.forIncomingCall");
+  it("dùng full-screen intent im lặng cho Android nền và không tạo CallStyle banner", () => {
     expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
-    expect(plugin).toContain("postDelayed");
-    expect(plugin).toContain("Full-screen KINI đã hiện");
+    expect(plugin).toContain("setSilent(true)");
+    expect(plugin).toContain("setTimeoutAfter(1_500L)");
+    expect(plugin).toContain("bootstrap im lặng");
+    expect(plugin).not.toContain("NotificationCompat.CallStyle.forIncomingCall");
     expect(plugin).toContain("ACTION_ANSWER");
     expect(plugin).toContain("ACTION_DECLINE");
     expect(pushServer).toContain("notification.channelId === \"messages\"");
