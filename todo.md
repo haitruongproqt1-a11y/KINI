@@ -289,3 +289,11 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Dừng nhạc chờ ngay khi chia sẻ màn hình được bật trong cuộc gọi video
 - [x] Bảo đảm chuyển loa trong/loa ngoài hoạt động ở gọi thoại, gọi video và chia sẻ màn hình
 - [x] Kiểm thử hồi quy audio/native call, tăng phiên bản và phát hành APK KINI mới
+
+- [x] Xác minh FCM data-only mở incoming call toàn màn hình khi thiết bị Android đang khóa
+- [x] Xác minh full-screen intent, NotificationChannel CALL và các quyền Android trong native plugin
+- [x] Kiểm thử Android prebuild và bàn giao mã incoming call đã chuẩn hóa
+
+- [x] Chỉ tạo full-screen incoming notification khi KINI ở nền hoặc màn hình Android đang khóa
+- [x] Giữ incoming call foreground trong UI KINI, không kích hoạt fullScreenIntent
+- [x] Kiểm thử Android prebuild, phát hành APK KINI cập nhật logic foreground call

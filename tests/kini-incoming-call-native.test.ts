@@ -7,11 +7,18 @@ const pushServer = readFileSync(resolve(import.meta.dirname, "../server/push.ts"
 
 describe("KINI Android full-screen incoming call", () => {
   it("khai báo Firebase Messaging, ConnectionService và quyền full-screen call", () => {
+    expect(plugin).toContain("android.permission.POST_NOTIFICATIONS");
     expect(plugin).toContain("android.permission.USE_FULL_SCREEN_INTENT");
     expect(plugin).toContain("android.permission.MANAGE_OWN_CALLS");
     expect(plugin).toContain("KiniFirebaseMessagingService");
     expect(plugin).toContain("KiniConnectionService");
     expect(plugin).toContain("android.telecom.ConnectionService");
+    expect(plugin).toContain("setShowWhenLocked(true)");
+    expect(plugin).toContain("setTurnScreenOn(true)");
+    expect(plugin).toContain('data["type"] == "incoming_call"');
+    expect(plugin).toContain("KiniCallNotifier.showIncomingCall");
+    expect(plugin).toContain("isAppInForeground");
+    expect(plugin).toContain("isDeviceLocked");
   });
 
   it("dùng full-screen intent im lặng cho Android nền và không tạo CallStyle banner", () => {
@@ -34,5 +41,12 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("Nhận cuộc gọi");
     expect(plugin).toContain("actionButton(\"☎\"");
     expect(plugin).not.toContain("override fun onShowIncomingCallUi()");
+  });
+
+  it("chỉ dùng full-screen bootstrap khi app ở nền hoặc thiết bị đang khóa", () => {
+    expect(plugin).toContain("val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)");
+    expect(plugin).toContain("if (shouldUseFullScreen)");
+    expect(plugin).toContain("KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)");
+    expect(plugin).toContain("lifecycle-process:2.8.4");
   });
 });

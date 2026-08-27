@@ -7,6 +7,7 @@ const {
 } = require("@expo/config-plugins");
 
 const PERMISSIONS = [
+  "android.permission.POST_NOTIFICATIONS",
   "android.permission.USE_FULL_SCREEN_INTENT",
   "android.permission.MANAGE_OWN_CALLS",
   "android.permission.FOREGROUND_SERVICE",
@@ -31,12 +32,14 @@ function nativeSources(packageName, deepLinkScheme) {
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.app.Person
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 
 object KiniCallNotifier {
   const val CHANNEL_ID = "calls"
@@ -57,6 +60,20 @@ object KiniCallNotifier {
         lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
       })
     }
+  }
+
+  /** Chỉ khởi tạo full-screen notification nếu UI KINI không ở foreground hoặc thiết bị đang khóa. */
+  fun isAppInForeground(context: Context): Boolean = try {
+    ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+  } catch (_: Exception) {
+    false
+  }
+
+  fun isDeviceLocked(context: Context): Boolean = try {
+    val keyguard = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+    keyguard.isKeyguardLocked
+  } catch (_: Exception) {
+    true
   }
 
   fun showIncomingCall(context: Context, callId: String, callerName: String, mode: String, callerAvatar: String = "") {
@@ -137,8 +154,14 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
       val callerName = data["callerName"] ?: "Bạn KINI"
       val callerAvatar = data["callerAvatar"] ?: ""
       val mode = data["mode"] ?: "voice"
-      KiniCallNotifier.showIncomingCall(this, callId, callerName, mode, callerAvatar)
-      KiniTelecomBridge.reportIncomingCall(this, callId, callerName, mode)
+      val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)
+      if (shouldUseFullScreen) {
+        KiniCallNotifier.showIncomingCall(this, callId, callerName, mode, callerAvatar)
+        KiniTelecomBridge.reportIncomingCall(this, callId, callerName, mode)
+      } else {
+        // App đang mở: tầng socket/React hiển thị overlay call KINI, không tạo notification hoặc fullScreenIntent.
+        KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)
+      }
       return
     }
     super.onMessageReceived(message)
@@ -463,6 +486,9 @@ module.exports = function withKiniIncomingCall(config) {
     let contents = mod.modResults.contents;
     if (!contents.includes("firebase-messaging")) {
       contents = contents.replace(/dependencies\s*\{/, "dependencies {\n    implementation(\"com.google.firebase:firebase-messaging:24.1.2\")\n    implementation(\"androidx.core:core-ktx:1.13.1\")");
+    }
+    if (!contents.includes("lifecycle-process")) {
+      contents = contents.replace(/dependencies\s*\{/, "dependencies {\n    implementation(\"androidx.lifecycle:lifecycle-process:2.8.4\")");
     }
     mod.modResults.contents = contents;
     return mod;
