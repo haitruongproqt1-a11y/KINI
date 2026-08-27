@@ -333,7 +333,7 @@ class KiniIncomingCallActivity : Activity() {
       background = rounded(Color.argb(34, 255, 255, 255), dp(68), Color.argb(84, 255, 255, 255), dp(1))
       setPadding(dp(7), dp(7), dp(7), dp(7))
     }
-    val initial = callerName.split(Regex("\\s+")).filter { it.isNotBlank() }.take(2).joinToString("") { it.take(1) }.uppercase().ifBlank { "K" }
+    val initial = callerName.split(Regex("\\\\s+")).filter { it.isNotBlank() }.take(2).joinToString("") { it.take(1) }.uppercase().ifBlank { "K" }
     avatarRing.addView(TextView(this).apply {
       text = initial
       textSize = 34f

@@ -280,12 +280,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.19",
-      appVersion: "1.8.22",
-      buildNumber: 22,
+      releaseCode: "v1.20",
+      appVersion: "1.8.23",
+      buildNumber: 23,
       notes: "Incoming call Android hiển thị màn hình KINI có avatar và nút tròn Nghe/Từ chối, không giữ notification đổ chuông; chỉ tạo thông báo gọi nhỡ khi không trả lời. Phiên đăng nhập được giữ khi cập nhật APK và điện thoại cũ tự đăng xuất khi đăng nhập ở thiết bị mới.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.19",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.19/KINI-Release-v1.19.apk",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.20",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.20/KINI-Release-v1.20.apk",
     });
   });
 
