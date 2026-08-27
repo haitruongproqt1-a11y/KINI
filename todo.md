@@ -256,4 +256,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Cố định composer trở về đúng vị trí sau khi Android đóng bàn phím hoặc gửi tin nhắn
 - [x] Bảo vệ phiên đăng nhập trên đúng thiết bị, chỉ thu hồi khi hệ thống xác nhận phiên bị thay thế hoặc người dùng đăng xuất
 - [x] Tinh chỉnh WebRTC/âm thanh an toàn và rà soát giới hạn lưu trữ theo khả năng hạ tầng thực tế
-- [ ] Kiểm thử hồi quy cuối, build APK KINI chất lượng và phát hành GitHub Release mới
+- [x] Kiểm thử hồi quy cuối, build APK KINI chất lượng và phát hành GitHub Release mới
