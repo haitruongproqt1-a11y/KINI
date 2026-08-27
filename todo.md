@@ -268,4 +268,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Loại bỏ notification cuộc gọi đến trùng với incoming-call KINI toàn màn hình, giữ gọi nhỡ
 - [x] Sửa safe-area trên/dưới để mọi màn KINI không bị che bởi system bars Android
 - [x] Giữ composer và bảng soạn tin luôn thấy được, trở về đúng vị trí khi bàn phím đóng
-- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi phiên/call/chat
+- [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi phiên/call/chat
