@@ -3,7 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { kiniColors } from "@/components/kini-ui";
 import { uploadMedia } from "@/lib/media";
@@ -37,6 +37,14 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
       .then((text) => { if (text) setValue((current) => current ? `${current} ${text}` : text); })
       .catch(() => undefined);
   }, [pasteNonce]);
+
+  useEffect(() => {
+    const hideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setShowActions(false);
+      setShowStickers(false);
+    });
+    return () => hideListener.remove();
+  }, []);
 
   const send = () => {
     const content = value.trim();

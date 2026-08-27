@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import * as IntentLauncher from "expo-intent-launcher";
 import * as Linking from "expo-linking";
 import { Platform } from "react-native";
 
@@ -8,18 +9,28 @@ export type ApkDownloadController = {
   start: () => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  install: () => Promise<void>;
+  isDownloaded: () => boolean;
   isPaused: () => boolean;
 };
 
 export function createApkDownload(url: string, onProgress: (progress: DownloadProgress) => void): ApkDownloadController {
   let task: FileSystem.DownloadResumable | null = null;
   let paused = false;
-  let opened = false;
+  let downloadedUri: string | null = null;
+  const openInstaller = async () => {
+    if (!downloadedUri) throw new Error("Chưa có tệp APK để cài đặt.");
+    const contentUri = await FileSystem.getContentUriAsync(downloadedUri);
+    await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+      data: contentUri,
+      type: "application/vnd.android.package-archive",
+      flags: 1,
+    });
+  };
   const finish = async (result: FileSystem.FileSystemDownloadResult | undefined) => {
-    if (!result?.uri || opened) return;
-    opened = true;
-    const contentUri = await FileSystem.getContentUriAsync(result.uri);
-    await Linking.openURL(contentUri);
+    if (!result?.uri) throw new Error("Không nhận được tệp APK sau khi tải.");
+    downloadedUri = result.uri;
+    await openInstaller();
   };
   const createTask = async () => {
     const target = `${FileSystem.cacheDirectory ?? FileSystem.documentDirectory}KINI-update.apk`;
@@ -50,6 +61,8 @@ export function createApkDownload(url: string, onProgress: (progress: DownloadPr
       paused = false;
       await finish(await task.resumeAsync());
     },
+    install: openInstaller,
+    isDownloaded: () => Boolean(downloadedUri),
     isPaused: () => paused,
   };
 }

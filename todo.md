@@ -206,3 +206,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Đồng bộ avatar đã đổi tới chat, call và nearby trên thiết bị khác
 - [x] Thêm tạm dừng/tiếp tục cho tiến trình tải APK cập nhật
 - [x] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub
+
+- [x] Sửa trạng thái tải APK 100% để mở trình cài đặt thay vì tải lại
+- [x] Sửa Nearby hiển thị đúng hai tài khoản có vị trí thật trong bán kính
+- [x] Thêm danh sách tỉnh thành Việt Nam sau sáp nhập để người dùng chọn
+- [x] Khôi phục vị trí khung nhập chat khi bàn phím Android đóng
+- [ ] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub

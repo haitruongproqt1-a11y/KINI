@@ -43,7 +43,7 @@ export type NearbyProfileInput = {
 };
 
 function cleanNearbyText(value: string | null | undefined, maxLength: number) {
-  const normalized = value?.trim().replace(/\s+/g, " ") ?? "";
+  const normalized = value?.normalize("NFC").trim().replace(/\s+/g, " ") ?? "";
   return normalized ? normalized.slice(0, maxLength) : null;
 }
 
@@ -509,7 +509,7 @@ export async function listNearbyUsers(userId: number, input: { lat: number; lng:
   ];
   if (input.gender) conditions.push(eq(kiniUsers.gender, input.gender));
   if (input.status) conditions.push(eq(kiniUsers.status, input.status));
-  if (input.province?.trim()) conditions.push(eq(kiniUsers.province, input.province.trim().slice(0, 128)));
+  if (input.province?.trim()) conditions.push(eq(kiniUsers.province, input.province.normalize("NFC").trim().slice(0, 128)));
   if (input.q?.trim()) {
     const query = `%${input.q.trim().slice(0, 64)}%`;
     conditions.push(or(like(kiniUsers.name, query), like(kiniUsers.province, query)));

@@ -22,6 +22,7 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
   const [opening, setOpening] = useState(false);
   const [downloadPercent, setDownloadPercent] = useState(0);
   const [downloadPaused, setDownloadPaused] = useState(false);
+  const [installReady, setInstallReady] = useState(false);
   const downloadRef = useRef<ApkDownloadController | null>(null);
 
   const check = useCallback(async () => {
@@ -32,6 +33,8 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
       if (!response.ok) throw new Error("Máy chủ cập nhật chưa phản hồi.");
       const latest = await response.json() as ReleaseUpdate;
       setUpdate(Number(latest.buildNumber) > currentBuild && latest.apkUrl ? latest : null);
+      setInstallReady(false);
+      downloadRef.current = null;
     } catch {
       setError("Chưa thể kiểm tra bản cập nhật. Hãy thử lại khi có mạng.");
     } finally {
@@ -43,6 +46,11 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
 
   const openUpdate = async () => {
     if (!update) return;
+    if (installReady && downloadRef.current?.isDownloaded()) {
+      try { await downloadRef.current.install(); }
+      catch { Alert.alert("Chưa thể mở trình cài đặt", "Hãy cho phép KINI cài ứng dụng từ nguồn này trong phần Cài đặt Android rồi thử lại."); }
+      return;
+    }
     setOpening(true);
     setDownloadPaused(false);
     setDownloadPercent(0);
@@ -55,7 +63,9 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
     } finally {
       setOpening(false);
       setDownloadPaused(false);
-      downloadRef.current = null;
+      const ready = downloadRef.current?.isDownloaded() ?? false;
+      setInstallReady(ready);
+      if (!ready) downloadRef.current = null;
     }
   };
   const pauseOrResume = async () => {
@@ -65,7 +75,12 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
       setDownloadPaused(false);
       try { await controller.resume(); }
       catch { Alert.alert("Không thể tiếp tục tải", "Hãy thử tải lại bản cập nhật."); }
-      finally { setOpening(false); downloadRef.current = null; }
+      finally {
+        setOpening(false);
+        const ready = downloadRef.current?.isDownloaded() ?? false;
+        setInstallReady(ready);
+        if (!ready) downloadRef.current = null;
+      }
       return;
     }
     try { await controller.pause(); setDownloadPaused(true); }
@@ -80,7 +95,7 @@ export function ReleaseUpdateCard({ currentBuild }: { currentBuild: number }) {
       {update ? <Text numberOfLines={2} style={styles.notes}>{update.notes}</Text> : null}
       {opening ? <View style={styles.progressWrap}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.max(2, downloadPercent)}%` }]} /></View><Text style={styles.progressText}>{downloadPercent}% · Đang tải APK</Text></View> : null}
     </View>
-    {update ? <View style={styles.updateActions}>{opening ? <TouchableOpacity style={styles.pauseButton} accessibilityRole="button" accessibilityLabel={downloadPaused ? "Tiếp tục tải KINI" : "Tạm dừng tải KINI"} onPress={() => void pauseOrResume()}><Text style={styles.pauseButtonText}>{downloadPaused ? "Tiếp tục" : "Tạm dừng"}</Text></TouchableOpacity> : null}<TouchableOpacity style={styles.updateButton} accessibilityRole="button" accessibilityLabel="Tải và cập nhật KINI" disabled={opening && !downloadPaused} onPress={() => opening && downloadPaused ? void pauseOrResume() : void openUpdate()}>{opening ? <Text style={styles.updateButtonText}>{downloadPaused ? "Tiếp tục" : `${downloadPercent}%`}</Text> : <Text style={styles.updateButtonText}>Cập nhật</Text>}</TouchableOpacity></View> : <TouchableOpacity style={styles.checkButton} accessibilityRole="button" accessibilityLabel="Kiểm tra cập nhật KINI" disabled={checking} onPress={() => void check()}>{checking ? <ActivityIndicator color={kiniColors.blue} size="small" /> : <MaterialIcons name="refresh" size={20} color={kiniColors.blue} />}</TouchableOpacity>}
+    {update ? <View style={styles.updateActions}>{opening ? <TouchableOpacity style={styles.pauseButton} accessibilityRole="button" accessibilityLabel={downloadPaused ? "Tiếp tục tải KINI" : "Tạm dừng tải KINI"} onPress={() => void pauseOrResume()}><Text style={styles.pauseButtonText}>{downloadPaused ? "Tiếp tục" : "Tạm dừng"}</Text></TouchableOpacity> : null}<TouchableOpacity style={styles.updateButton} accessibilityRole="button" accessibilityLabel={installReady ? "Cài đặt KINI" : "Tải và cập nhật KINI"} disabled={opening && !downloadPaused} onPress={() => opening && downloadPaused ? void pauseOrResume() : void openUpdate()}>{opening ? <Text style={styles.updateButtonText}>{downloadPaused ? "Tiếp tục" : `${downloadPercent}%`}</Text> : <Text style={styles.updateButtonText}>{installReady ? "Cài đặt" : "Cập nhật"}</Text>}</TouchableOpacity></View> : <TouchableOpacity style={styles.checkButton} accessibilityRole="button" accessibilityLabel="Kiểm tra cập nhật KINI" disabled={checking} onPress={() => void check()}>{checking ? <ActivityIndicator color={kiniColors.blue} size="small" /> : <MaterialIcons name="refresh" size={20} color={kiniColors.blue} />}</TouchableOpacity>}
     {error ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Thử lại kiểm tra cập nhật" onPress={() => void check()} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity> : null}
   </View>;
 }

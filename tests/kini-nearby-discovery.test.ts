@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MAX_FREE_DISCOVERY_RADIUS_KM, calculateHaversineKm, resolveHiddenUntil } from "../server/db";
+import { vietnamProvinces } from "../constants/vietnam-provinces";
 
 describe("KINI Tìm Quanh Đây", () => {
   it("tính khoảng cách Haversine theo km", () => {
@@ -20,5 +21,11 @@ describe("KINI Tìm Quanh Đây", () => {
     expect(resolveHiddenUntil(false, "7d", now)?.getTime()).toBe(now + 7 * 24 * 60 * 60 * 1000);
     expect(resolveHiddenUntil(false, "permanent", now)).toBeNull();
     expect(resolveHiddenUntil(true, "24h", now)).toBeNull();
+  });
+
+  it("cung cấp đủ 34 tỉnh, thành phố theo danh sách sau sắp xếp", () => {
+    expect(vietnamProvinces).toHaveLength(34);
+    expect(vietnamProvinces).toContain("Quảng Trị");
+    expect(vietnamProvinces).toContain("Thành phố Hồ Chí Minh");
   });
 });
