@@ -230,8 +230,8 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia, onRetryUpload }
 
 function UploadOverlay({ item }: { item: Message }) {
   const failed = item.uploadState === "failed";
-  const label = failed ? "Chạm để thử lại" : item.uploadState === "queued" ? "Đang chờ gửi" : "Đang gửi";
-  return <View style={styles.uploadOverlay} pointerEvents="none"><View style={styles.uploadProgressRing}><ActivityIndicator size="large" color={kiniColors.white} /><Text style={styles.uploadProgressText}>{failed ? "!" : `${item.uploadProgress ?? 0}%`}</Text></View><Text numberOfLines={1} style={styles.uploadOverlayLabel}>{label}</Text></View>;
+  const label = failed ? item.uploadError ?? "Không thể gửi. Chạm để thử lại" : item.uploadState === "queued" ? "Đang chờ gửi · giữ để hủy" : "Đang gửi · giữ để hủy";
+  return <View style={styles.uploadOverlay} pointerEvents="none"><View style={styles.uploadProgressRing}>{failed ? <MaterialIcons name="error-outline" size={30} color={kiniColors.white} /> : <ActivityIndicator size="large" color={kiniColors.white} />}<Text style={styles.uploadProgressText}>{failed ? "" : `${item.uploadProgress ?? 0}%`}</Text></View><Text numberOfLines={2} style={styles.uploadOverlayLabel}>{label}</Text></View>;
 }
 
 export default function ChatScreen() {
@@ -325,6 +325,10 @@ export default function ChatScreen() {
     const jobId = typeof message.id === "string" && message.id.startsWith("upload-") ? message.id.slice("upload-".length) : null;
     if (jobId) mediaQueue.retry(jobId);
   };
+  const dismissQueuedUpload = (message: Message) => {
+    const jobId = typeof message.id === "string" && message.id.startsWith("upload-") ? message.id.slice("upload-".length) : null;
+    if (jobId) mediaQueue.dismiss(jobId);
+  };
   const saveMedia = async () => {
     const media = selected;
     setSelected(null);
@@ -383,7 +387,7 @@ export default function ChatScreen() {
         ref={listRef}
         data={timeline}
         keyExtractor={(item) => item.key}
-        renderItem={({ item }) => item.entryType === "message" ? <MessageBubble item={item.message} isMine={item.message.senderId === user?.id} onLongPress={setSelected} onOpenMedia={setViewer} onRetryUpload={retryQueuedUpload} /> : <CallTimelineEntry call={item.call} />}
+        renderItem={({ item }) => item.entryType === "message" ? <MessageBubble item={item.message} isMine={item.message.senderId === user?.id} onLongPress={(message) => message.uploadState ? dismissQueuedUpload(message) : setSelected(message)} onOpenMedia={setViewer} onRetryUpload={retryQueuedUpload} /> : <CallTimelineEntry call={item.call} />}
         contentContainerStyle={styles.thread}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"

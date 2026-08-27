@@ -284,12 +284,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.23",
-      appVersion: "1.8.26",
-      buildNumber: 26,
-      notes: "Bản ổn định: loại bỏ notification đổ chuông trùng sau khi màn incoming call KINI toàn màn hình đã hiện; composer Android dùng resize gốc để trở về đúng vị trí; cảnh báo thiết bị mới chỉ đăng xuất sau khi server xác nhận phiên thật sự bị thu hồi.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.23",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.23/KINI-Release-v1.23.apk",
+      releaseCode: "v1.24",
+      appVersion: "1.8.27",
+      buildNumber: 27,
+      notes: "Bản ổn định: sửa media đã tải 100% nhưng chưa tạo tin nhắn bằng mã UUID hợp lệ; cho phép giữ để thu hồi ảnh/video chờ gửi; thêm nút avatar quay lại cuộc gọi hoặc chia sẻ màn hình bán trong suốt, có thể kéo trong KINI.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.24",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.24/KINI-Release-v1.24.apk",
     });
   });
 

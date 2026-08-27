@@ -12,12 +12,15 @@ describe("KINI minimized call", () => {
     expect(hook).toContain("const minimizeCall");
     expect(hook).toContain("const restoreCall");
     expect(provider).toContain("MinimizedCall");
-    expect(provider).toContain("Chạm để quay lại");
+    expect(provider).toContain("Quay lại cuộc gọi");
+    expect(provider).toContain("Quay lại chia sẻ màn hình");
   });
 
   it("provides minimize controls for both voice and video without hiding incoming actions", () => {
     expect(voice).toContain("call.minimizeCall");
     expect(video).toContain("call.minimizeCall");
+    expect(voice).toContain("incoming ? void call.declineIncomingCall() : call.minimizeCall()");
+    expect(video).toContain("incoming ? void call.declineIncomingCall() : call.minimizeCall()");
     expect(hook).toContain('current.status === "ringing" && current.direction === "incoming"');
   });
 });

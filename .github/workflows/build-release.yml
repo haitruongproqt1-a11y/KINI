@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.26
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.27
         required: true
-        default: v1.8.26
+        default: v1.8.27
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.23
+        description: Mã GitHub Release nhận APK, ví dụ v1.24
         required: true
-        default: v1.23
+        default: v1.24
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.23 · Build 23. Incoming call Android hiển thị màn hình KINI có avatar và nút tròn Nghe/Từ chối, không giữ notification đổ chuông; chỉ tạo thông báo gọi nhỡ khi không trả lời. Phiên đăng nhập giữ qua cập nhật APK; điện thoại cũ tự đăng xuất khi đăng nhập ở thiết bị mới."
+              --notes "KINI 1.8.27 · Build 27. Sửa ảnh/video tải 100% nhưng không tạo tin nhắn bằng client UUID chuẩn; giữ để thu hồi media đang chờ hoặc đang tải trước khi gửi; thêm nút avatar bán trong suốt có thể kéo để quay lại cuộc gọi hoặc chia sẻ màn hình trong KINI."
           fi

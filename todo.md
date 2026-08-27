@@ -257,3 +257,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bảo vệ phiên đăng nhập trên đúng thiết bị, chỉ thu hồi khi hệ thống xác nhận phiên bị thay thế hoặc người dùng đăng xuất
 - [x] Tinh chỉnh WebRTC/âm thanh an toàn và rà soát giới hạn lưu trữ theo khả năng hạ tầng thực tế
 - [x] Kiểm thử hồi quy cuối, build APK KINI chất lượng và phát hành GitHub Release mới
+
+- [x] Chẩn đoán lỗi media hoàn tất 100% nhưng mutation tạo tin nhắn thất bại
+- [x] Thêm thu hồi media ở trạng thái chờ/đang tải trước khi người nhận nhận được tin nhắn
+- [x] Hiển thị lỗi upload có nguyên nhân và retry an toàn, không để thumbnail 100% bị kẹt
+- [x] Thêm chip quay lại call/chia sẻ nổi nhỏ, trong suốt và kéo được trên mọi màn KINI
+- [ ] Kiểm thử hồi quy media/call và phát hành APK KINI sửa lỗi mới

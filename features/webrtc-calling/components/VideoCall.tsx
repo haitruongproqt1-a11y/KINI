@@ -27,7 +27,7 @@ export function VideoCall({ call, title, initials, color, avatarUrl }: { call: a
   const primaryStream = call.remoteScreenStream ?? (call.remoteCameraEnabled ? call.remoteStream : null);
   const previewStream = isScreenActive ? null : (call.localStream && call.cameraEnabled ? call.localStream : null);
   const previewMirrored = true;
-  return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => call.isScreenSharing ? void call.toggleScreenShare() : void call.endCall()}>
+  return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => incoming ? void call.declineIncomingCall() : call.minimizeCall()}>
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
       <RtcVideo stream={primaryStream} objectFit={isScreenActive ? "contain" : "cover"} zOrder={0} style={styles.remote} />
       <View pointerEvents="none" style={styles.shade} />

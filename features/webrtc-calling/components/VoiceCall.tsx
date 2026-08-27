@@ -20,7 +20,7 @@ export function VoiceCall({ call, title, initials, color, avatarUrl }: { call: a
   const insets = useSafeAreaInsets();
   const visible = call.mode === "voice" && call.status !== "idle" && !call.minimized;
   const incoming = call.status === "ringing" && call.direction === "incoming";
-  return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => void call.endCall()}>
+  return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => incoming ? void call.declineIncomingCall() : call.minimizeCall()}>
     <View style={[styles.screen, { paddingTop: insets.top + 30, paddingBottom: Math.max(insets.bottom, 20) }]}>
       <View style={styles.orbOne} /><View style={styles.orbTwo} />
       <View style={styles.topRow}><View style={styles.topBadge}><MaterialIcons name="lock" size={14} color="#BFD8F3" /><Text style={styles.topBadgeText}>Kết nối riêng tư KINI</Text></View>{!incoming ? <TouchableOpacity onPress={call.minimizeCall} style={styles.minimize} accessibilityLabel="Thu nhỏ cuộc gọi để nhắn tin"><MaterialIcons name="keyboard-arrow-down" size={23} color={kiniColors.white} /></TouchableOpacity> : null}</View>

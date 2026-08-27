@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { createContext, useContext, type PropsWithChildren } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { createContext, useContext, useMemo, useRef, type PropsWithChildren } from "react";
+import { Animated, Dimensions, PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { VideoCall } from "./components/VideoCall";
@@ -8,7 +8,6 @@ import { VoiceCall } from "./components/VoiceCall";
 import { useWebRTC } from "./hooks/useWebRTC";
 import { useCallSounds } from "./hooks/useCallSounds";
 import { Avatar, kiniColors } from "@/components/kini-ui";
-import { formatCallDuration } from "@/lib/kini-call-format";
 
 type CallController = ReturnType<typeof useWebRTC>;
 const CallContext = createContext<CallController | null>(null);
@@ -21,8 +20,27 @@ function CallOverlay({ call }: { call: CallController }) {
 }
 
 function MinimizedCall({ call, peer }: { call: CallController; peer: { title: string; initials: string; color: string; avatarUrl?: string | null } }) {
-  const subtitle = call.isScreenSharing || call.remoteScreenStream ? "Chia sẻ màn hình · Chạm để quay lại" : call.status === "connected" ? `Đang gọi · ${formatCallDuration(call.elapsedSeconds)}` : "Đang kết nối…";
-  return <TouchableOpacity onPress={call.restoreCall} style={styles.minimized} accessibilityRole="button" accessibilityLabel="Phóng to cuộc gọi"><Avatar initials={peer.initials} color={peer.color} imageUri={peer.avatarUrl} size={34} /><View style={styles.minimizedCopy}><Text numberOfLines={1} style={styles.minimizedName}>{peer.title}</Text><Text numberOfLines={1} style={styles.minimizedState}>{subtitle}</Text></View><MaterialIcons name={call.isScreenSharing || call.remoteScreenStream ? "screen-share" : "open-in-full"} size={20} color={kiniColors.white} /></TouchableOpacity>;
+  const translation = useRef(new Animated.ValueXY()).current;
+  const offset = useRef({ x: 0, y: 0 });
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dx) > 4 || Math.abs(gesture.dy) > 4,
+    onPanResponderGrant: () => translation.setValue({ x: 0, y: 0 }),
+    onPanResponderMove: (_event, gesture) => translation.setValue({ x: gesture.dx, y: gesture.dy }),
+    onPanResponderRelease: (_event, gesture) => {
+      const { width, height } = Dimensions.get("window");
+      // Nút chỉ nằm trong vùng nhìn thấy, không che navigation bar hoặc rơi ra ngoài màn hình.
+      offset.current = {
+        x: Math.min(0, Math.max(-(width - 78), offset.current.x + gesture.dx)),
+        y: Math.min(0, Math.max(-(height - 170), offset.current.y + gesture.dy)),
+      };
+      translation.setOffset(offset.current);
+      translation.setValue({ x: 0, y: 0 });
+    },
+    onPanResponderTerminate: () => translation.setValue({ x: 0, y: 0 }),
+  }), [translation]);
+  const sharing = call.isScreenSharing || call.remoteScreenStream;
+  return <Animated.View {...panResponder.panHandlers} style={[styles.minimized, { transform: translation.getTranslateTransform() }]}><TouchableOpacity onPress={call.restoreCall} style={styles.minimizedTap} accessibilityRole="button" accessibilityLabel={sharing ? "Quay lại chia sẻ màn hình" : "Quay lại cuộc gọi"}><Avatar initials={peer.initials} color={peer.color} imageUri={peer.avatarUrl} size={44} /><View style={styles.minimizedIndicator}><MaterialIcons name={sharing ? "screen-share" : "open-in-full"} size={13} color={kiniColors.white} /></View></TouchableOpacity></Animated.View>;
 }
 
 export function CallProvider({ children }: PropsWithChildren) {
@@ -39,5 +57,5 @@ export function useKiniCall() {
 }
 
 const styles = StyleSheet.create({
-  minimized: { position: "absolute", zIndex: 30, right: 14, bottom: 88, minWidth: 225, maxWidth: "78%", minHeight: 62, paddingHorizontal: 10, paddingVertical: 8, alignItems: "center", flexDirection: "row", gap: 9, borderRadius: 18, backgroundColor: kiniColors.navy, elevation: 10 }, minimizedCopy: { flex: 1 }, minimizedName: { color: kiniColors.white, fontSize: 15, fontWeight: "900" }, minimizedState: { marginTop: 2, color: "#C9DCEC", fontSize: 11, fontWeight: "700" },
+  minimized: { position: "absolute", zIndex: 30, right: 14, bottom: 88, width: 58, height: 58, borderRadius: 29, padding: 4, backgroundColor: "rgba(18, 38, 63, 0.68)", borderWidth: 1, borderColor: "rgba(255,255,255,0.58)", elevation: 10 }, minimizedTap: { flex: 1, alignItems: "center", justifyContent: "center" }, minimizedIndicator: { position: "absolute", right: -1, bottom: -1, width: 21, height: 21, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: kiniColors.blue, borderColor: kiniColors.white, borderWidth: 1.5 },
 });
