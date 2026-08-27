@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.33
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.34
         required: true
-        default: v1.8.33
+        default: v1.8.34
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.30
+        description: Mã GitHub Release nhận APK, ví dụ v1.31
         required: true
-        default: v1.30
+        default: v1.31
         type: string
 
 permissions:
@@ -59,8 +59,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK command-line tools
-        uses: android-actions/setup-android@v3
+      - name: Verify Android SDK available on runner
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          test -d "$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --version
 
       - name: Install dependencies
         run: |
@@ -143,5 +148,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.33 · Build 33. Incoming call chỉ dùng full-screen bootstrap khi KINI ở nền hoặc thiết bị khóa; khi foreground sẽ đi vào màn gọi trong app, không tạo fullScreenIntent. FCM data-only, channel CALL ưu tiên cao và IncomingCallActivity màn khóa vẫn được giữ."
+              --notes "KINI 1.8.34 · Build 34. Incoming call chỉ dùng full-screen bootstrap khi KINI ở nền hoặc thiết bị khóa; khi foreground sẽ đi vào màn gọi trong app, không tạo fullScreenIntent. FCM data-only, channel CALL ưu tiên cao và IncomingCallActivity màn khóa vẫn được giữ."
           fi
