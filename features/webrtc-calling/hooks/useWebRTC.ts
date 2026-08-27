@@ -416,8 +416,9 @@ export function useWebRTC(enabled = true) {
       screenTrackRef.current = screenTrack;
       (screenTrack as any).onended = () => { if (screenTrackRef.current === screenTrack) void stopScreenShare(); };
       setState((current) => ({ ...current, isScreenSharing: true, screenStream: screen }));
-      await stabilizeScreenShareSender(transceiver.sender);
       renegotiate(true);
+      // Không chặn offer bởi setParameters: người nhận nhận track sớm hơn, sau đó bitrate được tinh chỉnh nền.
+      void stabilizeScreenShareSender(transceiver.sender);
     } catch (error) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể chia sẻ màn hình." }));
     }

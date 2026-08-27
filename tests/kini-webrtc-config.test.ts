@@ -37,7 +37,8 @@ describe("KINI WebRTC Android safety", () => {
   it("tune sender screen share để ưu tiên ổn định và độ phân giải", () => {
     expect(nativeService).toContain("degradationPreference = \"maintain-resolution\"");
     expect(nativeService).toContain("encoding.maxBitrate = 2_500_000");
-    expect(hook).toContain("await stabilizeScreenShareSender(transceiver.sender)");
+    expect(hook).toContain("renegotiate(true);");
+    expect(hook).toContain("void stabilizeScreenShareSender(transceiver.sender)");
   });
 
   it("replay offer và trì hoãn action notification cho tới khi call incoming đã sẵn sàng", () => {

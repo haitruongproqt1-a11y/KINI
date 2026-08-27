@@ -212,3 +212,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm danh sách tỉnh thành Việt Nam sau sáp nhập để người dùng chọn
 - [x] Khôi phục vị trí khung nhập chat khi bàn phím Android đóng
 - [x] Kiểm thử hồi quy và phát hành APK sửa lỗi lên GitHub
+
+- [x] Đồng bộ nhạc chờ cuộc gọi thoại với cuộc gọi video
+- [x] Thêm phản hồi động nhẹ cho nút nhận/từ chối cuộc gọi đến
+- [x] Sửa camera góc nhỏ hiển thị theo trạng thái camera cục bộ độc lập
+- [x] Tăng tốc bắt đầu chia sẻ màn hình và thêm đường quay lại điều khiển cuộc gọi
+- [x] Kiểm thử hồi quy và phát hành APK tinh chỉnh cuộc gọi lên GitHub

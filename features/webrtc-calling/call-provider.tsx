@@ -19,7 +19,7 @@ function CallOverlay({ call }: { call: CallController }) {
 export function CallProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuth();
   const call = useWebRTC(isAuthenticated);
-  useCallSounds(call.status, call.direction);
+  useCallSounds(call.status, call.direction, call.mode);
   return <CallContext.Provider value={call}>{children}<CallOverlay call={call} /></CallContext.Provider>;
 }
 

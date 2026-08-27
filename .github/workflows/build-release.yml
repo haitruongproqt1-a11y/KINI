@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.18
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.19
         required: true
-        default: v1.8.18
+        default: v1.8.19
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.15
+        description: Mã GitHub Release nhận APK, ví dụ v1.16
         required: true
-        default: v1.15
+        default: v1.16
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.18 · Build 18. APK tải xong mở trình cài đặt Android, Nearby làm mới vị trí thật và có 34 tỉnh/thành sau sắp xếp, khung nhập chat khôi phục sau khi đóng bàn phím."
+              --notes "KINI 1.8.19 · Build 19. Gọi thoại có nhạc chờ native; nút nhận/từ chối có chuyển động nhẹ; preview camera local luôn nổi trên video; chia sẻ màn hình gửi luồng sớm hơn và phím Quay lại dừng share để về điều khiển cuộc gọi."
           fi

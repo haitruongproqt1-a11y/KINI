@@ -6,6 +6,9 @@ const project = resolve(import.meta.dirname, "..");
 const video = readFileSync(resolve(project, "features/webrtc-calling/components/VideoCall.tsx"), "utf8");
 const voice = readFileSync(resolve(project, "features/webrtc-calling/components/VoiceCall.tsx"), "utf8");
 const provider = readFileSync(resolve(project, "features/webrtc-calling/call-provider.tsx"), "utf8");
+const sounds = readFileSync(resolve(project, "features/webrtc-calling/hooks/useCallSounds.ts"), "utf8");
+const controls = readFileSync(resolve(project, "features/webrtc-calling/components/CallControls.tsx"), "utf8");
+const nativeVideo = readFileSync(resolve(project, "features/webrtc-calling/components/RtcVideo.native.tsx"), "utf8");
 
 describe("KINI call UI", () => {
   it("hiển thị avatar và action nhận/từ chối rõ ràng cho cuộc gọi đến", () => {
@@ -18,5 +21,19 @@ describe("KINI call UI", () => {
   it("chỉ mount overlay đúng mode để tránh chuyển modal native chồng lấp", () => {
     expect(provider).toContain('if (call.mode === "voice") return <VoiceCall');
     expect(provider).toContain('if (call.mode === "video") return <VideoCall');
+  });
+
+  it("phát nhạc chờ native cho gọi thoại Android và tạo phản hồi nhẹ cho cuộc gọi đến", () => {
+    expect(sounds).toContain('mode === "voice"');
+    expect(sounds).toContain('InCallManager.startRingback("_DTMF_")');
+    expect(controls).toContain("attention onPress={onDecline}");
+    expect(controls).toContain("attention onPress={onAccept}");
+  });
+
+  it("đưa preview camera local lên trên RTC video và không render màn hình tự chia sẻ", () => {
+    expect(nativeVideo).toContain("zOrder={zOrder}");
+    expect(video).toContain("zOrder={1}");
+    expect(video).toContain("const primaryStream = call.remoteScreenStream");
+    expect(video).toContain("Bạn đang chia sẻ màn hình");
   });
 });

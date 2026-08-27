@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useKeepAwake } from "expo-keep-awake";
 import { Modal, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,6 +16,7 @@ function callStatus(call: any, incoming: boolean) {
 }
 
 export function VoiceCall({ call, title, initials, color, avatarUrl }: { call: any; title: string; initials: string; color: string; avatarUrl?: string | null }) {
+  useKeepAwake("kini-voice-call");
   const insets = useSafeAreaInsets();
   const visible = call.mode === "voice" && call.status !== "idle";
   const incoming = call.status === "ringing" && call.direction === "incoming";

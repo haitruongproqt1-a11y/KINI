@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { kiniColors } from "@/components/kini-ui";
 
 export function ScreenShare({ active, onToggle }: { active: boolean; onToggle: () => void }) {
-  return <TouchableOpacity accessibilityRole="button" accessibilityLabel={active ? "Dừng chia sẻ màn hình" : "Chia sẻ màn hình"} onPress={onToggle} style={[styles.button, active && styles.active]}>
+  return <TouchableOpacity accessibilityRole="button" accessibilityLabel={active ? "Dừng chia sẻ màn hình" : "Chia sẻ màn hình"} accessibilityHint={active ? "Dừng chia sẻ để quay lại cuộc gọi video" : "Chia sẻ màn hình với người đang gọi"} onPress={onToggle} style={[styles.button, active && styles.active]}>
     <MaterialIcons name={active ? "stop-screen-share" : "screen-share"} size={18} color={kiniColors.white} />
     <Text style={styles.label}>{active ? "Dừng chia sẻ" : "Chia sẻ màn hình"}</Text>
   </TouchableOpacity>;
