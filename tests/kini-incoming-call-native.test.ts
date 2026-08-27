@@ -21,7 +21,13 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("ACTION_DECLINE");
     expect(pushServer).toContain("notification.channelId === \"messages\"");
     expect(pushServer).toContain("sendCallEndedPush");
+    expect(pushServer).toContain("sendMissedCallPush");
     expect(plugin).toContain('data["type"] == "call_ended"');
     expect(plugin).toContain("KiniCallNotifier.cancelIncomingCall(this, callId)");
+    expect(plugin).toContain("callerAvatar");
+    expect(plugin).toContain("showMissedCall");
+    expect(plugin).toContain("dismissIncomingCall");
+    expect(plugin).toContain("Nhận cuộc gọi");
+    expect(plugin).toContain("actionButton(\"☎\"");
   });
 });

@@ -6,12 +6,14 @@ import { getDb } from "./db";
 
 type PushPayload = { recipientUserIds: number[]; title: string; body: string; conversationId: number };
 type SecurityPayload = { userId: number; deviceName: string };
-type IncomingCallPayload = { recipientUserId: number; callerName: string; conversationId: number; callId: string; mode: "voice" | "video" };
+type IncomingCallPayload = { recipientUserId: number; callerName: string; callerAvatar?: string | null; conversationId: number; callId: string; mode: "voice" | "video" };
 type EndedCallPayload = { recipientUserId: number; callId: string };
+type MissedCallPayload = { recipientUserId: number; callerName: string; conversationId: number; callId: string; mode: "voice" | "video" };
 type FirebaseServiceAccount = { project_id: string; client_email: string; private_key: string; token_uri?: string };
 type GenericNotification = { title: string; body: string; channelId: "messages" | "calls"; data: Record<string, string> };
 
 let fcmAccessTokenCache: { token: string; expiresAt: number } | null = null;
+const kiniPublicUrl = "https://kinimobile-cr7qe9vh.manus.space";
 
 export const isExpoPushToken = (token: string) => /^(Expo|Exponent)PushToken\[[^\]]+\]$/.test(token);
 export const isFcmPushToken = (token: string) => !isExpoPushToken(token) && /^[A-Za-z0-9_:\-]{32,512}$/.test(token);
@@ -139,7 +141,14 @@ export async function sendNewDeviceLoginPush(payload: SecurityPayload) {
   const db = await getDb();
   if (!db) return { delivered: 0 };
   const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.userId));
-  const delivered = await sendToDevices(devices, { title: "Cảnh báo đăng nhập KINI", body: `${payload.deviceName} vừa đăng nhập vào tài khoản của bạn. Phiên cũ đã được đăng xuất.`, channelId: "messages", data: { type: "new_device_login" } });
+  const notification: GenericNotification = { title: "Cảnh báo đăng nhập KINI", body: `${payload.deviceName} vừa đăng nhập vào tài khoản của bạn. Phiên cũ đã được đăng xuất.`, channelId: "messages", data: { type: "session_replaced", deviceName: payload.deviceName } };
+  const expoDelivered = await sendExpoPushNotifications(devices.map((device) => device.expoPushToken).filter(isExpoPushToken), notification);
+  // Native FCM dùng data-only để KiniFirebaseMessagingService tự xử lý logout/mở app, thay vì bị hệ thống giữ lại payload.
+  const fcmDelivered = await Promise.all(devices.map((device) => device.expoPushToken).filter(isFcmPushToken).map((token) => sendFcmPushNotification(token, {
+    ...notification,
+    channelId: "calls",
+  })));
+  const delivered = expoDelivered + fcmDelivered.filter(Boolean).length;
   return { delivered };
 }
 
@@ -152,7 +161,28 @@ export async function sendIncomingCallPush(payload: IncomingCallPayload) {
     title: `Cuộc gọi ${payload.mode === "video" ? "video" : "thoại"} KINI`,
     body: `${payload.callerName} đang gọi cho bạn.`,
     channelId: "calls",
-    data: { type: "incoming_call", conversationId: String(payload.conversationId), callId: payload.callId, mode: payload.mode, callerName: payload.callerName },
+    data: {
+      type: "incoming_call",
+      conversationId: String(payload.conversationId),
+      callId: payload.callId,
+      mode: payload.mode,
+      callerName: payload.callerName,
+      callerAvatar: payload.callerAvatar?.startsWith("/") ? `${kiniPublicUrl}${payload.callerAvatar}` : (payload.callerAvatar ?? ""),
+    },
+  });
+  return { delivered };
+}
+
+/** Báo gọi nhỡ riêng biệt; native FCM chỉ hiển thị notification này khi người nhận đã không trả lời. */
+export async function sendMissedCallPush(payload: MissedCallPayload) {
+  const db = await getDb();
+  if (!db) return { delivered: 0 };
+  const devices = await db.select().from(pushDevices).where(eq(pushDevices.userId, payload.recipientUserId));
+  const delivered = await sendToDevices(devices, {
+    title: "Cuộc gọi nhỡ",
+    body: `${payload.callerName} đã gọi cho bạn.`,
+    channelId: "calls",
+    data: { type: "missed_call", conversationId: String(payload.conversationId), callId: payload.callId, mode: payload.mode, callerName: payload.callerName },
   });
   return { delivered };
 }

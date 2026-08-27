@@ -233,3 +233,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Tạo incoming call Android toàn màn hình với Nghe/Từ chối khi KINI bị đóng
 - [x] Tích hợp ConnectionService và hành động FCM vào signaling/cuộc gọi KINI
 - [x] Kiểm thử Android native, tăng phiên bản và phát hành APK incoming call mới
+
+- [x] Thay màn incoming call native bằng giao diện KINI có avatar, tên, nút Nghe/Từ chối trực tiếp và chỉ hiện gọi nhỡ khi không trả lời
+- [x] Bảo đảm phiên đăng nhập KINI còn hiệu lực khi cập nhật APK và chỉ đăng xuất khi người dùng chọn đăng xuất hoặc phiên bị thay thế
+- [x] Củng cố phát hiện đăng nhập thiết bị mới, thông báo và đăng xuất tự động phiên điện thoại cũ
+- [ ] Kiểm thử và phát hành APK KINI cho giao diện gọi và quản lý phiên mới

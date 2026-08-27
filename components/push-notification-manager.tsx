@@ -4,10 +4,11 @@ import Constants from "expo-constants";
 import * as ExpoLinking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { AppState, Linking, Platform } from "react-native";
+import { Alert, AppState, Linking, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
+import { invalidateKiniSession } from "@/lib/kini-session-events";
 import { useKiniCall } from "@/features/webrtc-calling/call-provider";
 
 if (Platform.OS !== "web") {
@@ -76,6 +77,10 @@ export function PushNotificationManager() {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data as { conversationId?: string | number; callId?: string; type?: string } | undefined;
+      if (data?.type === "session_replaced") {
+        void invalidateKiniSession();
+        return;
+      }
       const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
       if (data?.type === "incoming_call") {
@@ -90,9 +95,25 @@ export function PushNotificationManager() {
   }, [call, router]);
   useEffect(() => {
     if (Platform.OS === "web") return;
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as { type?: string } | undefined;
+      // App đang mở: phiên cũ bị thu hồi ngay khi server báo đăng nhập từ thiết bị mới.
+      if (data?.type === "session_replaced") {
+        Alert.alert("Đăng nhập trên thiết bị khác", "Tài khoản KINI này vừa được đăng nhập ở thiết bị khác. Phiên trên điện thoại này đã được đăng xuất.");
+        void invalidateKiniSession();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    if (Platform.OS === "web") return;
     const handleIncomingCallUrl = (url: string | null) => {
       if (!url) return;
       const parsed = ExpoLinking.parse(url);
+      if (parsed.hostname === "session-replaced") {
+        void invalidateKiniSession();
+        return;
+      }
       if (parsed.hostname !== "incoming-call") return;
       const callId = typeof parsed.queryParams?.callId === "string" ? parsed.queryParams.callId : null;
       const action = parsed.queryParams?.action;

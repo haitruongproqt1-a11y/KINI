@@ -7,6 +7,13 @@ type ApiResponse<T> = {
   error?: string;
 };
 
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -66,7 +73,7 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
       } catch {
         // Not JSON, use text as is
       }
-      throw new Error(errorMessage || `API call failed: ${response.statusText}`);
+      throw new ApiRequestError(errorMessage || `API call failed: ${response.statusText}`, response.status);
     }
 
     const contentType = response.headers.get("content-type");
@@ -136,7 +143,9 @@ export async function getMe(): Promise<{
     return result.user || null;
   } catch (error) {
     console.error("[API] getMe failed:", error);
-    return null;
+    // Chỉ 401/403 chứng minh token bị thu hồi. Timeout, mất mạng hoặc 5xx không được xóa phiên đã lưu.
+    if (error instanceof ApiRequestError && (error.status === 401 || error.status === 403)) return null;
+    throw error;
   }
 }
 
