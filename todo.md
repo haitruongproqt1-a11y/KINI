@@ -245,4 +245,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm thu nhỏ/phóng to cuộc gọi để tiếp tục nhắn tin và nút trở về điều khiển cuộc gọi khi chia sẻ màn hình
 - [x] Khôi phục vị trí composer sau gửi tin, nhận diện URL có thể sao chép/mở web và tăng khả năng đọc giao diện chat
 - [x] Xây dựng tab Trợ lý AI KINI riêng tư theo tài khoản, có lịch sử hội thoại và xóa từng cuộc trao đổi
-- [ ] Kiểm thử migration, hồi quy call/chat/Nearby/AI và phát hành APK KINI mới
+- [x] Kiểm thử migration, hồi quy call/chat/Nearby/AI và phát hành APK KINI mới
