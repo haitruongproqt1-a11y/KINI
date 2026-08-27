@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1041701832505",
+    "project_id": "kini-app",
+    "storage_bucket": "kini-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041701832505:android:1cea2817c8b4d2f18fcae8",
+        "android_client_info": {
+          "package_name": "com.app.kinimobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDreuVlAySja51bqmKQ7IKP7jt7gKxrwgg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

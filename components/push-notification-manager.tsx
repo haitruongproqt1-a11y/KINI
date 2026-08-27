@@ -2,8 +2,8 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import { useCallback, useEffect, useRef } from "react";
+import { AppState, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
@@ -26,9 +26,20 @@ async function getPushToken() {
   const permissions = await Notifications.getPermissionsAsync();
   const finalStatus = permissions.status === "granted" ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
   if (finalStatus !== "granted") return null;
-  const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
-  const result = projectId ? await Notifications.getExpoPushTokenAsync({ projectId }) : await Notifications.getExpoPushTokenAsync();
-  return result.data;
+  try {
+    const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+    const result = projectId ? await Notifications.getExpoPushTokenAsync({ projectId }) : await Notifications.getExpoPushTokenAsync();
+    return result.data;
+  } catch {
+    // APK GitHub không dùng EAS project ID. Với google-services.json, Expo trả FCM token native.
+    try {
+      const nativeToken = await Notifications.getDevicePushTokenAsync();
+      return typeof nativeToken.data === "string" ? nativeToken.data : null;
+    } catch {
+      console.warn("[Push] Chưa lấy được token Android; sẽ thử lại khi KINI được mở lần sau.");
+      return null;
+    }
+  }
 }
 
 export function PushNotificationManager() {
@@ -36,15 +47,30 @@ export function PushNotificationManager() {
   const { user, isAuthenticated } = useAuth();
   const call = useKiniCall();
   const registeredForUser = useRef<number | null>(null);
+  const registrationInFlight = useRef(false);
   const register = trpc.push.register.useMutation();
-  useEffect(() => {
-    if (!isAuthenticated || !user || registeredForUser.current === user.id) return;
-    void getPushToken().then((token) => {
+  const registerPushToken = useCallback(async () => {
+    if (!isAuthenticated || !user || registeredForUser.current === user.id || registrationInFlight.current) return;
+    registrationInFlight.current = true;
+    try {
+      const token = await getPushToken();
       if (!token) return;
+      await register.mutateAsync({ expoPushToken: token, platform: Platform.OS === "ios" ? "ios" : "android" });
       registeredForUser.current = user.id;
-      register.mutate({ expoPushToken: token, platform: Platform.OS === "ios" ? "ios" : "android" });
-    });
+    } catch {
+      console.warn("[Push] Chưa đăng ký token trên máy chủ; sẽ thử lại khi KINI được mở.");
+    } finally {
+      registrationInFlight.current = false;
+    }
   }, [isAuthenticated, register, user]);
+  useEffect(() => {
+    void registerPushToken();
+    if (Platform.OS === "web") return;
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void registerPushToken();
+    });
+    return () => appStateSubscription.remove();
+  }, [registerPushToken]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {

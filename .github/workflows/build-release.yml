@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.19
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.20
         required: true
-        default: v1.8.19
+        default: v1.8.20
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.16
+        description: Mã GitHub Release nhận APK, ví dụ v1.17
         required: true
-        default: v1.16
+        default: v1.17
         type: string
 
 permissions:
@@ -143,5 +143,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.19 · Build 19. Gọi thoại có nhạc chờ native; nút nhận/từ chối có chuyển động nhẹ; preview camera local luôn nổi trên video; chia sẻ màn hình gửi luồng sớm hơn và phím Quay lại dừng share để về điều khiển cuộc gọi."
+              --notes "KINI 1.8.20 · Build 20. Tích hợp Firebase Cloud Messaging cho package com.app.kinimobile, đăng ký native FCM token khi APK không dùng EAS, gửi push tin nhắn/cuộc gọi ưu tiên cao khi KINI đã đóng và dọn pending call khi người gọi mất kết nối."
           fi

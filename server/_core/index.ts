@@ -279,12 +279,12 @@ async function startServer() {
   // Feed công khai cho ứng dụng kiểm tra bản Android mới mà không nhúng token GitHub vào APK.
   app.get("/api/update/latest", (_req, res) => {
     res.json({
-      releaseCode: "v1.16",
-      appVersion: "1.8.19",
-      buildNumber: 19,
-      notes: "Gọi thoại có nhạc chờ native, nút nhận/từ chối có chuyển động nhẹ; camera nhỏ dùng lớp RTC riêng để luôn nổi trên video; chia sẻ màn hình gửi offer sớm và dừng share bằng phím Quay lại để về điều khiển cuộc gọi.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.16",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.16/KINI-Release-v1.16.apk",
+      releaseCode: "v1.17",
+      appVersion: "1.8.20",
+      buildNumber: 20,
+      notes: "Tích hợp Firebase Cloud Messaging cho Android: KINI lấy và lưu native FCM token khi APK không dùng EAS, gửi notification tin nhắn/cuộc gọi ưu tiên cao kể cả khi app đã đóng, đồng thời dọn pending call khi người gọi mất kết nối.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.17",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.17/KINI-Release-v1.17.apk",
     });
   });
 

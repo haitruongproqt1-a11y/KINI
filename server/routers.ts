@@ -121,7 +121,7 @@ export const appRouter = router({
     summary: protectedProcedure.query(({ ctx }) => db.getNotificationSummary(ctx.user.id)),
   }),
   push: router({
-    register: protectedProcedure.input(z.object({ expoPushToken: z.string().regex(/^(Expo|Exponent)PushToken\[[^\]]+\]$/, "Token thiết bị không hợp lệ."), platform: z.enum(["ios", "android"]) })).mutation(({ ctx, input }) => db.registerPushDevice(ctx.user.id, input.expoPushToken, input.platform)),
+    register: protectedProcedure.input(z.object({ expoPushToken: z.string().min(32).max(512).regex(/^(?:(?:Expo|Exponent)PushToken\[[^\]]+\]|[A-Za-z0-9_:\-]+)$/, "Token thiết bị không hợp lệ."), platform: z.enum(["ios", "android"]) })).mutation(({ ctx, input }) => db.registerPushDevice(ctx.user.id, input.expoPushToken, input.platform)),
     unregister: protectedProcedure.input(z.object({ expoPushToken: z.string().min(1) })).mutation(({ ctx, input }) => db.removePushDevice(ctx.user.id, input.expoPushToken)),
   }),
 });

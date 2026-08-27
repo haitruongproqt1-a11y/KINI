@@ -22,6 +22,12 @@ type SignalPayload = {
 type PendingOffer = { callId: string; conversationId: number; fromUserId: number; mode: "voice" | "video"; description: { type: "offer" | "answer"; sdp: string }; caller: unknown; expiresAt: number };
 const pendingOffersByCallee = new Map<number, PendingOffer>();
 
+function clearPendingOffer(callId: string) {
+  for (const [calleeId, pending] of pendingOffersByCallee.entries()) {
+    if (pending.callId === callId) pendingOffersByCallee.delete(calleeId);
+  }
+}
+
 function readBaseSignal(payload: SignalPayload) {
   const callId = typeof payload.callId === "string" && payload.callId.length <= 128 ? payload.callId : null;
   const conversationId = Number(payload.conversationId);
@@ -117,7 +123,10 @@ export function registerCallSignaling(httpServer: HttpServer) {
           io.to(`kini-user:${created.calleeId}`).emit("call:offer", offer);
           setTimeout(() => {
             const pending = pendingOffersByCallee.get(created.calleeId);
-            if (pending?.callId === callId) pendingOffersByCallee.delete(created.calleeId);
+            if (pending?.callId !== callId) return;
+            pendingOffersByCallee.delete(created.calleeId);
+            // Người gọi có thể đã tắt ứng dụng trước khi tự timeout; vẫn đóng phiên trong DB.
+            void db.finishCall(userId, callId, "cancelled").catch(() => undefined);
           }, 55_000);
           void sendIncomingCallPush({ recipientUserId: created.calleeId, callerName: created.caller.title, conversationId, callId, mode });
         } catch (error) {
@@ -157,6 +166,7 @@ export function registerCallSignaling(httpServer: HttpServer) {
           const outcome = payload.outcome === "declined" || payload.outcome === "cancelled" || payload.outcome === "failed" ? payload.outcome : "ended";
           const pingMs = typeof payload.pingMs === "number" && Number.isFinite(payload.pingMs) ? payload.pingMs : undefined;
           await db.finishCall(userId, callId, outcome, pingMs);
+          clearPendingOffer(callId);
           await relay("call:end", payload, { outcome });
           acknowledge?.({ ok: true });
         } catch (error) {
@@ -164,6 +174,19 @@ export function registerCallSignaling(httpServer: HttpServer) {
           acknowledge?.({ ok: false });
         }
       })();
+    });
+    socket.on("disconnect", () => {
+      for (const [calleeId, pending] of pendingOffersByCallee.entries()) {
+        if (pending.fromUserId !== userId) continue;
+        pendingOffersByCallee.delete(calleeId);
+        void db.finishCall(userId, pending.callId, "cancelled").catch(() => undefined);
+        io.to(`kini-user:${calleeId}`).emit("call:end", {
+          callId: pending.callId,
+          conversationId: pending.conversationId,
+          fromUserId: userId,
+          outcome: "cancelled",
+        });
+      }
     });
   });
 

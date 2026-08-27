@@ -44,6 +44,10 @@ describe("KINI WebRTC Android safety", () => {
   it("replay offer và trì hoãn action notification cho tới khi call incoming đã sẵn sàng", () => {
     expect(signaling).toContain("pendingOffersByCallee");
     expect(signaling).toContain("socket.emit(\"call:offer\", pendingOffer)");
+    expect(signaling).toContain("function clearPendingOffer(callId: string)");
+    expect(signaling).toContain("clearPendingOffer(callId);");
+    expect(signaling).toContain("socket.on(\"disconnect\"");
+    expect(signaling).toContain("outcome: \"cancelled\"");
     expect(hook).toContain("pendingNotificationActionRef");
     expect(hook).toContain("handleIncomingNotificationAction");
     expect(pushManager).toContain("call.handleIncomingNotificationAction");
