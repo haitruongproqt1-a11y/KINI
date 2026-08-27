@@ -10,7 +10,7 @@ export type NearbyProfile = {
   birthYear: number | null; bio: string | null; job: string | null; lat: number | null; lng: number | null;
   isDiscoverable: boolean; hiddenUntil: string | null; setupComplete: boolean;
 };
-export type NearbyUser = { userId: number; name: string; avatar: string | null; avatarColor: string; gender: NearbyGender | null; status: NearbyStatus | null; province: string | null; birthYear: number | null; age: number | null; bio: string | null; job: string | null; distanceKm: number; };
+export type NearbyUser = { userId: number; name: string; avatar: string | null; avatarColor: string; gender: NearbyGender | null; status: NearbyStatus | null; province: string | null; birthYear: number | null; age: number | null; bio: string | null; job: string | null; distanceKm: number; relation: "none" | "incoming" | "outgoing" | "friends"; };
 const json = (body: Record<string, unknown>) => ({ method: "POST", body: JSON.stringify(body) });
 
 export const nearbyApi = {

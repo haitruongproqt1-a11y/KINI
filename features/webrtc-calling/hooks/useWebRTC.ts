@@ -50,11 +50,12 @@ type WebRTCState = {
   isScreenSharing: boolean;
   elapsedSeconds: number;
   pingMs: number | null;
+  minimized: boolean;
 };
 
 const initialState: WebRTCState = {
   status: "idle", mode: null, direction: null, conversationId: null, peer: null, error: null, incoming: null,
-  localStream: null, screenStream: null, remoteStream: null, remoteScreenStream: null, remoteCameraEnabled: true, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null,
+  localStream: null, screenStream: null, remoteStream: null, remoteScreenStream: null, remoteCameraEnabled: true, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null, minimized: false,
 };
 
 /** Quản lý một cuộc gọi KINI toàn cục; mọi callback native cũ bị vô hiệu hóa khi cuộc gọi được dọn dẹp. */
@@ -334,6 +335,8 @@ export function useWebRTC(enabled = true) {
   }, [cleanup]);
 
   const declineIncomingCall = useCallback(() => void endCall("declined"), [endCall]);
+  const minimizeCall = useCallback(() => setState((current) => current.status !== "idle" && !(current.status === "ringing" && current.direction === "incoming") ? { ...current, minimized: true } : current), []);
+  const restoreCall = useCallback(() => setState((current) => current.minimized ? { ...current, minimized: false } : current), []);
   const handleIncomingNotificationAction = useCallback((callId: string, action: "answer" | "decline") => {
     const incoming = incomingRef.current;
     if (incoming?.callId === callId) {
@@ -444,8 +447,15 @@ export function useWebRTC(enabled = true) {
         if (peer !== peerRef.current) return;
         const reports: any[] = [];
         if (stats && typeof stats.forEach === "function") stats.forEach((value: any) => reports.push(value));
-        const pair = reports.find((report) => report?.type === "candidate-pair" && (report.state === "succeeded" || report.nominated));
-        const ping = typeof pair?.currentRoundTripTime === "number" ? Math.round(pair.currentRoundTripTime * 1000) : null;
+        const candidatePairs = reports.filter((report) => report?.type === "candidate-pair" && report.state === "succeeded");
+        // Ưu tiên đường truyền đang được chọn/nominated, không lấy candidate cũ có RTT không còn đại diện call.
+        const pair = candidatePairs.find((report) => report.selected === true || report.nominated === true) ?? candidatePairs[0];
+        const rawRoundTripTime = typeof pair?.currentRoundTripTime === "number"
+          ? pair.currentRoundTripTime
+          : typeof pair?.totalRoundTripTime === "number" && typeof pair?.responsesReceived === "number" && pair.responsesReceived > 0
+            ? pair.totalRoundTripTime / pair.responsesReceived
+            : null;
+        const ping = rawRoundTripTime !== null && Number.isFinite(rawRoundTripTime) ? Math.max(0, Math.min(60_000, Math.round(rawRoundTripTime * 1000))) : null;
         if (ping !== null) {
           pingRef.current = ping;
           setState((current) => current.status === "connected" ? { ...current, pingMs: ping } : current);
@@ -477,5 +487,5 @@ export function useWebRTC(enabled = true) {
     };
   }, [cleanup, enabled, ensureSignal]);
 
-  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, handleIncomingNotificationAction, endCall, toggleMute, toggleCamera, toggleSpeaker, switchCamera, toggleScreenShare, stopScreenShare };
+  return { ...state, startCall, acceptIncomingCall, declineIncomingCall, handleIncomingNotificationAction, endCall, minimizeCall, restoreCall, toggleMute, toggleCamera, toggleSpeaker, switchCamera, toggleScreenShare, stopScreenShare };
 }

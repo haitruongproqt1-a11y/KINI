@@ -110,6 +110,31 @@ type TimelineItem =
   | { entryType: "message"; key: string; timestamp: number; message: Message }
   | { entryType: "call"; key: string; timestamp: number; call: CallLog };
 
+const httpUrlPattern = /(https?:\/\/[^\s<>"']+)/gi;
+
+function cleanUrl(value: string) {
+  return value.replace(/[),.!?;:]+$/g, "");
+}
+
+function firstHttpUrl(content: string) {
+  const match = content.match(httpUrlPattern);
+  return match?.[0] ? cleanUrl(match[0]) : null;
+}
+
+function LinkMessageText({ content, isMine }: { content: string; isMine: boolean }) {
+  const pieces = content.split(httpUrlPattern);
+  return <Text style={[styles.messageText, isMine && styles.mineText]}>{pieces.map((part, index) => {
+    const url = /^https?:\/\//i.test(part) ? cleanUrl(part) : null;
+    return url ? <Text key={`${url}-${index}`} accessibilityRole="link" onPress={() => void Linking.openURL(url).catch(() => Alert.alert("Không thể mở liên kết", "Liên kết này không hợp lệ hoặc thiết bị không có trình duyệt."))} style={[styles.inlineLink, isMine && styles.mineInlineLink]}>{part}</Text> : <Text key={`${part}-${index}`}>{part}</Text>;
+  })}</Text>;
+}
+
+function LinkCard({ url, isMine }: { url: string; isMine: boolean }) {
+  let host = url;
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* Link đã được kiểm tra bởi renderer. */ }
+  return <TouchableOpacity accessibilityRole="link" accessibilityLabel={`Mở liên kết ${host}`} onPress={() => void Linking.openURL(url).catch(() => Alert.alert("Không thể mở liên kết", "Liên kết này không hợp lệ hoặc thiết bị không có trình duyệt."))} style={[styles.linkCard, isMine && styles.mineLinkCard]}><MaterialIcons name="language" size={19} color={isMine ? kiniColors.white : kiniColors.blue} /><View style={styles.linkCardCopy}><Text numberOfLines={1} style={[styles.linkHost, isMine && styles.mineText]}>{host}</Text><Text numberOfLines={1} style={[styles.linkUrl, isMine && styles.mineSubtext]}>{url}</Text></View><MaterialIcons name="open-in-new" size={17} color={isMine ? "#D9E9FF" : kiniColors.muted} /></TouchableOpacity>;
+}
+
 function callLogCopy(item: CallLog) {
   const at = new Date(item.answeredAt ?? item.startedAt).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
   if (item.status === "missed") return item.isOutgoing ? `Không trả lời · ${at}` : `Cuộc gọi nhỡ · ${at}`;
@@ -140,6 +165,7 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
   const sticker = item.kind === "sticker";
   const mediaUrls = albumUrls(item);
   const mediaUrl = item.attachmentUrl || mediaUrls[0] || undefined;
+  const url = !sticker && !file && !media ? firstHttpUrl(item.content) : null;
 
   return (
     <View style={[styles.messageRow, isMine ? styles.mineRow : styles.theirRow]}>
@@ -185,7 +211,7 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
             </View>
           )
         ) : null}
-        {!sticker && !file && !media ? <Text style={[styles.messageText, isMine && styles.mineText]}>{item.content}</Text> : null}
+        {!sticker && !file && !media ? <><LinkMessageText content={item.content} isMine={isMine} />{url ? <LinkCard url={url} isMine={isMine} /> : null}</> : null}
         <View style={styles.meta}>
           <Text style={[styles.time, isMine && styles.mineSubtext]}>{item.failed ? "Chưa gửi" : time}</Text>
           {isMine && !item.failed ? <KiniMessageStatus status={item.status} /> : null}
@@ -374,8 +400,8 @@ const styles = StyleSheet.create({
   header: { minHeight: 62, paddingHorizontal: 9, backgroundColor: kiniColors.white, alignItems: "center", flexDirection: "row", borderBottomColor: kiniColors.line, borderBottomWidth: StyleSheet.hairlineWidth },
   back: { width: 38, height: 44, alignItems: "center", justifyContent: "center" },
   headerCopy: { flex: 1, marginLeft: 10, gap: 3 },
-  headerTitle: { color: kiniColors.navy, fontSize: 16, fontWeight: "900" },
-  headerStatus: { fontSize: 11, fontWeight: "700" },
+  headerTitle: { color: kiniColors.navy, fontSize: 19, lineHeight: 24, fontWeight: "900" },
+  headerStatus: { fontSize: 13, lineHeight: 17, fontWeight: "700" },
   headerAction: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
   headerActions: { flexDirection: "row", alignItems: "center" },
   thread: { flexGrow: 1, paddingHorizontal: 14, paddingBottom: 16, paddingTop: 10, gap: 7 },
@@ -394,8 +420,15 @@ const styles = StyleSheet.create({
   mineBubble: { backgroundColor: kiniColors.blue, borderBottomRightRadius: 5 },
   theirBubble: { backgroundColor: kiniColors.white, borderBottomLeftRadius: 5 },
   failedBubble: { opacity: 0.72 },
-  messageText: { color: kiniColors.navy, fontSize: 15, lineHeight: 21 },
+  messageText: { color: kiniColors.navy, fontSize: 17, lineHeight: 24 },
   mineText: { color: kiniColors.white },
+  inlineLink: { color: kiniColors.blue, textDecorationLine: "underline", fontWeight: "800" },
+  mineInlineLink: { color: kiniColors.white },
+  linkCard: { minWidth: 210, maxWidth: 300, marginTop: 9, padding: 9, borderRadius: 12, backgroundColor: kiniColors.mist, flexDirection: "row", alignItems: "center", gap: 8 },
+  mineLinkCard: { backgroundColor: "rgba(255,255,255,0.18)" },
+  linkCardCopy: { flex: 1, gap: 2 },
+  linkHost: { color: kiniColors.navy, fontSize: 13, fontWeight: "900" },
+  linkUrl: { color: kiniColors.muted, fontSize: 11 },
   meta: { flexDirection: "row", alignItems: "center", alignSelf: "flex-end", gap: 6, marginTop: 4 },
   time: { color: "#98A5B5", fontSize: 10 },
   mineSubtext: { color: "#D9E9FF" },

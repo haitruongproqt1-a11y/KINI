@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Image, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { kiniColors } from "@/components/kini-ui";
@@ -30,6 +30,8 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadLabel, setUploadLabel] = useState("");
   const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
+  const [inputHeight, setInputHeight] = useState(42);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!pasteNonce) return;
@@ -42,6 +44,7 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
     const hideListener = Keyboard.addListener("keyboardDidHide", () => {
       setShowActions(false);
       setShowStickers(false);
+      if (!value.trim()) setInputHeight(42);
     });
     return () => hideListener.remove();
   }, []);
@@ -51,6 +54,8 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
     if (!content) return;
     onSendText(content);
     setValue("");
+    setInputHeight(42);
+    requestAnimationFrame(() => inputRef.current?.setNativeProps({ text: "" }));
   };
 
   const uploadAsset = async (asset: ImagePicker.ImagePickerAsset, kind: "image" | "video") => {
@@ -95,7 +100,7 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
 
   const selectVideo = async () => {
     if (!await requestMediaAccess("KINI cần quyền thư viện để chọn video.")) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsMultipleSelection: false, videoMaxDuration: 300 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsMultipleSelection: false });
     if (!result.canceled && result.assets.length) await uploadAsset(result.assets[0], "video");
   };
 
@@ -139,7 +144,7 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
       </View> : null}
       <View style={styles.composer}>
         <TouchableOpacity disabled={isUploading} onPress={() => setShowActions(true)} style={[styles.control, isUploading && styles.controlDisabled]} accessibilityRole="button" accessibilityLabel="Gửi ảnh, video hoặc tệp"><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
-        <TextInput editable value={value} onChangeText={setValue} onSubmitEditing={send} onFocus={onInputFocus} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" blurOnSubmit={false} style={styles.input} multiline />
+        <TextInput ref={inputRef} editable value={value} onChangeText={setValue} onSubmitEditing={send} onFocus={onInputFocus} onContentSizeChange={(event) => setInputHeight(Math.max(42, Math.min(106, Math.ceil(event.nativeEvent.contentSize.height + 18))))} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" blurOnSubmit={false} style={[styles.input, { height: inputHeight }]} multiline />
         {value.trim() ? <TouchableOpacity onPress={send} style={styles.send} accessibilityRole="button" accessibilityLabel="Gửi tin nhắn"><MaterialIcons name="send" size={19} color={kiniColors.white} /></TouchableOpacity> : <TouchableOpacity onPress={() => setShowStickers(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Chọn sticker"><MaterialIcons name="sentiment-satisfied-alt" size={24} color={kiniColors.blue} /></TouchableOpacity>}
       </View>
       <Modal visible={showActions} transparent animationType="fade" onRequestClose={() => setShowActions(false)}><TouchableOpacity activeOpacity={1} onPress={() => setShowActions(false)} style={styles.modalBackdrop}><View style={[styles.actionSheet, { paddingBottom: Math.max(bottomInset, 26) }]}>{actions.map((action) => <TouchableOpacity key={action.label} onPress={action.onPress} style={styles.actionItem} accessibilityRole="button" accessibilityLabel={`Gửi ${action.label}`}><View style={[styles.actionIcon, { backgroundColor: `${action.color}18` }]}><MaterialIcons name={action.icon} size={25} color={action.color} /></View><Text style={styles.actionLabel}>{action.label}</Text></TouchableOpacity>)}</View></TouchableOpacity></Modal>

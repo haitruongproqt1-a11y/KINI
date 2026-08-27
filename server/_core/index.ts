@@ -197,8 +197,12 @@ async function startServer() {
       ? req.body.contentType.split(";", 1)[0].slice(0, 120)
       : "application/octet-stream";
     const declaredSize = Number(req.body?.size);
-    if (!Number.isFinite(declaredSize) || declaredSize <= 0 || declaredSize > 70_000_000) {
-      res.status(400).json({ error: "Kích thước media không hợp lệ hoặc vượt quá giới hạn 70 MB." });
+    const isImage = type.startsWith("image/");
+    const isVideo = type.startsWith("video/");
+    const maxBytes = isImage ? 10 * 1024 * 1024 : isVideo ? 4 * 1024 * 1024 * 1024 : 2 * 1024 * 1024 * 1024;
+    const limitLabel = isImage ? "10 MB" : isVideo ? "4 GB" : "2 GB";
+    if (!Number.isFinite(declaredSize) || declaredSize <= 0 || declaredSize > maxBytes) {
+      res.status(400).json({ error: `Kích thước ${isImage ? "ảnh" : isVideo ? "video" : "tệp"} không hợp lệ hoặc vượt quá giới hạn ${limitLabel}.` });
       return;
     }
 
@@ -280,12 +284,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.20",
-      appVersion: "1.8.23",
-      buildNumber: 23,
-      notes: "Incoming call Android hiển thị màn hình KINI có avatar và nút tròn Nghe/Từ chối, không giữ notification đổ chuông; chỉ tạo thông báo gọi nhỡ khi không trả lời. Phiên đăng nhập được giữ khi cập nhật APK và điện thoại cũ tự đăng xuất khi đăng nhập ở thiết bị mới.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.20",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.20/KINI-Release-v1.20.apk",
+      releaseCode: "v1.21",
+      appVersion: "1.8.24",
+      buildNumber: 24,
+      notes: "Thêm liên hệ từ Tìm Quanh Đây, giới hạn upload ảnh 10 MB/tệp 2 GB, link có thể mở web, composer tự về vị trí đúng; tối ưu audio WebRTC/ping, thu nhỏ cuộc gọi để chat và thêm Trợ lý AI riêng tư theo tài khoản.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.21",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.21/KINI-Release-v1.21.apk",
     });
   });
 

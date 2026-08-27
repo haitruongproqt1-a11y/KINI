@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { sdk } from "./_core/sdk";
@@ -113,6 +114,27 @@ export const appRouter = router({
     delete: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.deleteConversationPermanently(ctx.user.id, input.conversationId)),
     markRead: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.markConversationRead(ctx.user.id, input.conversationId)),
     search: protectedProcedure.input(z.object({ query: z.string().trim().max(255) })).query(({ ctx, input }) => db.searchMessages(ctx.user.id, input.query)),
+  }),
+  ai: router({
+    list: protectedProcedure.query(({ ctx }) => db.listAiConversations(ctx.user.id)),
+    messages: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).query(({ ctx, input }) => db.getAiMessages(ctx.user.id, input.conversationId)),
+    create: protectedProcedure.input(z.object({ title: z.string().trim().max(120).optional() })).mutation(({ ctx, input }) => db.createAiConversation(ctx.user.id, input.title ?? "Cuộc trò chuyện mới")),
+    delete: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).mutation(({ ctx, input }) => db.deleteAiConversation(ctx.user.id, input.conversationId)),
+    send: protectedProcedure.input(z.object({ conversationId: z.number().int().positive(), content: z.string().trim().min(1).max(4000) })).mutation(async ({ ctx, input }) => {
+      await db.appendAiMessage(ctx.user.id, input.conversationId, "user", input.content);
+      const history = await db.getAiMessages(ctx.user.id, input.conversationId);
+      const result = await invokeLLM({
+        model: "gpt-5-mini",
+        maxTokens: 900,
+        messages: [
+          { role: "system", content: "Bạn là Trợ lý AI của KINI. Trả lời bằng tiếng Việt rõ ràng, chính xác, hữu ích và ngắn gọn. Nếu thông tin phụ thuộc thời điểm, hãy nêu rõ giới hạn kiến thức thay vì bịa đặt. Không yêu cầu hoặc lưu mật khẩu, mã OTP hay dữ liệu nhạy cảm." },
+          ...history.slice(-16).map((message) => ({ role: message.role, content: message.content })),
+        ],
+      });
+      const text = typeof result.choices[0]?.message.content === "string" ? result.choices[0].message.content.trim() : "";
+      if (!text) throw new Error("Trợ lý AI chưa thể tạo phản hồi. Vui lòng thử lại.");
+      return db.appendAiMessage(ctx.user.id, input.conversationId, "assistant", text.slice(0, 12_000));
+    }),
   }),
   calls: router({
     list: protectedProcedure.input(z.object({ conversationId: z.number().int().positive() })).query(({ ctx, input }) => db.listCallSessions(ctx.user.id, input.conversationId)),

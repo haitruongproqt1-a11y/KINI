@@ -182,6 +182,30 @@ export const callSessions = mysqlTable("call_sessions", {
   index("call_sessions_caller_started_idx").on(table.callerId, table.startedAt),
 ]);
 
+/** Hội thoại Trợ lý AI thuộc riêng một tài khoản KINI, không hiển thị cho người dùng khác. */
+export const aiConversations = mysqlTable("ai_conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("ai_conversations_user_updated_idx").on(table.userId, table.updatedAt),
+]);
+
+/** Lịch sử tin nhắn của Trợ lý AI, luôn kiểm soát bằng cả conversationId và userId. */
+export const aiMessages = mysqlTable("ai_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  userId: int("userId").notNull(),
+  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("ai_messages_conversation_created_idx").on(table.conversationId, table.createdAt),
+  index("ai_messages_user_idx").on(table.userId),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
@@ -189,3 +213,5 @@ export type KiniUser = typeof kiniUsers.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type ChatMessage = typeof messages.$inferSelect;
 export type CallSession = typeof callSessions.$inferSelect;
+export type AiConversation = typeof aiConversations.$inferSelect;
+export type AiMessage = typeof aiMessages.$inferSelect;

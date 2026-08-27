@@ -1,5 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,7 +20,7 @@ function callStatus(call: any, incoming: boolean) {
 export function VideoCall({ call, title, initials, color, avatarUrl }: { call: any; title: string; initials: string; color: string; avatarUrl?: string | null }) {
   useKeepAwake("kini-video-call");
   const insets = useSafeAreaInsets();
-  const visible = call.mode === "video" && call.status !== "idle";
+  const visible = call.mode === "video" && call.status !== "idle" && !call.minimized;
   const incoming = call.status === "ringing" && call.direction === "incoming";
   const isScreenActive = call.isScreenSharing || Boolean(call.remoteScreenStream);
   // Không render screenStream cục bộ: MediaProjection sẽ tự quay lại chính overlay và tạo ảnh đen/nhấp nháy trên Android.
@@ -34,7 +34,7 @@ export function VideoCall({ call, title, initials, color, avatarUrl }: { call: a
       {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>Camera của đối phương đang tắt</Text></View> : null}
       {call.isScreenSharing ? <View pointerEvents="none" style={styles.localSharing}><MaterialIcons name="screen-share" size={25} color={kiniColors.white} /><Text style={styles.localSharingTitle}>Bạn đang chia sẻ màn hình</Text><Text style={styles.localSharingText}>KINI vẫn giữ màn hình điều khiển cuộc gọi. Nhấn Dừng chia sẻ hoặc phím Quay lại để trở về gọi video.</Text></View> : null}
       {previewStream ? <RtcVideo stream={previewStream} mirrored={previewMirrored} zOrder={1} style={styles.local} /> : null}
-      {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}</View>}
+      {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View><View style={styles.topTools}>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}<TouchableOpacity onPress={call.minimizeCall} style={styles.minimize} accessibilityLabel="Thu nhỏ cuộc gọi để nhắn tin"><MaterialIcons name="keyboard-arrow-down" size={22} color={kiniColors.white} /></TouchableOpacity></View></View>}
       <View style={styles.bottom}>
         {incoming ? <><Text style={styles.actionHint}>Trả lời bằng video hoặc từ chối</Text><IncomingCallActions mode="video" onDecline={call.declineIncomingCall} onAccept={call.acceptIncomingCall} /></> : <><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.toggleCamera} onSwitchCamera={call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></>}
       </View>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, overflow: "hidden", backgroundColor: "#071729", paddingHorizontal: 16 },
   remote: { ...StyleSheet.absoluteFillObject },
   shade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(2, 16, 32, 0.25)" },
-  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 10, borderRadius: 18, backgroundColor: "rgba(4, 20, 38, 0.54)" },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 10, borderRadius: 18, backgroundColor: "rgba(4, 20, 38, 0.54)" }, topTools: { flexDirection: "row", alignItems: "center", gap: 7 }, minimize: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: "rgba(255,255,255,0.14)" },
   topIdentity: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   topCopy: { flex: 1 },
   name: { color: kiniColors.white, fontSize: 17, fontWeight: "900" },

@@ -238,3 +238,11 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bảo đảm phiên đăng nhập KINI còn hiệu lực khi cập nhật APK và chỉ đăng xuất khi người dùng chọn đăng xuất hoặc phiên bị thay thế
 - [x] Củng cố phát hiện đăng nhập thiết bị mới, thông báo và đăng xuất tự động phiên điện thoại cũ
 - [x] Kiểm thử và phát hành APK KINI cho giao diện gọi và quản lý phiên mới
+
+- [x] Rà soát và cấu hình giới hạn upload ảnh 10 MB, video và tệp theo hạ tầng lưu trữ thực tế an toàn
+- [x] Thêm xem chi tiết hồ sơ Nearby cùng thao tác kết bạn hoặc nhắn tin trực tiếp
+- [x] Cải thiện WebRTC audio/video: giảm echo, tăng âm lượng loa, giữ audio khi chia sẻ màn hình và đo ping chính xác
+- [x] Thêm thu nhỏ/phóng to cuộc gọi để tiếp tục nhắn tin và nút trở về điều khiển cuộc gọi khi chia sẻ màn hình
+- [x] Khôi phục vị trí composer sau gửi tin, nhận diện URL có thể sao chép/mở web và tăng khả năng đọc giao diện chat
+- [x] Xây dựng tab Trợ lý AI KINI riêng tư theo tài khoản, có lịch sử hội thoại và xóa từng cuộc trao đổi
+- [ ] Kiểm thử migration, hồi quy call/chat/Nearby/AI và phát hành APK KINI mới

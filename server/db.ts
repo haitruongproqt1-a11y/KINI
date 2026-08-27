@@ -3,6 +3,8 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
 import {
+  aiConversations,
+  aiMessages,
   androidReleaseSigning,
   callSessions,
   conversationParticipants,
@@ -543,7 +545,12 @@ export async function listNearbyUsers(userId: number, input: { lat: number; lng:
     };
   }).filter((item) => item.distanceKm <= input.radius)
     .sort((left, right) => input.sort === "far" ? right.distanceKm - left.distanceKm : left.distanceKm - right.distanceKm);
-  return { users: matches.slice((page - 1) * 30, page * 30), page, total: matches.length, radius: input.radius };
+  const pageUsers = matches.slice((page - 1) * 30, page * 30);
+  const users = await Promise.all(pageUsers.map(async (item) => ({
+    ...item,
+    relation: await getRelation(userId, item.userId),
+  })));
+  return { users, page, total: matches.length, radius: input.radius };
 }
 
 export async function searchProfiles(currentUserId: number, query: string) {
@@ -643,6 +650,62 @@ export async function getOrCreateDirectConversation(userId: number, friendUserId
   const conversationId = Number(inserted[0].insertId);
   await db.insert(conversationParticipants).values([{ conversationId, userId }, { conversationId, userId: friendUserId }]);
   return conversationId;
+}
+
+async function assertAiConversation(userId: number, conversationId: number) {
+  const db = await requireDb();
+  const conversation = (await db.select().from(aiConversations).where(and(
+    eq(aiConversations.id, conversationId),
+    eq(aiConversations.userId, userId),
+  )).limit(1))[0];
+  if (!conversation) throw new Error("Không tìm thấy cuộc trò chuyện Trợ lý AI của bạn.");
+  return conversation;
+}
+
+export async function listAiConversations(userId: number) {
+  const db = await requireDb();
+  const rows = await db.select().from(aiConversations).where(eq(aiConversations.userId, userId)).orderBy(desc(aiConversations.updatedAt)).limit(60);
+  return Promise.all(rows.map(async (conversation) => {
+    const latest = (await db.select().from(aiMessages).where(and(
+      eq(aiMessages.userId, userId),
+      eq(aiMessages.conversationId, conversation.id),
+    )).orderBy(desc(aiMessages.createdAt)).limit(1))[0];
+    return { ...conversation, preview: latest?.content ?? "Chưa có nội dung" };
+  }));
+}
+
+export async function createAiConversation(userId: number, title: string) {
+  const db = await requireDb();
+  const cleanTitle = title.trim().replace(/\s+/g, " ").slice(0, 120) || "Cuộc trò chuyện mới";
+  const inserted = await db.insert(aiConversations).values({ userId, title: cleanTitle });
+  return assertAiConversation(userId, Number(inserted[0].insertId));
+}
+
+export async function getAiMessages(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertAiConversation(userId, conversationId);
+  return db.select().from(aiMessages).where(and(
+    eq(aiMessages.userId, userId),
+    eq(aiMessages.conversationId, conversationId),
+  )).orderBy(aiMessages.createdAt).limit(120);
+}
+
+export async function appendAiMessage(userId: number, conversationId: number, role: "user" | "assistant", content: string) {
+  const db = await requireDb();
+  await assertAiConversation(userId, conversationId);
+  const cleanContent = content.trim();
+  if (!cleanContent) throw new Error("Nội dung Trợ lý AI không được để trống.");
+  const inserted = await db.insert(aiMessages).values({ userId, conversationId, role, content: cleanContent });
+  await db.update(aiConversations).set({ updatedAt: new Date() }).where(and(eq(aiConversations.id, conversationId), eq(aiConversations.userId, userId)));
+  return (await db.select().from(aiMessages).where(eq(aiMessages.id, Number(inserted[0].insertId))).limit(1))[0];
+}
+
+export async function deleteAiConversation(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await assertAiConversation(userId, conversationId);
+  await db.delete(aiMessages).where(and(eq(aiMessages.userId, userId), eq(aiMessages.conversationId, conversationId)));
+  await db.delete(aiConversations).where(and(eq(aiConversations.userId, userId), eq(aiConversations.id, conversationId)));
+  return { deleted: true } as const;
 }
 
 export async function listConversations(userId: number, filter: "all" | "unread" | "direct" | "group" = "all") {

@@ -11,6 +11,13 @@ export type UploadedMedia = {
   size?: number | null;
 };
 
+export const KINI_MEDIA_LIMITS = {
+  image: 10 * 1024 * 1024,
+  // Tải trực tiếp hiện dùng một PUT đã ký; chưa dùng multipart/resume cho video rất lớn.
+  video: 4 * 1024 * 1024 * 1024,
+  file: 2 * 1024 * 1024 * 1024,
+} as const;
+
 type MediaPresignResponse = UploadedMedia & {
   uploadUrl: string;
 };
@@ -46,6 +53,26 @@ async function requestUploadUrl(name: string, contentType: string, size?: number
   return payload as MediaPresignResponse;
 }
 
+function mediaKind(contentType: string): keyof typeof KINI_MEDIA_LIMITS {
+  if (contentType.toLowerCase().startsWith("image/")) return "image";
+  if (contentType.toLowerCase().startsWith("video/")) return "video";
+  return "file";
+}
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024 * 1024) return `${Math.floor((bytes / (1024 * 1024 * 1024)) * 10) / 10} GB`;
+  return `${Math.floor(bytes / (1024 * 1024))} MB`;
+}
+
+async function resolveMediaSize(uri: string, declaredSize?: number | null) {
+  if (typeof declaredSize === "number" && Number.isFinite(declaredSize) && declaredSize > 0) return declaredSize;
+  if (Platform.OS !== "web") {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists && typeof info.size === "number" && info.size > 0) return info.size;
+  }
+  return null;
+}
+
 export async function uploadMedia(
   uri: string,
   name: string,
@@ -54,7 +81,12 @@ export async function uploadMedia(
   onProgress?: (progress: number) => void,
 ): Promise<UploadedMedia> {
   const normalizedContentType = contentType.split(";", 1)[0] || "application/octet-stream";
-  const presigned = await requestUploadUrl(name, normalizedContentType, size);
+  const resolvedSize = await resolveMediaSize(uri, size);
+  const kind = mediaKind(normalizedContentType);
+  const limit = KINI_MEDIA_LIMITS[kind];
+  if (!resolvedSize) throw new Error("Không xác định được dung lượng tệp. Hãy chọn lại tệp rồi thử lại.");
+  if (resolvedSize > limit) throw new Error(`${kind === "image" ? "Ảnh" : kind === "video" ? "Video" : "Tệp"} vượt giới hạn ${formatBytes(limit)} của KINI.`);
+  const presigned = await requestUploadUrl(name, normalizedContentType, resolvedSize);
 
   if (Platform.OS === "web") {
     const fileResponse = await fetch(uri);

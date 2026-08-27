@@ -19,8 +19,9 @@ describe("KINI call UI", () => {
   });
 
   it("chỉ mount overlay đúng mode để tránh chuyển modal native chồng lấp", () => {
-    expect(provider).toContain('if (call.mode === "voice") return <VoiceCall');
-    expect(provider).toContain('if (call.mode === "video") return <VideoCall');
+    expect(provider).toContain('call.mode === "voice" ? <VoiceCall');
+    expect(provider).toContain('call.mode === "video" ? <VideoCall');
+    expect(provider).toContain("MinimizedCall");
   });
 
   it("phát nhạc chờ native cho gọi thoại Android và tạo phản hồi nhẹ cho cuộc gọi đến", () => {

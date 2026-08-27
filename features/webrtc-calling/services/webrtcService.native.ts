@@ -29,11 +29,10 @@ async function configureExpoAudio(speakerEnabled: boolean) {
 }
 
 async function configureCallAudio(speakerEnabled: boolean, mode: CallMode) {
-  // Android dùng InCallManager để WebRTC giữ audio focus và route ổn định.
+  // Android dùng InCallManager cho cả thoại/video để WebRTC giữ audio focus và route loa ổn định.
   if (Platform.OS === "android") {
-    if (mode !== "voice") return;
     try {
-      InCallManager.start({ media: "audio", auto: true });
+      InCallManager.start({ media: mode === "voice" ? "audio" : "video", auto: true });
       InCallManager.setForceSpeakerphoneOn(speakerEnabled);
       androidVoiceAudioActive = true;
     } catch {
@@ -63,7 +62,12 @@ export async function createLocalMedia(mode: CallMode): Promise<NativeStream> {
   }
   try { await configureCallAudio(true, mode); } catch { /* WebRTC vẫn tiếp tục nếu audio mode hệ thống bị chặn. */ }
   const stream = await mediaDevices.getUserMedia({
-    audio: true,
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+    } as any,
     video: mode === "video" ? { facingMode: "user", frameRate: 24, width: 640, height: 480 } : false,
   });
   return stream;
@@ -133,7 +137,7 @@ export function switchCamera(stream: NativeStream | null) {
 
 export function setSpeakerEnabled(enabled: boolean, mode: CallMode = "video") {
   if (Platform.OS === "android") {
-    if (mode !== "voice" || !androidVoiceAudioActive) return;
+    if (!androidVoiceAudioActive) return;
     try { InCallManager.setForceSpeakerphoneOn(enabled); } catch { /* Route native không còn hợp lệ. */ }
     return;
   }
