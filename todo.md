@@ -223,8 +223,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bảo đảm gửi push cuộc gọi khi KINI bị đóng nhưng thiết bị còn mạng
 - [x] Hủy notification và pending call khi người gọi kết thúc hoặc hết thời gian
 - [x] Khôi phục đúng màn chat/cuộc gọi khi mở KINI từ push notification
-- [ ] Kiểm thử hồi quy và phát hành APK sửa thông báo nền lên GitHub
+- [x] Kiểm thử hồi quy và phát hành APK sửa thông báo nền lên GitHub
 
 - [x] Tích hợp google-services.json Firebase cho package com.app.kinimobile
 - [x] Xác minh Firebase OAuth và luồng đăng ký token push Android
-- [ ] Kiểm thử, tăng phiên bản và phát hành APK Firebase/push mới
+- [x] Kiểm thử, tăng phiên bản và phát hành APK Firebase/push mới
