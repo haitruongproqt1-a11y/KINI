@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
+import { Platform } from "react-native";
 
 import { createKiniSignalClient, type KiniSignalClient } from "../services/signalingClient";
 import {
@@ -6,6 +8,7 @@ import {
   createDisplayMedia,
   createLocalMedia,
   createPeerConnection,
+  keepCallAudioActive,
   setCameraEnabled as setCameraEnabledOnStream,
   setMuted as setMutedOnStream,
   setSpeakerEnabled as setSpeakerEnabledOnDevice,
@@ -81,6 +84,13 @@ export function useWebRTC(enabled = true) {
   const pendingScreenSharingRef = useRef<boolean | null>(null);
   const renegotiationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingNotificationActionRef = useRef<{ callId: string; action: "answer" | "decline" } | null>(null);
+  const connectedFeedbackRef = useRef(false);
+
+  const notifyConnected = useCallback(() => {
+    if (connectedFeedbackRef.current) return;
+    connectedFeedbackRef.current = true;
+    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+  }, []);
 
   const cleanup = useCallback(() => {
     cleanupTokenRef.current += 1;
@@ -118,6 +128,7 @@ export function useWebRTC(enabled = true) {
     pendingCandidatesRef.current = [];
     incomingRef.current = null;
     pingRef.current = null;
+    connectedFeedbackRef.current = false;
     setState(initialState);
   }, []);
 
@@ -153,16 +164,22 @@ export function useWebRTC(enabled = true) {
     };
     peerEvents.onconnectionstatechange = () => {
       if (!isCurrent()) return;
-      if (peer.connectionState === "connected") setState((current) => ({ ...current, status: "connected", error: null }));
+      if (peer.connectionState === "connected") {
+        setState((current) => ({ ...current, status: "connected", error: null }));
+        notifyConnected();
+      }
       if (peer.connectionState === "failed") setState((current) => ({ ...current, status: "error", error: "Kết nối cuộc gọi bị gián đoạn. Hãy kết thúc và gọi lại." }));
     };
     peerEvents.oniceconnectionstatechange = () => {
       if (!isCurrent()) return;
-      if (peer.iceConnectionState === "connected" || peer.iceConnectionState === "completed") setState((current) => ({ ...current, status: "connected", error: null }));
+      if (peer.iceConnectionState === "connected" || peer.iceConnectionState === "completed") {
+        setState((current) => ({ ...current, status: "connected", error: null }));
+        notifyConnected();
+      }
       if (peer.iceConnectionState === "failed") setState((current) => ({ ...current, status: "error", error: "ICE không tạo được đường truyền media. Hãy thử lại trên mạng khác." }));
     };
     return peer;
-  }, []);
+  }, [notifyConnected]);
 
   const ensureSignal = useCallback(async () => {
     if (signalRef.current) return signalRef.current;
@@ -394,6 +411,11 @@ export function useWebRTC(enabled = true) {
       return setState((current) => ({ ...current, error: "Chia sẻ màn hình chỉ khả dụng trong cuộc gọi video đang kết nối." }));
     }
     try {
+      const microphoneTrack = localStreamRef.current?.getAudioTracks?.()[0];
+      if (!microphoneTrack || microphoneTrack.readyState === "ended") throw new Error("Microphone không còn hoạt động. Hãy dừng chia sẻ màn hình và gọi lại.");
+      // MediaProjection trên một số ROM đổi audio focus; giữ mic riêng của call và route hiện tại trước/sau khi mở màn hình chia sẻ.
+      if (!state.muted) microphoneTrack.enabled = true;
+      keepCallAudioActive(state.speakerEnabled, "video");
       const screen = await createDisplayMedia();
       const screenTrack = screen.getVideoTracks()[0];
       if (!screenTrack || peer !== peerRef.current || endingRef.current) {
@@ -420,13 +442,14 @@ export function useWebRTC(enabled = true) {
       screenTrackRef.current = screenTrack;
       (screenTrack as any).onended = () => { if (screenTrackRef.current === screenTrack) void stopScreenShare(); };
       setState((current) => ({ ...current, isScreenSharing: true, screenStream: screen }));
+      keepCallAudioActive(state.speakerEnabled, "video");
       renegotiate(true);
       // Không chặn offer bởi setParameters: người nhận nhận track sớm hơn, sau đó bitrate được tinh chỉnh nền.
       void stabilizeScreenShareSender(transceiver.sender);
     } catch (error) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể chia sẻ màn hình." }));
     }
-  }, [renegotiate, state.cameraEnabled, state.isScreenSharing, state.mode, state.status, stopScreenShare]);
+  }, [renegotiate, state.cameraEnabled, state.isScreenSharing, state.mode, state.muted, state.speakerEnabled, state.status, stopScreenShare]);
 
   useEffect(() => {
     const pending = pendingNotificationActionRef.current;

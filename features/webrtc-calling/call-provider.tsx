@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { createContext, useContext, useMemo, useRef, type PropsWithChildren } from "react";
-import { Animated, Dimensions, PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
+import { createContext, useContext, useEffect, useMemo, useRef, type PropsWithChildren } from "react";
+import { Animated, AppState, Dimensions, PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { VideoCall } from "./components/VideoCall";
@@ -47,6 +47,14 @@ export function CallProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuth();
   const call = useWebRTC(isAuthenticated);
   useCallSounds(call.status, call.direction, call.mode);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      // Sau khi bấm Home, không thể vẽ overlay trên launcher nếu không xin quyền SYSTEM_ALERT_WINDOW.
+      // Thu nhỏ ngay giúp avatar quay lại call hiện sẵn khi người dùng mở lại KINI; incoming ringing vẫn không bị ẩn.
+      if ((nextState === "inactive" || nextState === "background") && call.status !== "idle") call.minimizeCall();
+    });
+    return () => subscription.remove();
+  }, [call.minimizeCall, call.status]);
   return <CallContext.Provider value={call}>{children}<CallOverlay call={call} /></CallContext.Provider>;
 }
 

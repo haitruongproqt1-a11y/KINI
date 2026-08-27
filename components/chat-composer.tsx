@@ -3,7 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { kiniColors } from "@/components/kini-ui";
 
@@ -13,7 +13,7 @@ type AttachmentAction = { icon: React.ComponentProps<typeof MaterialIcons>["name
 
 const stickers = ["👍", "❤️", "😂", "🎉", "✨", "🥳", "👏", "😎"];
 
-export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, pasteNonce = 0, replyingTo, onClearReply, bottomInset = 0, onInputFocus }: {
+export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, pasteNonce = 0, replyingTo, onClearReply, bottomInset = 0, onInputFocus, sentFeedbackNonce = 0 }: {
   onSendText: (value: string) => void;
   onSendAttachment: (attachment: Attachment) => void;
   onQueueAttachment: (attachment: QueuedAttachment) => void;
@@ -22,12 +22,25 @@ export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, 
   onClearReply?: () => void;
   bottomInset?: number;
   onInputFocus?: () => void;
+  sentFeedbackNonce?: number;
 }) {
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const [inputHeight, setInputHeight] = useState(42);
   const inputRef = useRef<TextInput>(null);
+  const sentPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!sentFeedbackNonce) return;
+    sentPulse.stopAnimation();
+    sentPulse.setValue(0);
+    Animated.sequence([
+      Animated.timing(sentPulse, { toValue: 1, duration: 140, useNativeDriver: true }),
+      Animated.delay(220),
+      Animated.timing(sentPulse, { toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start();
+  }, [sentFeedbackNonce, sentPulse]);
 
   useEffect(() => {
     if (!pasteNonce) return;
@@ -96,6 +109,10 @@ export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, 
 
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(bottomInset, 10) }]}>
+      <Animated.View pointerEvents="none" style={[styles.sentPulse, { opacity: sentPulse, transform: [{ scale: sentPulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }] }]}>
+        <MaterialIcons name="check-circle" size={19} color={kiniColors.green} />
+        <Text style={styles.sentPulseText}>Đã gửi</Text>
+      </Animated.View>
       {replyingTo ? <View style={styles.replying}><View style={styles.replyLine} /><View style={styles.replyCopy}><Text style={styles.replyLabel}>Đang trả lời</Text><Text numberOfLines={1} style={styles.replyText}>{replyingTo}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Bỏ trả lời" onPress={onClearReply} style={styles.replyClose}><MaterialIcons name="close" size={19} color={kiniColors.muted} /></TouchableOpacity></View> : null}
       <View style={styles.composer}>
         <TouchableOpacity onPress={() => setShowActions(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Gửi ảnh, video hoặc tệp"><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
@@ -109,7 +126,9 @@ export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, 
 }
 
 const styles = StyleSheet.create({
-  wrapper: { backgroundColor: kiniColors.white, borderTopColor: kiniColors.line, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingTop: 8 },
+  wrapper: { position: "relative", backgroundColor: kiniColors.white, borderTopColor: kiniColors.line, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingTop: 8 },
+  sentPulse: { position: "absolute", right: 18, top: -35, minHeight: 28, borderRadius: 14, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F2FBF6", borderWidth: 1, borderColor: "#D7F1E2" },
+  sentPulseText: { color: kiniColors.green, fontSize: 11, fontWeight: "900" },
   uploading: { marginHorizontal: 2, marginBottom: 8, borderRadius: 14, padding: 8, backgroundColor: kiniColors.cloud, flexDirection: "row", gap: 9, alignItems: "center" },
   previewFrame: { width: 58, height: 58, overflow: "hidden", borderRadius: 12, backgroundColor: kiniColors.navy },
   previewImage: { width: "100%", height: "100%" },

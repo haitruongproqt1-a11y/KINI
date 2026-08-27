@@ -1,7 +1,9 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system/legacy";
+import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
+import { useAudioPlayer } from "expo-audio";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -35,6 +37,7 @@ import { formatKiniPresence } from "@/lib/kini-presence";
 import { trpc } from "@/lib/trpc";
 
 type ReplyTarget = { id: number; content: string };
+const sentMessageSound = require("@/assets/audio/kini-message-sent.mp3");
 type Message = {
   id: number | string;
   conversationId: number;
@@ -248,7 +251,9 @@ export default function ChatScreen() {
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [pasteNonce, setPasteNonce] = useState(0);
   const [androidKeyboardOverlap, setAndroidKeyboardOverlap] = useState(0);
+  const [sentFeedbackNonce, setSentFeedbackNonce] = useState(0);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const sentMessagePlayer = useAudioPlayer(sentMessageSound);
   const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 8000, refetchIntervalInBackground: false, staleTime: 1_500, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
   const directCallEnabled = isAuthenticated && conversation?.kind === "direct";
@@ -270,6 +275,15 @@ export default function ChatScreen() {
   const headerPresence = formatKiniPresence(presenceQuery.data);
 
   const scrollToLatest = () => requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+  const confirmMessageSent = () => {
+    setSentFeedbackNonce((value) => value + 1);
+    if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    try {
+      sentMessagePlayer.volume = 0.24;
+      sentMessagePlayer.seekTo(0);
+      sentMessagePlayer.play();
+    } catch { /* Âm thanh là phản hồi bổ sung; gửi tin vẫn thành công nếu thiết bị chặn media. */ }
+  };
   useEffect(() => {
     if (messagesQuery.data?.length) markRead.mutate({ conversationId });
   }, [conversationId, messagesQuery.data?.length]);
@@ -310,6 +324,7 @@ export default function ChatScreen() {
         });
         void utils.chat.list.invalidate();
         setReplyTarget(null);
+        confirmMessageSent();
       },
       onError: () => setOptimisticMessages((current) => current.map((message) => message.clientMessageId === clientMessageId ? { ...message, failed: true, status: "sent" } : message)),
     });
@@ -407,7 +422,7 @@ export default function ChatScreen() {
         ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
       />
       <View style={androidKeyboardOverlap > 0 ? { marginBottom: androidKeyboardOverlap } : undefined}>
-        <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} onQueueAttachment={queueAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
+        <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} onQueueAttachment={queueAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} sentFeedbackNonce={sentFeedbackNonce} />
       </View>
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <View style={styles.viewer}>

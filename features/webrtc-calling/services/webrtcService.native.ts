@@ -92,7 +92,21 @@ export async function stabilizeScreenShareSender(sender: any) {
 }
 
 export async function createDisplayMedia(): Promise<NativeStream> {
+  // Screen stream chỉ mang video. Microphone của call được giữ trên local stream riêng để hai bên vẫn đàm thoại.
   return mediaDevices.getDisplayMedia();
+}
+
+/** Khôi phục audio focus sau khi MediaProjection trên Android khởi động mà không tạo stream micro thứ hai. */
+export function keepCallAudioActive(speakerEnabled: boolean, mode: CallMode) {
+  if (Platform.OS === "android") {
+    try {
+      if (!androidVoiceAudioActive) InCallManager.start({ media: mode === "voice" ? "audio" : "video", auto: true });
+      InCallManager.setForceSpeakerphoneOn(speakerEnabled);
+      androidVoiceAudioActive = true;
+    } catch { /* Không để audio route làm gián đoạn screen share đang chạy. */ }
+    return;
+  }
+  void configureCallAudio(speakerEnabled, mode).catch(() => undefined);
 }
 
 export function streamFromTrack(track: MediaStreamTrack): NativeStream {

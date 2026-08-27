@@ -284,12 +284,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.26",
-      appVersion: "1.8.29",
-      buildNumber: 29,
-      notes: "Bản ổn định: vẫn giữ incoming-call KINI toàn màn hình và tự dọn banner CallStyle trùng, chỉ báo notification tin nhắn/gọi nhỡ; dừng nhạc chờ ngay tại máy khi kết thúc call kể cả khi signaling chậm; composer bù vùng bàn phím chỉ trên ROM Android không tự resize.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.26",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.26/KINI-Release-v1.26.apk",
+      releaseCode: "v1.27",
+      appVersion: "1.8.30",
+      buildNumber: 30,
+      notes: "Bản cải thiện: rung nhẹ một lần khi cuộc gọi thật sự kết nối; phản hồi âm thanh và hoạt ảnh nhỏ sau khi server xác nhận gửi tin; giữ microphone/audio focus riêng khi khởi động screen share; vào nền sẽ thu nhỏ call để nút quay lại hiện khi mở lại KINI. Incoming call vẫn là full-screen KINI và chỉ giữ notification tin nhắn/gọi nhỡ.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.27",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.27/KINI-Release-v1.27.apk",
     });
   });
 

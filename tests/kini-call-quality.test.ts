@@ -11,11 +11,20 @@ describe("KINI WebRTC call quality", () => {
     expect(nativeService).toContain("echoCancellation: true");
     expect(nativeService).toContain("noiseSuppression: true");
     expect(nativeService).toContain("autoGainControl: true");
+    expect(nativeService).toContain("Microphone của call được giữ trên local stream riêng");
+    expect(nativeService).toContain("keepCallAudioActive");
+    expect(callHook).toContain("microphoneTrack");
   });
 
   it("samples selected/nominated candidate pairs before displaying round-trip ping", () => {
     expect(callHook).toContain("report.selected === true || report.nominated === true");
     expect(callHook).toContain("totalRoundTripTime / pair.responsesReceived");
     expect(callHook).toContain("Math.min(60_000");
+  });
+
+  it("rung nhẹ một lần khi WebRTC chuyển sang kết nối", () => {
+    expect(callHook).toContain("connectedFeedbackRef");
+    expect(callHook).toContain("Haptics.ImpactFeedbackStyle.Light");
+    expect(callHook).toContain("notifyConnected()");
   });
 });

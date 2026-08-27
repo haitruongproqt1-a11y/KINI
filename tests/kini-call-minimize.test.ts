@@ -14,6 +14,8 @@ describe("KINI minimized call", () => {
     expect(provider).toContain("MinimizedCall");
     expect(provider).toContain("Quay lại cuộc gọi");
     expect(provider).toContain("Quay lại chia sẻ màn hình");
+    expect(provider).toContain('AppState.addEventListener("change"');
+    expect(provider).toContain("SYSTEM_ALERT_WINDOW");
   });
 
   it("provides minimize controls for both voice and video without hiding incoming actions", () => {

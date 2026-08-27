@@ -278,3 +278,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Dừng nhạc chờ ngay khi người gọi hoặc người nhận kết thúc cuộc gọi
 - [x] Khôi phục composer chat hiển thị trên bàn phím Android và vùng chat co giãn đúng
 - [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi call/chat
+
+- [x] Thêm rung nhẹ một lần khi call chuyển sang đã kết nối ở phía người gọi và người nhận
+- [x] Thêm phản hồi âm thanh cùng hoạt ảnh tinh tế khi tin nhắn gửi thành công
+- [x] Củng cố đường audio hai chiều trong quá trình chia sẻ màn hình Android
+- [x] Giữ nút quay lại call trong KINI, làm rõ giới hạn không phủ nổi ngoài ứng dụng sau khi bấm Home
+- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI cải thiện call/chat
