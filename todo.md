@@ -277,4 +277,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Loại bỏ banner notification cuộc gọi đến trùng với màn KINI full-screen cho voice và video
 - [x] Dừng nhạc chờ ngay khi người gọi hoặc người nhận kết thúc cuộc gọi
 - [x] Khôi phục composer chat hiển thị trên bàn phím Android và vùng chat co giãn đúng
-- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi call/chat
+- [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK KINI sửa lỗi call/chat
