@@ -3,20 +3,20 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Keyboard, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { kiniColors } from "@/components/kini-ui";
-import { uploadMedia } from "@/lib/media";
 
 type Attachment = { id: string; kind: "image" | "video" | "file" | "sticker"; name: string; uri?: string; contentType?: string; size?: number | null };
+type QueuedAttachment = { kind: "image" | "video" | "file"; name: string; uri: string; contentType: string; size?: number | null };
 type AttachmentAction = { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; color: string; onPress: () => void };
-type UploadPreview = { uri?: string; kind: "image" | "video" | "file"; name: string };
 
 const stickers = ["👍", "❤️", "😂", "🎉", "✨", "🥳", "👏", "😎"];
 
-export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, replyingTo, onClearReply, bottomInset = 0, onInputFocus }: {
+export function ChatComposer({ onSendText, onSendAttachment, onQueueAttachment, pasteNonce = 0, replyingTo, onClearReply, bottomInset = 0, onInputFocus }: {
   onSendText: (value: string) => void;
   onSendAttachment: (attachment: Attachment) => void;
+  onQueueAttachment: (attachment: QueuedAttachment) => void;
   pasteNonce?: number;
   replyingTo?: string | null;
   onClearReply?: () => void;
@@ -26,10 +26,6 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadLabel, setUploadLabel] = useState("");
-  const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
   const [inputHeight, setInputHeight] = useState(42);
   const inputRef = useRef<TextInput>(null);
 
@@ -58,30 +54,10 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
     requestAnimationFrame(() => inputRef.current?.setNativeProps({ text: "" }));
   };
 
-  const uploadAsset = async (asset: ImagePicker.ImagePickerAsset, kind: "image" | "video") => {
+  const queueAsset = (asset: ImagePicker.ImagePickerAsset, kind: "image" | "video") => {
     const name = asset.fileName ?? `${kind}-${Date.now()}.${kind === "video" ? "mp4" : "jpg"}`;
     setShowActions(false);
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadLabel(kind === "video" ? "Đang gửi video" : "Đang gửi ảnh");
-    setUploadPreview({ uri: asset.uri, kind, name });
-    try {
-      const uploaded = await uploadMedia(
-        asset.uri,
-        name,
-        asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),
-        asset.fileSize,
-        setUploadProgress,
-      );
-      onSendAttachment({ id: `${Date.now()}-${kind}`, kind, name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size });
-    } catch (error) {
-      Alert.alert("Không thể gửi media", error instanceof Error ? error.message : "Vui lòng kiểm tra kết nối và thử lại.");
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setUploadLabel("");
-      setUploadPreview(null);
-    }
+    onQueueAttachment({ kind, name, uri: asset.uri, contentType: asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"), size: asset.fileSize });
   };
 
   const requestMediaAccess = async (message: string) => {
@@ -94,14 +70,14 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
 
   const selectImage = async () => {
     if (!await requestMediaAccess("KINI cần quyền thư viện ảnh để gửi hình ảnh.")) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: false, quality: 0.72 });
-    if (!result.canceled && result.assets.length) await uploadAsset(result.assets[0], "image");
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.72 });
+    if (!result.canceled && result.assets.length) result.assets.forEach((asset) => queueAsset(asset, "image"));
   };
 
   const selectVideo = async () => {
     if (!await requestMediaAccess("KINI cần quyền thư viện để chọn video.")) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsMultipleSelection: false });
-    if (!result.canceled && result.assets.length) await uploadAsset(result.assets[0], "video");
+    if (!result.canceled && result.assets.length) queueAsset(result.assets[0], "video");
   };
 
   const selectDocument = async () => {
@@ -109,21 +85,7 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
     const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
     if (result.canceled || !result.assets.length) return;
     const file = result.assets[0];
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadLabel("Đang gửi tệp");
-    setUploadPreview({ kind: "file", name: file.name });
-    try {
-      const uploaded = await uploadMedia(file.uri, file.name, file.mimeType ?? "application/octet-stream", file.size, setUploadProgress);
-      onSendAttachment({ id: `${Date.now()}-file`, kind: "file", name: uploaded.name, uri: uploaded.url, contentType: uploaded.contentType, size: uploaded.size });
-    } catch (error) {
-      Alert.alert("Không thể gửi tệp", error instanceof Error ? error.message : "Vui lòng kiểm tra kết nối và thử lại.");
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setUploadLabel("");
-      setUploadPreview(null);
-    }
+    onQueueAttachment({ kind: "file", name: file.name, uri: file.uri, contentType: file.mimeType ?? "application/octet-stream", size: file.size });
   };
 
   const actions: AttachmentAction[] = [
@@ -135,15 +97,8 @@ export function ChatComposer({ onSendText, onSendAttachment, pasteNonce = 0, rep
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(bottomInset, 10) }]}>
       {replyingTo ? <View style={styles.replying}><View style={styles.replyLine} /><View style={styles.replyCopy}><Text style={styles.replyLabel}>Đang trả lời</Text><Text numberOfLines={1} style={styles.replyText}>{replyingTo}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Bỏ trả lời" onPress={onClearReply} style={styles.replyClose}><MaterialIcons name="close" size={19} color={kiniColors.muted} /></TouchableOpacity></View> : null}
-      {isUploading ? <View style={styles.uploading} accessibilityLabel={`${uploadLabel} ${uploadProgress}%`}>
-        <View style={styles.previewFrame}>
-          {uploadPreview?.kind === "image" && uploadPreview.uri ? <Image source={{ uri: uploadPreview.uri }} style={styles.previewImage} /> : <View style={[styles.previewFallback, uploadPreview?.kind === "video" && styles.previewVideo]}><MaterialIcons name={uploadPreview?.kind === "video" ? "videocam" : "insert-drive-file"} size={25} color={kiniColors.white} /></View>}
-          <View style={styles.progressOverlay}><ActivityIndicator size="large" color={kiniColors.white} /><Text style={styles.progressPercent}>{uploadProgress}%</Text></View>
-        </View>
-        <View style={styles.uploadCopy}><Text numberOfLines={1} style={styles.uploadingText}>{uploadLabel}</Text><Text numberOfLines={1} style={styles.uploadingName}>{uploadPreview?.name}</Text><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${uploadProgress}%` }]} /></View></View>
-      </View> : null}
       <View style={styles.composer}>
-        <TouchableOpacity disabled={isUploading} onPress={() => setShowActions(true)} style={[styles.control, isUploading && styles.controlDisabled]} accessibilityRole="button" accessibilityLabel="Gửi ảnh, video hoặc tệp"><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowActions(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Gửi ảnh, video hoặc tệp"><MaterialIcons name="add-circle-outline" size={25} color={kiniColors.blue} /></TouchableOpacity>
         <TextInput ref={inputRef} editable value={value} onChangeText={setValue} onSubmitEditing={send} onFocus={onInputFocus} onContentSizeChange={(event) => setInputHeight(Math.max(42, Math.min(106, Math.ceil(event.nativeEvent.contentSize.height + 18))))} placeholder="Nhắn tin" placeholderTextColor="#97A4B5" returnKeyType="send" blurOnSubmit={false} style={[styles.input, { height: inputHeight }]} multiline />
         {value.trim() ? <TouchableOpacity onPress={send} style={styles.send} accessibilityRole="button" accessibilityLabel="Gửi tin nhắn"><MaterialIcons name="send" size={19} color={kiniColors.white} /></TouchableOpacity> : <TouchableOpacity onPress={() => setShowStickers(true)} style={styles.control} accessibilityRole="button" accessibilityLabel="Chọn sticker"><MaterialIcons name="sentiment-satisfied-alt" size={24} color={kiniColors.blue} /></TouchableOpacity>}
       </View>

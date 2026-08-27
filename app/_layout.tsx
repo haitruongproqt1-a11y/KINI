@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { ReleaseUpdateManager } from "@/components/release-update-manager";
 import { CallProvider } from "@/features/webrtc-calling/call-provider";
+import { MediaUploadProvider } from "@/features/media-upload/media-upload-provider";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -85,6 +86,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
+          <MediaUploadProvider>
           <CallProvider>
           <PushNotificationManager />
           <ReleaseUpdateManager />
@@ -98,6 +100,7 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style="dark" backgroundColor="#FFFFFF" />
           </CallProvider>
+          </MediaUploadProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

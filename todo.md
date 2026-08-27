@@ -246,3 +246,8 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Khôi phục vị trí composer sau gửi tin, nhận diện URL có thể sao chép/mở web và tăng khả năng đọc giao diện chat
 - [x] Xây dựng tab Trợ lý AI KINI riêng tư theo tài khoản, có lịch sử hội thoại và xóa từng cuộc trao đổi
 - [x] Kiểm thử migration, hồi quy call/chat/Nearby/AI và phát hành APK KINI mới
+
+- [x] Rà soát lifecycle upload và optimistic media message khi người dùng chuyển sang cuộc trò chuyện khác
+- [x] Thiết kế hàng đợi upload toàn cục có trạng thái đang chờ/đang gửi/thành công/thất bại và tiến trình thumbnail
+- [x] Giữ gửi ảnh/video nền tiếp tục khi chuyển chat, đồng thời composer và nhắn tin văn bản vẫn dùng được
+- [ ] Kiểm thử hồi quy upload nền ảnh/video và phát hành APK KINI mới

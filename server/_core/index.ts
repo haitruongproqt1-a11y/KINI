@@ -284,12 +284,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.21",
-      appVersion: "1.8.24",
-      buildNumber: 24,
-      notes: "Thêm liên hệ từ Tìm Quanh Đây, giới hạn upload ảnh 10 MB/tệp 2 GB, link có thể mở web, composer tự về vị trí đúng; tối ưu audio WebRTC/ping, thu nhỏ cuộc gọi để chat và thêm Trợ lý AI riêng tư theo tài khoản.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.21",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.21/KINI-Release-v1.21.apk",
+      releaseCode: "v1.22",
+      appVersion: "1.8.25",
+      buildNumber: 25,
+      notes: "Ảnh/video/tệp được đưa vào hàng đợi tải nền toàn cục: thumbnail hiển thị ngay trong chat với phần trăm, chuyển sang chat khác vẫn tiếp tục tải và vẫn có thể nhắn tin; tác vụ lỗi chạm để thử lại.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.22",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.22/KINI-Release-v1.22.apk",
     });
   });
 

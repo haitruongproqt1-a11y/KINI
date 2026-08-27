@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChatComposer } from "@/components/chat-composer";
 import { KiniMessageStatus } from "@/components/kini-message-status";
 import { Avatar, kiniColors } from "@/components/kini-ui";
+import { useKiniMediaUploadQueue, type MediaUploadJob } from "@/features/media-upload/media-upload-provider";
 import { useKiniCall } from "@/features/webrtc-calling/call-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCallDuration } from "@/lib/kini-call-format";
@@ -46,6 +47,9 @@ type Message = {
   createdAt: string | Date;
   status?: "sent" | "delivered" | "read";
   failed?: boolean;
+  uploadState?: "queued" | "uploading" | "sent" | "failed";
+  uploadProgress?: number;
+  uploadError?: string;
   replyToMessageId?: number;
 };
 
@@ -153,11 +157,12 @@ function CallTimelineEntry({ call }: { call: CallLog }) {
   </View>;
 }
 
-function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
+function MessageBubble({ item, isMine, onLongPress, onOpenMedia, onRetryUpload }: {
   item: Message;
   isMine: boolean;
   onLongPress: (message: Message) => void;
   onOpenMedia: (message: Message) => void;
+  onRetryUpload: (message: Message) => void;
 }) {
   const time = new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   const file = item.kind === "file";
@@ -172,7 +177,7 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={media ? "Media, chạm để xem, nhấn giữ để lưu" : "Tin nhắn, nhấn giữ để chọn thao tác"}
-        onPress={media && mediaUrl ? () => onOpenMedia(item) : undefined}
+        onPress={item.uploadState === "failed" ? () => onRetryUpload(item) : media && mediaUrl && !item.uploadState ? () => onOpenMedia(item) : undefined}
         onLongPress={() => onLongPress(item)}
         delayLongPress={350}
         style={[
@@ -198,12 +203,13 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
         ) : null}
         {media ? (
           mediaUrl ? (
-            item.kind === "album" ? <AlbumGrid urls={mediaUrls} /> : item.kind === "video" ? (
+            item.kind === "album" ? <View style={styles.mediaFrame}><AlbumGrid urls={mediaUrls} />{item.uploadState ? <UploadOverlay item={item} /> : null}</View> : item.kind === "video" ? (
               <View style={styles.mediaFrame}>
                 <VideoPreview url={mediaUrl} />
                 <View style={styles.playBadge}><MaterialIcons name="play-arrow" size={22} color={kiniColors.white} /></View>
+                {item.uploadState ? <UploadOverlay item={item} /> : null}
               </View>
-            ) : <Image source={{ uri: mediaUrl }} contentFit="cover" cachePolicy="disk" style={styles.mediaImage} />
+            ) : <View style={styles.mediaFrame}><Image source={{ uri: mediaUrl }} contentFit="cover" cachePolicy="disk" style={styles.mediaImage} />{item.uploadState ? <UploadOverlay item={item} /> : null}</View>
           ) : (
             <View style={styles.mediaPlaceholder}>
               <MaterialIcons name={item.kind === "video" ? "videocam" : item.kind === "album" ? "collections" : "image"} size={31} color={isMine ? kiniColors.white : kiniColors.blue} />
@@ -219,6 +225,12 @@ function MessageBubble({ item, isMine, onLongPress, onOpenMedia }: {
       </Pressable>
     </View>
   );
+}
+
+function UploadOverlay({ item }: { item: Message }) {
+  const failed = item.uploadState === "failed";
+  const label = failed ? "Chạm để thử lại" : item.uploadState === "queued" ? "Đang chờ gửi" : "Đang gửi";
+  return <View style={styles.uploadOverlay} pointerEvents="none"><View style={styles.uploadProgressRing}><ActivityIndicator size="large" color={kiniColors.white} /><Text style={styles.uploadProgressText}>{failed ? "!" : `${item.uploadProgress ?? 0}%`}</Text></View><Text numberOfLines={1} style={styles.uploadOverlayLabel}>{label}</Text></View>;
 }
 
 export default function ChatScreen() {
@@ -238,6 +250,7 @@ export default function ChatScreen() {
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
   const directCallEnabled = isAuthenticated && conversation?.kind === "direct";
   const call = useKiniCall();
+  const mediaQueue = useKiniMediaUploadQueue();
   const messagesQuery = trpc.chat.messages.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 5000, refetchIntervalInBackground: false, staleTime: 1_000, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
   const presenceQuery = trpc.chat.presence.useQuery({ conversationId }, { enabled: isAuthenticated && Number.isFinite(conversationId), refetchInterval: 45_000, refetchIntervalInBackground: false, staleTime: 8_000, retry: 2 });
   const callsQuery = trpc.calls.list.useQuery({ conversationId }, { enabled: directCallEnabled && Number.isFinite(conversationId), refetchInterval: 20_000, refetchIntervalInBackground: false, staleTime: 4_000, retry: 2 });
@@ -290,19 +303,27 @@ export default function ChatScreen() {
   };
   const sendText = (content: string) => sendOptimistically({ kind: "text", content, ...(replyTarget ? { replyToMessageId: replyTarget.id } : {}) });
   const sendAttachment = (attachment: { kind: "image" | "video" | "file" | "sticker"; name: string; uri?: string }) => sendOptimistically({ kind: attachment.kind, content: attachment.kind === "sticker" ? attachment.name : attachment.kind === "video" ? "Video" : attachment.name, attachmentName: attachment.name, attachmentUrl: attachment.uri });
+  const queueAttachment = (attachment: { kind: "image" | "video" | "file"; name: string; uri: string; contentType: string; size?: number | null }) => mediaQueue.enqueue({ ...attachment, conversationId });
   const selectReply = () => { if (selected) setReplyTarget({ id: Number(selected.id), content: selected.content }); setSelected(null); };
   const copyMessage = async () => { if (selected) await Clipboard.setStringAsync(selected.content); setSelected(null); };
   const pasteMessage = () => { setPasteNonce((value) => value + 1); setSelected(null); };
+  const queuedMessages = useMemo<Message[]>(() => mediaQueue.jobs.filter((job) => job.conversationId === conversationId).map((job: MediaUploadJob) => ({
+    id: `upload-${job.id}`, clientMessageId: job.clientMessageId, conversationId: job.conversationId, senderId: user?.id ?? 0, kind: job.kind, content: job.kind === "video" ? "Video" : job.name, attachmentName: job.name, attachmentUrl: job.remoteUrl ?? job.uri, createdAt: job.createdAt, status: "sent", failed: job.state === "failed", uploadState: job.state, uploadProgress: job.progress, uploadError: job.error,
+  })), [conversationId, mediaQueue.jobs, user?.id]);
   const thread = useMemo<Message[]>(() => {
     const serverMessages = (messagesQuery.data ?? []) as Message[];
     const serverClientIds = new Set(serverMessages.map((message) => message.clientMessageId).filter(Boolean));
-    return [...serverMessages, ...optimisticMessages.filter((message) => !message.clientMessageId || !serverClientIds.has(message.clientMessageId))].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [messagesQuery.data, optimisticMessages]);
+    return [...serverMessages, ...optimisticMessages.filter((message) => !message.clientMessageId || !serverClientIds.has(message.clientMessageId)), ...queuedMessages.filter((message) => !message.clientMessageId || !serverClientIds.has(message.clientMessageId))].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [messagesQuery.data, optimisticMessages, queuedMessages]);
   const timeline = useMemo<TimelineItem[]>(() => {
     const messageItems = thread.map((message) => ({ entryType: "message" as const, key: `message-${message.id}`, timestamp: new Date(message.createdAt).getTime(), message }));
     const callItems = ((callsQuery.data ?? []) as CallLog[]).map((call) => ({ entryType: "call" as const, key: `call-${call.id}`, timestamp: new Date(call.startedAt).getTime(), call }));
     return [...messageItems, ...callItems].sort((left, right) => left.timestamp - right.timestamp || left.key.localeCompare(right.key));
   }, [callsQuery.data, thread]);
+  const retryQueuedUpload = (message: Message) => {
+    const jobId = typeof message.id === "string" && message.id.startsWith("upload-") ? message.id.slice("upload-".length) : null;
+    if (jobId) mediaQueue.retry(jobId);
+  };
   const saveMedia = async () => {
     const media = selected;
     setSelected(null);
@@ -361,14 +382,14 @@ export default function ChatScreen() {
         ref={listRef}
         data={timeline}
         keyExtractor={(item) => item.key}
-        renderItem={({ item }) => item.entryType === "message" ? <MessageBubble item={item.message} isMine={item.message.senderId === user?.id} onLongPress={setSelected} onOpenMedia={setViewer} /> : <CallTimelineEntry call={item.call} />}
+        renderItem={({ item }) => item.entryType === "message" ? <MessageBubble item={item.message} isMine={item.message.senderId === user?.id} onLongPress={setSelected} onOpenMedia={setViewer} onRetryUpload={retryQueuedUpload} /> : <CallTimelineEntry call={item.call} />}
         contentContainerStyle={styles.thread}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         onContentSizeChange={scrollToLatest}
         ListHeaderComponent={<Text style={styles.today}>Tin nhắn được đồng bộ an toàn</Text>}
       />
-      <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
+      <ChatComposer onSendText={sendText} onSendAttachment={sendAttachment} onQueueAttachment={queueAttachment} pasteNonce={pasteNonce} replyingTo={replyTarget?.content ?? null} onClearReply={() => setReplyTarget(null)} bottomInset={insets.bottom} onInputFocus={scrollToLatest} />
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <View style={styles.viewer}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đóng trình xem media" onPress={() => setViewer(null)} style={styles.viewerClose}><MaterialIcons name="close" size={28} color={kiniColors.white} /></TouchableOpacity>
@@ -380,7 +401,7 @@ export default function ChatScreen() {
         <Pressable style={styles.modalBackdrop} onPress={() => setSelected(null)}>
           <Pressable style={[styles.actionSheet, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]} onPress={(event) => event.stopPropagation()}>
             <Text numberOfLines={2} style={styles.selectedPreview}>{selected?.content}</Text>
-            {selected?.attachmentUrl && (selected.kind === "image" || selected.kind === "album" || selected.kind === "video") ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Lưu media về máy" onPress={() => void saveMedia()} style={styles.action}><MaterialIcons name="download" size={21} color={kiniColors.blue} /><Text style={styles.actionText}>Lưu về máy</Text></TouchableOpacity> : null}
+            {selected?.attachmentUrl && !selected.uploadState && (selected.kind === "image" || selected.kind === "album" || selected.kind === "video") ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Lưu media về máy" onPress={() => void saveMedia()} style={styles.action}><MaterialIcons name="download" size={21} color={kiniColors.blue} /><Text style={styles.actionText}>Lưu về máy</Text></TouchableOpacity> : null}
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Trả lời tin nhắn" onPress={selectReply} style={styles.action}><MaterialIcons name="reply" size={21} color={kiniColors.blue} /><Text style={styles.actionText}>Trả lời</Text></TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Sao chép tin nhắn" onPress={() => void copyMessage()} style={styles.action}><MaterialIcons name="content-copy" size={20} color={kiniColors.blue} /><Text style={styles.actionText}>Sao chép</Text></TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Dán vào khung soạn thảo" onPress={pasteMessage} style={styles.action}><MaterialIcons name="content-paste" size={21} color={kiniColors.blue} /><Text style={styles.actionText}>Dán vào ô soạn thảo</Text></TouchableOpacity>
@@ -449,6 +470,10 @@ const styles = StyleSheet.create({
   mediaImage: { width: 225, height: 145 },
   videoPreview: { width: 225, height: 145, backgroundColor: "#10243D" },
   playBadge: { position: "absolute", left: 94, top: 56, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.58)" },
+  uploadOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "rgba(4, 17, 31, 0.42)" },
+  uploadProgressRing: { width: 62, height: 62, alignItems: "center", justifyContent: "center", borderRadius: 31, borderWidth: 3, borderColor: "rgba(255,255,255,0.82)", backgroundColor: "rgba(6, 18, 33, 0.58)" },
+  uploadProgressText: { position: "absolute", color: kiniColors.white, fontSize: 12, fontWeight: "900" },
+  uploadOverlayLabel: { maxWidth: 180, color: kiniColors.white, fontSize: 12, fontWeight: "900", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 3 },
   mediaPlaceholder: { minWidth: 205, minHeight: 112, alignItems: "center", justifyContent: "center", gap: 8, padding: 18, backgroundColor: "#EAF3FF" },
   mediaLabel: { color: kiniColors.blue, fontSize: 13, fontWeight: "800" },
   stickerBubble: { padding: 0, backgroundColor: "transparent" },
