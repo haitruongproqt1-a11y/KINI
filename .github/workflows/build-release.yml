@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.38
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.39
         required: true
-        default: v1.8.38
+        default: v1.8.39
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.35
+        description: Mã GitHub Release nhận APK, ví dụ v1.36
         required: true
-        default: v1.35
+        default: v1.36
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.38 · Build 38. Sửa volume Android: không chặn phím volume, không set hoặc lưu system volume; ngoài call dùng MUSIC, trong call dùng VOICE_CALL và audio focus voice communication. Khi kết thúc call, Home hoặc vuốt đóng app, KINI nhả focus, trả MODE_NORMAL, tắt loa ngoài và không để foreground service giữ audio."
+              --notes "KINI 1.8.39 · Build 39. Sửa volume Android: không chặn phím volume, không set hoặc lưu system volume; ngoài call dùng MUSIC, trong call dùng VOICE_CALL và audio focus voice communication. Khi kết thúc call, Home hoặc vuốt đóng app, KINI nhả focus, trả MODE_NORMAL, tắt loa ngoài và không để foreground service giữ audio."
           fi

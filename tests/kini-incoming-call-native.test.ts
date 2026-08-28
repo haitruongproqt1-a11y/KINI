@@ -69,6 +69,8 @@ describe("KINI Android full-screen incoming call", () => {
 
   it("không chặn volume key, không set volume hệ thống và có lifecycle audio rõ ràng", () => {
     expect(plugin).toContain("withMainActivity");
+    expect(plugin).toContain("import com.facebook.react.ReactPackage");
+    expect(plugin).not.toContain("import com.facebook.react.bridge.ReactPackage");
     expect(plugin).toContain("setVolumeControlStream(AudioManager.STREAM_MUSIC)");
     expect(plugin).toContain("setVolumeControlStream(AudioManager.STREAM_VOICE_CALL)");
     expect(plugin).toContain("manager.mode = AudioManager.MODE_IN_COMMUNICATION");
