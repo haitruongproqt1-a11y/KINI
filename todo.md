@@ -320,3 +320,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Rà soát mọi nhánh từ chối/kết thúc để dừng ringtone/ringback ở cả hai phía
 - [x] Khi screen share kết nối, chỉ hiển thị màn hình người chia sẻ và tắt camera remote đến khi dừng share
 - [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK GitHub sau khi hoàn tất các sửa đổi có phạm vi giới hạn
+
+- [ ] Rà soát và loại bỏ mọi bắt phím volume hoặc return true làm chặn VOLUME_UP/DOWN
+- [ ] Rà soát và loại bỏ lưu/set cứng system volume, không đụng STREAM_RING/NOTIFICATION/ALARM
+- [ ] Phân tách volumeControlStream và audio focus giữa ngoài cuộc gọi với call/video/screen share
+- [ ] Nhả audio focus, MODE_NORMAL và speakerphone khi kết thúc call hoặc mọi lifecycle app/service thoát
+- [ ] Kiểm thử volume A-D, hồi quy call và phát hành APK KINI sửa volume/lifecycle

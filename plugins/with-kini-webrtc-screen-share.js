@@ -13,6 +13,7 @@ const MEDIA_PROJECTION_PERMISSIONS = [
 function nativeOverlaySource(packageName, deepLinkScheme) {
   return `package ${packageName}.kini.screenshare
 
+import ${packageName}.kini.incomingcall.KiniAudioSession
 import android.content.Context
 import android.content.Intent
 import android.app.Notification
@@ -164,7 +165,21 @@ class KiniScreenShareOverlayModule(private val context: ReactApplicationContext)
 
 /** Foreground service riêng giữ quyền microphone khi MediaProjection chạy sau khi KINI vào nền. */
 class KiniScreenShareAudioService : Service() {
+  private var taskRemoved = false
+
   override fun onBind(intent: Intent?): IBinder? = null
+
+  override fun onTaskRemoved(rootIntent: Intent?) {
+    taskRemoved = true
+    KiniAudioSession.release(applicationContext)
+    stopSelf()
+    super.onTaskRemoved(rootIntent)
+  }
+
+  override fun onDestroy() {
+    if (taskRemoved) KiniAudioSession.release(applicationContext)
+    super.onDestroy()
+  }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

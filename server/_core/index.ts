@@ -308,12 +308,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.34",
-      appVersion: "1.8.37",
-      buildNumber: 37,
-      notes: "Incoming call nền/màn khóa dùng full-screen Activity KINI không đăng ký Telecom UI riêng và chỉ phát ringtone đã đóng gói của KINI; ringback gọi đi cũng chỉ dùng audio KINI. Khi screen share, màn hình được ưu tiên tuyệt đối, camera người xem bị khóa đến khi dừng share và audio/micro nền tiếp tục qua foreground service.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.34",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.34/KINI-Release-v1.34.apk",
+      releaseCode: "v1.35",
+      appVersion: "1.8.38",
+      buildNumber: 38,
+      notes: "Sửa volume Android: không chặn phím volume, không set hoặc lưu system volume; ngoài call dùng MUSIC, trong call dùng VOICE_CALL và audio focus voice communication. Khi kết thúc call, Home hoặc vuốt đóng app, KINI nhả focus, trả MODE_NORMAL, tắt loa ngoài và không để foreground service giữ audio.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.35",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.35/KINI-Release-v1.35.apk",
     });
   });
 

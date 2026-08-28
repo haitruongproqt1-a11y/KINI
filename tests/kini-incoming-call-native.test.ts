@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const plugin = readFileSync(resolve(import.meta.dirname, "../plugins/with-kini-incoming-call.js"), "utf8");
 const pushServer = readFileSync(resolve(import.meta.dirname, "../server/push.ts"), "utf8");
+const audioServicePlugin = readFileSync(resolve(import.meta.dirname, "../plugins/with-kini-webrtc-screen-share.js"), "utf8");
+const nativeAudioClient = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/services/webrtcService.native.ts"), "utf8");
 
 describe("KINI Android full-screen incoming call", () => {
   it("khai báo Firebase Messaging và Activity full-screen KINI, không đăng ký Telecom UI riêng", () => {
@@ -63,6 +65,28 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("KiniIncomingCallSettingsModule");
     expect(plugin).toContain("ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT");
     expect(plugin).toContain("canUseFullScreenIntent()");
+  });
+
+  it("không chặn volume key, không set volume hệ thống và có lifecycle audio rõ ràng", () => {
+    expect(plugin).toContain("withMainActivity");
+    expect(plugin).toContain("setVolumeControlStream(AudioManager.STREAM_MUSIC)");
+    expect(plugin).toContain("setVolumeControlStream(AudioManager.STREAM_VOICE_CALL)");
+    expect(plugin).toContain("manager.mode = AudioManager.MODE_IN_COMMUNICATION");
+    expect(plugin).toContain("manager.mode = AudioManager.MODE_NORMAL");
+    expect(plugin).toContain("manager.isSpeakerphoneOn = false");
+    expect(plugin).toContain("onActivityPause");
+    expect(plugin).toContain("onActivityStop");
+    expect(plugin).toContain("onActivityDestroy");
+    expect(plugin).not.toContain("KEYCODE_VOLUME_UP");
+    expect(plugin).not.toContain("KEYCODE_VOLUME_DOWN");
+    expect(plugin).not.toContain("setStreamVolume");
+    expect(plugin).not.toContain("SharedPreferences");
+    expect(audioServicePlugin).toContain("override fun onTaskRemoved");
+    expect(audioServicePlugin).toContain("KiniAudioSession.release(applicationContext)");
+    expect(nativeAudioClient).toContain("KiniAudioSession.enterCall");
+    expect(nativeAudioClient).toContain("KiniAudioSession.release");
+    expect(nativeAudioClient).toContain("InCallManager.stop()");
+    expect(nativeAudioClient).toContain("InCallManager.abandonAudioFocus()");
   });
 
   it("gửi end push cho peer cả sau khi cuộc gọi đã được nhận", () => {

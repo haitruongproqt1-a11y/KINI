@@ -4,6 +4,7 @@ const {
   withAndroidManifest,
   withAppBuildGradle,
   withDangerousMod,
+  withMainActivity,
   withMainApplication,
 } = require("@expo/config-plugins");
 
@@ -320,6 +321,88 @@ class KiniConnection(private val context: Context, val callId: String, val calle
 }
 `;
 
+  const audioSessionModule = `package ${packageName}.kini.incomingcall
+
+import android.app.Activity
+import android.content.Context
+import android.media.AudioManager
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.uimanager.ViewManager
+
+/** Audio session duy nhất của KINI: không đọc/ghi bất kỳ system volume nào. */
+object KiniAudioSession {
+  private var callActive = false
+
+  @Synchronized
+  fun enterCall(context: Context) {
+    val activity = (context as? ReactApplicationContext)?.currentActivity
+    activity?.setVolumeControlStream(AudioManager.STREAM_VOICE_CALL)
+    try {
+      val manager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      manager.mode = AudioManager.MODE_IN_COMMUNICATION
+    } catch (_: Exception) { }
+    callActive = true
+  }
+
+  @Synchronized
+  fun release(context: Context) {
+    val manager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    try { manager.mode = AudioManager.MODE_NORMAL } catch (_: Exception) { }
+    if (callActive) {
+      try { manager.isSpeakerphoneOn = false } catch (_: Exception) { }
+    }
+    (context as? ReactApplicationContext)?.currentActivity?.setVolumeControlStream(AudioManager.STREAM_MUSIC)
+    callActive = false
+  }
+
+  @Synchronized fun isCallActive() = callActive
+
+  @Synchronized fun setDefaultActivityAudio(activity: Activity) {
+    if (!callActive) {
+      activity.setVolumeControlStream(AudioManager.STREAM_MUSIC)
+      val manager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      try { manager.mode = AudioManager.MODE_NORMAL } catch (_: Exception) { }
+    }
+  }
+
+  @Synchronized fun onActivityPause(context: Context) { if (!callActive) release(context) }
+  @Synchronized fun onActivityStop(context: Context) { if (!callActive) release(context) }
+  @Synchronized fun onActivityDestroy(context: Context) { release(context) }
+}
+
+class KiniAudioSessionModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+  override fun getName() = "KiniAudioSession"
+
+  @ReactMethod
+  fun enterCall(promise: Promise) {
+    KiniAudioSession.enterCall(context)
+    promise.resolve(true)
+  }
+
+  @ReactMethod
+  fun release(promise: Promise) {
+    KiniAudioSession.release(context)
+    promise.resolve(true)
+  }
+
+  override fun invalidate() {
+    KiniAudioSession.release(context)
+    super.invalidate()
+  }
+}
+
+class KiniAudioSessionPackage : ReactPackage {
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(KiniAudioSessionModule(reactContext))
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+}
+
+`;
+
   const fullScreenSettingsModule = `package ${packageName}.kini.incomingcall
 
 import android.app.NotificationManager
@@ -582,6 +665,7 @@ class KiniIncomingCallActivity : Activity() {
 
   return [
     [path.join(dir, "KiniCallNotifier.kt"), notifier],
+    [path.join(dir, "KiniAudioSessionModule.kt"), audioSessionModule],
     [path.join(dir, "KiniFirebaseMessagingService.kt"), messagingService],
     [path.join(dir, "KiniConnectionService.kt"), connectionService],
     [path.join(dir, "KiniIncomingCallSettingsModule.kt"), fullScreenSettingsModule],
@@ -624,15 +708,46 @@ module.exports = function withKiniIncomingCall(config) {
     return mod;
   });
 
+  config = withMainActivity(config, (mod) => {
+    if (mod.modResults.language !== "kt") return mod;
+    let contents = mod.modResults.contents;
+    if (!contents.includes("KiniAudioSession.setDefaultActivityAudio")) {
+      const firstImport = contents.indexOf("import ");
+      const audioImport = `import android.media.AudioManager\nimport ${packageName}.kini.incomingcall.KiniAudioSession\n`;
+      if (firstImport >= 0) contents = `${contents.slice(0, firstImport)}${audioImport}${contents.slice(firstImport)}`;
+      contents = contents.replace(
+        "  override fun onCreate(savedInstanceState: Bundle?) {\n",
+        "  override fun onCreate(savedInstanceState: Bundle?) {\n    KiniAudioSession.setDefaultActivityAudio(this)\n",
+      );
+      contents = contents.replace(
+        "    super.onCreate(null)\n  }\n",
+        "    super.onCreate(null)\n    KiniAudioSession.setDefaultActivityAudio(this)\n  }\n",
+      );
+      const lifecycleAnchor = "  /**\n   * Returns the name of the main component";
+      const lifecycle = `  override fun onResume() {\n    super.onResume()\n    if (!KiniAudioSession.isCallActive()) setVolumeControlStream(AudioManager.STREAM_MUSIC)\n  }\n\n  override fun onPause() {\n    KiniAudioSession.onActivityPause(this)\n    super.onPause()\n  }\n\n  override fun onStop() {\n    KiniAudioSession.onActivityStop(this)\n    super.onStop()\n  }\n\n  override fun onDestroy() {\n    KiniAudioSession.onActivityDestroy(this)\n    super.onDestroy()\n  }\n\n`;
+      contents = contents.replace(lifecycleAnchor, lifecycle + lifecycleAnchor);
+    }
+    mod.modResults.contents = contents;
+    return mod;
+  });
+
   config = withMainApplication(config, (mod) => {
     if (mod.modResults.language !== "kt") return mod;
     let contents = mod.modResults.contents;
+    const firstImport = contents.indexOf("import ");
+    const packagesMarker = "PackageList(this).packages.apply {";
     if (!contents.includes("KiniIncomingCallSettingsPackage")) {
-      const firstImport = contents.indexOf("import ");
       const settingsImport = `import ${packageName}.kini.incomingcall.KiniIncomingCallSettingsPackage\n`;
       if (firstImport >= 0) contents = `${contents.slice(0, firstImport)}${settingsImport}${contents.slice(firstImport)}`;
-      const packagesMarker = "PackageList(this).packages.apply {";
-      if (contents.includes(packagesMarker)) contents = contents.replace(packagesMarker, `${packagesMarker}\n              add(KiniIncomingCallSettingsPackage())`);
+    }
+    if (!contents.includes("KiniAudioSessionPackage")) {
+      const audioImport = `import ${packageName}.kini.incomingcall.KiniAudioSessionPackage\n`;
+      const importIndex = contents.indexOf("import ");
+      if (importIndex >= 0) contents = `${contents.slice(0, importIndex)}${audioImport}${contents.slice(importIndex)}`;
+    }
+    if (contents.includes(packagesMarker)) {
+      if (!contents.includes("add(KiniIncomingCallSettingsPackage())")) contents = contents.replace(packagesMarker, `${packagesMarker}\n              add(KiniIncomingCallSettingsPackage())`);
+      if (!contents.includes("add(KiniAudioSessionPackage())")) contents = contents.replace(packagesMarker, `${packagesMarker}\n              add(KiniAudioSessionPackage())`);
     }
     mod.modResults.contents = contents;
     return mod;

@@ -1,5 +1,5 @@
 import { setAudioModeAsync } from "expo-audio";
-import { PermissionsAndroid, Platform } from "react-native";
+import { NativeModules, PermissionsAndroid, Platform } from "react-native";
 import InCallManager from "react-native-incall-manager";
 import {
   mediaDevices,
@@ -18,6 +18,19 @@ export type NativeStream = MediaStream;
 
 let androidVoiceAudioActive = false;
 
+const KiniAudioSession = NativeModules.KiniAudioSession as {
+  enterCall?: () => void;
+  release?: () => void;
+};
+
+function enterKiniAudioSession() {
+  try { KiniAudioSession.enterCall?.(); } catch { /* Native audio session không được chặn signaling. */ }
+}
+
+function releaseKiniAudioSession() {
+  try { KiniAudioSession.release?.(); } catch { /* Cleanup phải an toàn cả khi React host đã đóng. */ }
+}
+
 async function configureExpoAudio(speakerEnabled: boolean) {
   if (Platform.OS === "android") return;
   await setAudioModeAsync({
@@ -31,10 +44,13 @@ async function configureExpoAudio(speakerEnabled: boolean) {
 async function configureCallAudio(speakerEnabled: boolean, mode: CallMode) {
   // Android dùng InCallManager cho cả thoại/video để WebRTC giữ audio focus và route loa ổn định.
   if (Platform.OS === "android") {
+    if (!androidVoiceAudioActive) {
+      enterKiniAudioSession();
+      androidVoiceAudioActive = true;
+    }
     try {
       InCallManager.start({ media: mode === "voice" ? "audio" : "video", auto: true });
       InCallManager.setForceSpeakerphoneOn(speakerEnabled);
-      androidVoiceAudioActive = true;
     } catch {
       // Không để lỗi audio route native làm crash hoặc chặn signaling.
     }
@@ -164,8 +180,11 @@ export function stopInCall() {
   if (Platform.OS === "android") {
     // Ringback có thể bắt đầu trước audio session WebRTC; luôn dừng riêng dù session chưa kịp được đánh dấu active.
     try { InCallManager.stopRingback(); } catch { /* Native ringback đã dừng hoặc chưa khởi tạo. */ }
-    if (!androidVoiceAudioActive) return;
-    try { InCallManager.stop(); } catch { /* Audio session đã được hệ điều hành giải phóng. */ }
+    if (androidVoiceAudioActive) {
+      try { InCallManager.stop(); } catch { /* Audio session đã được hệ điều hành giải phóng. */ }
+    }
+    void InCallManager.abandonAudioFocus().catch(() => undefined);
+    releaseKiniAudioSession();
     androidVoiceAudioActive = false;
     return;
   }
