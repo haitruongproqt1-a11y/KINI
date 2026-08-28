@@ -15,11 +15,17 @@ function nativeOverlaySource(packageName, deepLinkScheme) {
 
 import android.content.Context
 import android.content.Intent
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
+import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -156,8 +162,63 @@ class KiniScreenShareOverlayModule(private val context: ReactApplicationContext)
   private fun dp(value: Int) = (value * context.resources.displayMetrics.density).toInt()
 }
 
+/** Foreground service riêng giữ quyền microphone khi MediaProjection chạy sau khi KINI vào nền. */
+class KiniScreenShareAudioService : Service() {
+  override fun onBind(intent: Intent?): IBinder? = null
+
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val channelId = "kini_screen_share_audio"
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      manager.createNotificationChannel(NotificationChannel(channelId, "Chia sẻ màn hình KINI", NotificationManager.IMPORTANCE_LOW).apply {
+        setSound(null, null)
+        setShowBadge(false)
+      })
+    }
+    val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, channelId) else Notification.Builder(this)
+    builder
+      .setSmallIcon(applicationInfo.icon)
+      .setContentTitle("KINI đang chia sẻ màn hình")
+      .setContentText("Đang giữ micro cho cuộc gọi.")
+      .setOngoing(true)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) builder.setSilent(true)
+    val notification = builder.build()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      startForeground(74_421, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+    } else {
+      startForeground(74_421, notification)
+    }
+    return START_NOT_STICKY
+  }
+}
+
+class KiniScreenShareAudioModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+  override fun getName() = "KiniScreenShareAudio"
+
+  @ReactMethod
+  fun start(promise: Promise) {
+    try {
+      val intent = Intent(context, KiniScreenShareAudioService::class.java)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent) else context.startService(intent)
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("screen_share_audio", "Không thể duy trì micro khi chia sẻ màn hình.", error)
+    }
+  }
+
+  @ReactMethod
+  fun stop(promise: Promise) {
+    try {
+      context.stopService(Intent(context, KiniScreenShareAudioService::class.java))
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("screen_share_audio", "Không thể dừng dịch vụ micro chia sẻ màn hình.", error)
+    }
+  }
+}
+
 class KiniScreenShareOverlayPackage : ReactPackage {
-  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(KiniScreenShareOverlayModule(reactContext))
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(KiniScreenShareOverlayModule(reactContext), KiniScreenShareAudioModule(reactContext))
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 }
 `;
@@ -178,6 +239,10 @@ module.exports = function withKiniWebRtcScreenShare(config) {
       const mediaProjectionService = services.find((service) => service.$?.["android:name"] === serviceName);
       if (mediaProjectionService) mediaProjectionService.$["android:foregroundServiceType"] = "mediaProjection|microphone";
       else services.push({ $: { "android:name": serviceName, "android:foregroundServiceType": "mediaProjection|microphone" } });
+      const audioServiceName = `${config.android.package}.kini.screenshare.KiniScreenShareAudioService`;
+      if (!services.some((service) => service.$?.["android:name"] === audioServiceName)) {
+        services.push({ $: { "android:name": audioServiceName, "android:foregroundServiceType": "microphone", "android:exported": "false" } });
+      }
       application.service = services;
     }
     mod.modResults.manifest["uses-permission"] = permissions;

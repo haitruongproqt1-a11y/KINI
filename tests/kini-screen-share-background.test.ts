@@ -15,12 +15,17 @@ describe("KINI screen share khi vào nền", () => {
     expect(screenSharePlugin).toContain("import com.facebook.react.ReactPackage");
     expect(screenSharePlugin).toContain("Settings.ACTION_MANAGE_OVERLAY_PERMISSION");
     expect(screenSharePlugin).toContain("TYPE_APPLICATION_OVERLAY");
+    expect(screenSharePlugin).toContain("KiniScreenShareAudioService");
+    expect(screenSharePlugin).toContain("FOREGROUND_SERVICE_TYPE_MICROPHONE");
+    expect(screenSharePlugin).toContain('"android:foregroundServiceType": "microphone"');
   });
 
   it("chỉ hiện overlay khi screen share đi vào background, giữ audio và ẩn khi quay lại KINI", () => {
     expect(provider).toContain('nextState === "background"');
     expect(provider).toContain("call.isScreenSharing");
     expect(provider).toContain("call.keepAudioActive()");
+    expect(provider).toContain("screenShareAudio?.start");
+    expect(provider).toContain("screenShareAudio?.stop");
     expect(provider).toContain("screenShareOverlay?.show");
     expect(provider).toContain('nextState === "active"');
     expect(provider).toContain("screenShareOverlay?.hide");

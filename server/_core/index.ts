@@ -13,6 +13,7 @@ import crypto from "node:crypto";
 import { createContext } from "./context";
 import { getSigningPayloadFromGithubToken } from "../github-build-signing";
 import { registerCallSignaling } from "../signaling/index";
+import { sendCallEndedPush } from "../push";
 import { getUserIceServers } from "../turn";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -176,6 +177,29 @@ async function startServer() {
     }
   });
 
+  /** Fallback khi socket của người kết thúc call rớt trước acknowledge; chỉ dọn call và gửi FCM end, không tạo call mới. */
+  app.post("/api/call/end", async (req, res) => {
+    const user = await authenticateKiniApi(req, res);
+    if (!user) return;
+    const callId = typeof req.body?.callId === "string" && req.body.callId.length <= 128 ? req.body.callId : null;
+    const conversationId = Number(req.body?.conversationId);
+    const outcome = ["declined", "cancelled", "failed"].includes(req.body?.outcome) ? req.body.outcome as "declined" | "cancelled" | "failed" : "ended";
+    const pingMs = typeof req.body?.pingMs === "number" && Number.isFinite(req.body.pingMs) ? req.body.pingMs : undefined;
+    if (!callId || !Number.isInteger(conversationId) || conversationId <= 0) {
+      res.status(400).json({ error: "Dữ liệu kết thúc cuộc gọi không hợp lệ." });
+      return;
+    }
+    try {
+      await db.finishCall(user.id, callId, outcome, pingMs);
+      const peerUserIds = await db.getDirectConversationPeerUserIds(user.id, conversationId);
+      await Promise.all(peerUserIds.map((recipientUserId) => sendCallEndedPush({ recipientUserId, callId })));
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Không thể dọn cuộc gọi." });
+    }
+  });
+
   app.post("/api/media/presign", async (req, res) => {
     let user;
     try {
@@ -284,12 +308,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.32",
-      appVersion: "1.8.35",
-      buildNumber: 35,
-      notes: "Sửa full-screen incoming call khi KINI ở nền hoặc màn hình khóa; dọn native ringtone/ringback qua end push ở mọi nhánh. Screen share giữ audio/micro nền, không thu nhỏ khi vừa cấp MediaProjection và có nút tròn quay lại từ màn hình chính sau khi người dùng cho phép Hiển thị trên ứng dụng khác.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.32",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.32/KINI-Release-v1.32.apk",
+      releaseCode: "v1.33",
+      appVersion: "1.8.36",
+      buildNumber: 36,
+      notes: "Tăng độ tin cậy call nền: FCM high priority có TTL cuộc gọi, full-screen chỉ khi Activity KINI thật sự không foreground, ringtone native KINI kéo dài đến lúc nhận/từ chối/kết thúc và có hướng dẫn mở quyền Cuộc gọi toàn màn hình Android 14+. Khi screen share, foreground service giữ microphone và tái chiếm audio focus sau khi bấm Home; end call có fallback HTTP để dừng âm thanh phía còn lại nếu socket rớt.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.33",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.33/KINI-Release-v1.33.apk",
     });
   });
 

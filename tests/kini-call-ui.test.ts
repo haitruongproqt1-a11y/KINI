@@ -37,6 +37,8 @@ describe("KINI call UI", () => {
     expect(webRtc).toContain("Dừng stream/audio/ringback cục bộ ngay");
     expect(sounds).toContain("dừng cả player Expo và native tone");
     expect(sounds).toContain("incoming.pause(); incoming.seekTo(0)");
+    expect(webRtc).toContain('apiCall<{ ok: boolean }>("/api/call/end"');
+    expect(webRtc).toContain("HTTP dự phòng vẫn yêu cầu server gửi FCM call_ended");
   });
 
   it("đưa preview camera local lên trên RTC video và không render màn hình tự chia sẻ", () => {

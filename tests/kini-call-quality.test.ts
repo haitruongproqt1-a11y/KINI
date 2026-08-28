@@ -13,6 +13,7 @@ describe("KINI WebRTC call quality", () => {
     expect(nativeService).toContain("autoGainControl: true");
     expect(nativeService).toContain("Microphone của call được giữ trên local stream riêng");
     expect(nativeService).toContain("keepCallAudioActive");
+    expect(nativeService).toContain("luôn tái chiếm session");
     expect(callHook).toContain("microphoneTrack");
     expect(callHook).toContain("const keepAudioActive");
   });

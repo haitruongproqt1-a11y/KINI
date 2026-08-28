@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
+import { apiCall } from "@/lib/_core/api";
 import { createKiniSignalClient, type KiniSignalClient } from "../services/signalingClient";
 import {
   candidateToPayload,
@@ -346,7 +347,12 @@ export function useWebRTC(enabled = true) {
     // Dừng stream/audio/ringback cục bộ ngay. Signaling có thể chậm hoặc mất mạng, không được để nhạc chờ tiếp tục phát.
     cleanup();
     try {
-      if (callId && conversationId) await signal?.emitEnd({ callId, conversationId, outcome, ...(pingRef.current !== null ? { pingMs: pingRef.current } : {}) });
+      if (callId && conversationId) {
+        const payload = { callId, conversationId, outcome, ...(pingRef.current !== null ? { pingMs: pingRef.current } : {}) };
+        const acknowledged = await signal?.emitEnd(payload);
+        // Nếu socket đã rớt đúng lúc kết thúc, HTTP dự phòng vẫn yêu cầu server gửi FCM call_ended tới máy còn lại.
+        if (!acknowledged) await apiCall<{ ok: boolean }>("/api/call/end", { method: "POST", body: JSON.stringify(payload) }).catch(() => undefined);
+      }
     } finally {
       endingRef.current = false;
     }

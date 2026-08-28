@@ -17,6 +17,10 @@ const screenShareOverlay = NativeModules.KiniScreenShareOverlay as {
   show?: (initials: string) => Promise<boolean>;
   hide?: () => Promise<boolean>;
 } | undefined;
+const screenShareAudio = NativeModules.KiniScreenShareAudio as {
+  start?: () => Promise<boolean>;
+  stop?: () => Promise<boolean>;
+} | undefined;
 
 function CallOverlay({ call }: { call: CallController }) {
   const peer = call.peer ?? { title: "Bạn KINI", initials: "K", color: "#1677FF" };
@@ -56,6 +60,8 @@ export function CallProvider({ children }: PropsWithChildren) {
   useCallSounds(call.status, call.direction, call.mode, call.isScreenSharing);
   useEffect(() => {
     if (call.isScreenSharing) {
+      // Bắt đầu foreground service khi KINI còn foreground, trước lúc người dùng bấm Home.
+      void screenShareAudio?.start?.().catch(() => undefined);
       void screenShareOverlay?.hasPermission?.().then((granted) => {
         if (granted || overlayPermissionPrompted.current) return;
         overlayPermissionPrompted.current = true;
@@ -72,16 +78,20 @@ export function CallProvider({ children }: PropsWithChildren) {
     }
     overlayPermissionPrompted.current = false;
     void screenShareOverlay?.hide?.().catch(() => undefined);
+    void screenShareAudio?.stop?.().catch(() => undefined);
   }, [call.isScreenSharing]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       // Khi MediaProjection vừa xin quyền, Android chuyển inactive tạm thời; không được thu nhỏ sớm.
       // Chỉ background thật sự mới đưa call về bubble và mở overlay hệ thống nếu người dùng đã cấp quyền.
       if (nextState === "background" && call.status !== "idle") {
-        call.minimizeCall();
         if (call.isScreenSharing) {
+          // Screen share local không tự thu nhỏ: mở lại từ bubble sẽ quay thẳng về màn điều khiển call.
           call.keepAudioActive();
+          void screenShareAudio?.start?.().catch(() => undefined);
           void screenShareOverlay?.show?.(call.peer?.initials ?? "K").catch(() => undefined);
+        } else {
+          call.minimizeCall();
         }
       }
       if (nextState === "active") void screenShareOverlay?.hide?.().catch(() => undefined);

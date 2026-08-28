@@ -18,14 +18,18 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain('data["type"] == "incoming_call"');
     expect(plugin).toContain("KiniCallNotifier.showIncomingCall");
     expect(plugin).toContain("isAppInForeground");
+    expect(plugin).toContain("Lifecycle.State.RESUMED");
     expect(plugin).toContain("isDeviceLocked");
   });
 
-  it("dùng full-screen intent im lặng cho Android nền và không tạo CallStyle banner", () => {
+  it("dùng bootstrap full-screen không CallStyle, ringtone native và timeout đồng bộ với thời gian đổ chuông", () => {
     expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
     expect(plugin).toContain("setSilent(true)");
-    expect(plugin).toContain("setTimeoutAfter(30_000L)");
+    expect(plugin).toContain("setTimeoutAfter(55_000L)");
     expect(plugin).toContain("bootstrap im lặng");
+    expect(plugin).toContain("object KiniCallRinger");
+    expect(plugin).toContain("KiniCallRinger.start(context, callId)");
+    expect(plugin).toContain("KiniCallRinger.stop(callId)");
     expect(plugin).not.toContain("NotificationCompat.CallStyle.forIncomingCall");
     expect(plugin).toContain("ACTION_ANSWER");
     expect(plugin).toContain("ACTION_DECLINE");
@@ -50,10 +54,16 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("if (shouldUseFullScreen)");
     expect(plugin).toContain("KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)");
     expect(plugin).toContain("lifecycle-process:2.8.4");
+    expect(plugin).toContain("KiniIncomingCallSettingsModule");
+    expect(plugin).toContain("ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT");
+    expect(plugin).toContain("canUseFullScreenIntent()");
   });
 
   it("gửi end push cho peer cả sau khi cuộc gọi đã được nhận", () => {
     expect(pushServer).toContain('data: { type: "call_ended", callId: payload.callId }');
+    expect(pushServer).toContain('ttl: "55s"');
+    expect(pushServer).toContain("direct_boot_ok: true");
     expect(readFileSync(resolve(import.meta.dirname, "../server/signaling/index.ts"), "utf8")).toContain("for (const peerUserId of peerUserIds) void sendCallEndedPush");
+    expect(readFileSync(resolve(import.meta.dirname, "../server/_core/index.ts"), "utf8")).toContain('app.post("/api/call/end"');
   });
 });

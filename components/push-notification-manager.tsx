@@ -4,11 +4,16 @@ import Constants from "expo-constants";
 import * as ExpoLinking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { AppState, Linking, Platform } from "react-native";
+import { Alert, AppState, Linking, NativeModules, Platform } from "react-native";
 
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import { useKiniCall } from "@/features/webrtc-calling/call-provider";
+
+const incomingCallSettings = NativeModules.KiniIncomingCallSettings as {
+  canUseFullScreenIntent?: () => Promise<boolean>;
+  requestFullScreenIntentPermission?: () => Promise<boolean>;
+} | undefined;
 
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }) });
@@ -58,6 +63,7 @@ export function PushNotificationManager() {
   const call = useKiniCall();
   const registeredForUser = useRef<number | null>(null);
   const registrationInFlight = useRef(false);
+  const fullScreenPermissionPrompted = useRef(false);
   const register = trpc.push.register.useMutation();
   const registerPushToken = useCallback(async () => {
     if (!isAuthenticated || !user || registeredForUser.current === user.id || registrationInFlight.current) return;
@@ -81,6 +87,21 @@ export function PushNotificationManager() {
     });
     return () => appStateSubscription.remove();
   }, [registerPushToken]);
+  useEffect(() => {
+    if (Platform.OS !== "android" || !isAuthenticated || fullScreenPermissionPrompted.current) return;
+    void incomingCallSettings?.canUseFullScreenIntent?.().then((granted) => {
+      if (granted || fullScreenPermissionPrompted.current) return;
+      fullScreenPermissionPrompted.current = true;
+      Alert.alert(
+        "Cho phép cuộc gọi toàn màn hình",
+        "Android đang chặn KINI hiện cuộc gọi khi ứng dụng ở nền hoặc màn hình khóa. Hãy bật quyền Cho phép cuộc gọi toàn màn hình để không bỏ lỡ cuộc gọi.",
+        [
+          { text: "Để sau", style: "cancel" },
+          { text: "Mở cài đặt", onPress: () => { void incomingCallSettings?.requestFullScreenIntentPermission?.().catch(() => undefined); } },
+        ],
+      );
+    }).catch(() => undefined);
+  }, [isAuthenticated]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const openConversation = (response: Notifications.NotificationResponse) => {

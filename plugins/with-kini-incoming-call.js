@@ -4,6 +4,7 @@ const {
   withAndroidManifest,
   withAppBuildGradle,
   withDangerousMod,
+  withMainApplication,
 } = require("@expo/config-plugins");
 
 const PERMISSIONS = [
@@ -36,7 +37,11 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.Ringtone
+import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -62,9 +67,9 @@ object KiniCallNotifier {
     }
   }
 
-  /** Chỉ khởi tạo full-screen notification nếu UI KINI không ở foreground hoặc thiết bị đang khóa. */
+  /** Chỉ coi KINI foreground khi activity đang tương tác thật sự; STARTED có thể còn giữ ngắn sau khi bấm Home. */
   fun isAppInForeground(context: Context): Boolean = try {
-    ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+    ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
   } catch (_: Exception) {
     false
   }
@@ -79,6 +84,7 @@ object KiniCallNotifier {
   fun showIncomingCall(context: Context, callId: String, callerName: String, mode: String, callerAvatar: String = "") {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     ensureChannel(notificationManager)
+    KiniCallRinger.start(context, callId)
     val contentIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_OPEN, 101)
     // Đây chỉ là bootstrap im lặng cho Android mở Activity full-screen; tuyệt đối không dùng CallStyle
     // vì CallStyle hiển thị heads-up/banner chồng lên giao diện KINI có nút Nghe/Từ chối riêng.
@@ -90,7 +96,7 @@ object KiniCallNotifier {
       .setOnlyAlertOnce(true)
       // Một số ROM trì hoãn khởi động Activity từ FCM data-only khi máy đang khóa.
       // Activity tự hủy bootstrap ở onResume; timeout dài chỉ là fallback nếu Android chặn mở UI.
-      .setTimeoutAfter(30_000L)
+      .setTimeoutAfter(55_000L)
       .setFullScreenIntent(contentIntent, true)
       .build()
     notificationManager.notify(callId.hashCode(), notification)
@@ -112,8 +118,48 @@ object KiniCallNotifier {
   }
 
   fun cancelIncomingCall(context: Context, callId: String) {
+    cancelIncomingNotification(context, callId)
+    KiniCallRinger.stop(callId)
+  }
+
+  /** Activity KINI hủy bootstrap nhưng ringtone chỉ dừng khi call kết thúc hoặc người dùng thao tác. */
+  fun cancelIncomingNotification(context: Context, callId: String) {
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     manager.cancel(callId.hashCode())
+  }
+
+  /** Ringtone riêng để màn KINI full-screen vẫn có tiếng dù ROM không đổ chuông cho ConnectionService self-managed. */
+  object KiniCallRinger {
+    private var currentCallId: String? = null
+    private var ringtone: Ringtone? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var timeout: Runnable? = null
+
+    @Synchronized fun start(context: Context, callId: String) {
+      if (currentCallId == callId && ringtone?.isPlaying == true) return
+      stop()
+      try {
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+          ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val next = RingtoneManager.getRingtone(context.applicationContext, uri) ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) next.isLooping = true
+        next.play()
+        currentCallId = callId
+        ringtone = next
+        timeout = Runnable { stop(callId) }.also { handler.postDelayed(it, 55_000L) }
+      } catch (_: Exception) {
+        // ROM có thể từ chối audio focus nền; full-screen call vẫn tiếp tục hiển thị.
+      }
+    }
+
+    @Synchronized fun stop(callId: String? = null) {
+      if (callId != null && currentCallId != callId) return
+      timeout?.let { handler.removeCallbacks(it) }
+      timeout = null
+      try { ringtone?.stop() } catch (_: Exception) { }
+      ringtone = null
+      currentCallId = null
+    }
   }
 
   private fun activityIntent(context: Context, callId: String, callerName: String, mode: String, callerAvatar: String, action: String, requestCode: Int): PendingIntent {
@@ -265,6 +311,63 @@ class KiniConnection(private val context: Context, val callId: String, val calle
 }
 `;
 
+  const fullScreenSettingsModule = `package ${packageName}.kini.incomingcall
+
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.uimanager.ViewManager
+
+/** Mở quyền Android 14+ mà full-screen intent cần để hiện cuộc gọi khi KINI ở nền hoặc màn khóa. */
+class KiniIncomingCallSettingsModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+  override fun getName() = "KiniIncomingCallSettings"
+
+  @ReactMethod
+  fun canUseFullScreenIntent(promise: Promise) {
+    try {
+      val allowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.canUseFullScreenIntent()
+      } else true
+      promise.resolve(allowed)
+    } catch (error: Exception) {
+      promise.reject("full_screen_check", "Không thể kiểm tra quyền hiển thị cuộc gọi toàn màn hình.", error)
+    }
+  }
+
+  @ReactMethod
+  fun requestFullScreenIntentPermission(promise: Promise) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      promise.resolve(true)
+      return
+    }
+    try {
+      val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + context.packageName)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      context.startActivity(intent)
+      promise.resolve(false)
+    } catch (error: Exception) {
+      promise.reject("full_screen_permission", "Không thể mở phần quyền hiển thị cuộc gọi toàn màn hình.", error)
+    }
+  }
+}
+
+class KiniIncomingCallSettingsPackage : ReactPackage {
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(KiniIncomingCallSettingsModule(reactContext))
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+}
+`;
+
   const incomingActivity = `package ${packageName}.kini.incomingcall
 
 import android.app.Activity
@@ -300,12 +403,13 @@ class KiniIncomingCallActivity : Activity() {
   override fun onResume() {
     super.onResume()
     activeActivity = WeakReference(this)
-    // Activity đã hiện: hủy lại bootstrap để notification không còn trong shade/status bar.
-    if (!isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingCall(this, callId)
+    // Activity đã hiện: bỏ bootstrap khỏi shade/status bar nhưng phải giữ ringtone tới khi call kết thúc.
+    if (!isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingNotification(this, callId)
   }
 
   override fun onDestroy() {
     if (activeActivity?.get() === this) activeActivity = null
+    if (isFinishing && callId.isNotBlank()) KiniCallNotifier.cancelIncomingCall(this, callId)
     super.onDestroy()
   }
 
@@ -327,8 +431,8 @@ class KiniIncomingCallActivity : Activity() {
       finish()
       return
     }
-    // Full-screen UI đã xuất hiện: giữ màn gọi KINI, không để CallStyle nằm lại trên thanh thông báo.
-    KiniCallNotifier.cancelIncomingCall(this, callId)
+    // Full-screen UI đã xuất hiện: bỏ bootstrap nhưng tiếp tục ringtone cho tới khi user thao tác hoặc remote end.
+    KiniCallNotifier.cancelIncomingNotification(this, callId)
     val root = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       gravity = Gravity.CENTER_HORIZONTAL
@@ -461,6 +565,7 @@ class KiniIncomingCallActivity : Activity() {
 
     fun dismissIncomingCall(callId: String) {
       val activity = activeActivity?.get() ?: return
+      KiniCallNotifier.cancelIncomingCall(activity, callId)
       if (activity.callId == callId) activity.runOnUiThread { activity.finish() }
     }
 
@@ -478,6 +583,7 @@ class KiniIncomingCallActivity : Activity() {
     [path.join(dir, "KiniCallNotifier.kt"), notifier],
     [path.join(dir, "KiniFirebaseMessagingService.kt"), messagingService],
     [path.join(dir, "KiniConnectionService.kt"), connectionService],
+    [path.join(dir, "KiniIncomingCallSettingsModule.kt"), fullScreenSettingsModule],
     [path.join(dir, "KiniIncomingCallActivity.kt"), incomingActivity],
   ];
 }
@@ -515,6 +621,20 @@ module.exports = function withKiniIncomingCall(config) {
     }
     if (!contents.includes("lifecycle-process")) {
       contents = contents.replace(/dependencies\s*\{/, "dependencies {\n    implementation(\"androidx.lifecycle:lifecycle-process:2.8.4\")");
+    }
+    mod.modResults.contents = contents;
+    return mod;
+  });
+
+  config = withMainApplication(config, (mod) => {
+    if (mod.modResults.language !== "kt") return mod;
+    let contents = mod.modResults.contents;
+    if (!contents.includes("KiniIncomingCallSettingsPackage")) {
+      const firstImport = contents.indexOf("import ");
+      const settingsImport = `import ${packageName}.kini.incomingcall.KiniIncomingCallSettingsPackage\n`;
+      if (firstImport >= 0) contents = `${contents.slice(0, firstImport)}${settingsImport}${contents.slice(firstImport)}`;
+      const packagesMarker = "PackageList(this).packages.apply {";
+      if (contents.includes(packagesMarker)) contents = contents.replace(packagesMarker, `${packagesMarker}\n              add(KiniIncomingCallSettingsPackage())`);
     }
     mod.modResults.contents = contents;
     return mod;

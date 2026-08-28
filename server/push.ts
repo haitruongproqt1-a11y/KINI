@@ -81,6 +81,8 @@ async function sendFcmPushNotification(token: string, notification: GenericNotif
           } : {}),
           android: {
             priority: "HIGH",
+            ttl: "55s",
+            direct_boot_ok: true,
             ...(notification.channelId === "messages" ? {
               notification: {
                 channel_id: notification.channelId,

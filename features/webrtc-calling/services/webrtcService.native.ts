@@ -100,7 +100,8 @@ export async function createDisplayMedia(): Promise<NativeStream> {
 export function keepCallAudioActive(speakerEnabled: boolean, mode: CallMode) {
   if (Platform.OS === "android") {
     try {
-      if (!androidVoiceAudioActive) InCallManager.start({ media: mode === "voice" ? "audio" : "video", auto: true });
+      // MediaProjection/Home có thể làm Android trả audio focus dù cờ local vẫn còn true; luôn tái chiếm session.
+      InCallManager.start({ media: mode === "voice" ? "audio" : "video", auto: true });
       InCallManager.setForceSpeakerphoneOn(speakerEnabled);
       androidVoiceAudioActive = true;
     } catch { /* Không để audio route làm gián đoạn screen share đang chạy. */ }

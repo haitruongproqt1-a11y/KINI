@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.35
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.36
         required: true
-        default: v1.8.35
+        default: v1.8.36
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.32
+        description: Mã GitHub Release nhận APK, ví dụ v1.33
         required: true
-        default: v1.32
+        default: v1.33
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.35 · Build 35. Sửa full-screen incoming call khi KINI ở nền/màn khóa và dừng ringtone/ringback qua FCM end data-only ở mọi trạng thái call. Chia sẻ màn hình giữ micro/audio khi app vào nền; sau khi cấp quyền Hiển thị trên ứng dụng khác, nút tròn có thể mở lại KINI từ màn hình chính."
+              --notes "KINI 1.8.36 · Build 36. Incoming call nền/màn khóa dùng FCM high priority, full-screen intent theo trạng thái RESUMED và ringtone native độc lập để không bị silent bootstrap tắt tiếng. Android 14+ hiển thị lời nhắc quyền Cuộc gọi toàn màn hình. End call có HTTP fallback dừng ringtone phía còn lại; screen share dùng foreground service microphone, tái chiếm audio focus và bubble quay lại call."
           fi
