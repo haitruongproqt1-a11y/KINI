@@ -319,4 +319,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Xác nhận full-screen incoming call khi app bị đóng hoặc Android khóa màn hình
 - [x] Rà soát mọi nhánh từ chối/kết thúc để dừng ringtone/ringback ở cả hai phía
 - [x] Khi screen share kết nối, chỉ hiển thị màn hình người chia sẻ và tắt camera remote đến khi dừng share
-- [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK GitHub sau khi hoàn tất các sửa đổi có phạm vi giới hạn
+- [x] Kiểm thử hồi quy, tăng phiên bản và phát hành APK GitHub sau khi hoàn tất các sửa đổi có phạm vi giới hạn
