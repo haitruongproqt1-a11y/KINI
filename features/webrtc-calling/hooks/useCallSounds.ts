@@ -1,7 +1,6 @@
 import { useAudioPlayer } from "expo-audio";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Platform } from "react-native";
-import InCallManager from "react-native-incall-manager";
 
 import type { CallDirection, CallMode, CallStatus } from "../services/types";
 
@@ -12,8 +11,6 @@ const ringbackSound = require("@/assets/audio/kini-outgoing-ringback.mp3");
 export function useCallSounds(status: CallStatus, direction: CallDirection, mode: CallMode | null, isScreenSharing = false) {
   const incoming = useAudioPlayer(incomingSound);
   const ringback = useAudioPlayer(ringbackSound);
-  const nativeVoiceRingback = useRef(false);
-
   useEffect(() => {
     incoming.loop = true;
     ringback.loop = true;
@@ -22,8 +19,8 @@ export function useCallSounds(status: CallStatus, direction: CallDirection, mode
   useEffect(() => {
     const shouldRingIncoming = status === "ringing" && direction === "incoming";
     // Khi MediaProjection khởi động, chỉ giữ audio WebRTC; không để nhạc chờ tiếp tục chen vào.
-    const shouldPlayVoiceRingback = !isScreenSharing && Platform.OS === "android" && mode === "voice" && status === "ringing" && direction === "outgoing";
-    const shouldPlayRingback = !isScreenSharing && status === "ringing" && direction === "outgoing" && !shouldPlayVoiceRingback;
+    // Mọi ringback đều dùng file KINI; không gọi InCallManager để tránh âm thanh mặc định của hệ thống.
+    const shouldPlayRingback = !isScreenSharing && status === "ringing" && direction === "outgoing";
     const setPlaying = (player: typeof incoming, shouldPlay: boolean) => {
       try {
         if (shouldPlay) {
@@ -39,23 +36,12 @@ export function useCallSounds(status: CallStatus, direction: CallDirection, mode
     };
     setPlaying(incoming, shouldRingIncoming);
     setPlaying(ringback, shouldPlayRingback);
-    try {
-      if (shouldPlayVoiceRingback && !nativeVoiceRingback.current) {
-        InCallManager.startRingback("_DTMF_");
-        nativeVoiceRingback.current = true;
-      } else if (!shouldPlayVoiceRingback && nativeVoiceRingback.current) {
-        InCallManager.stopRingback();
-        nativeVoiceRingback.current = false;
-      }
-    } catch { /* Thiết bị vẫn có thể phát ringback Expo hoặc tiếp tục cuộc gọi nếu native tone bị chặn. */ }
   }, [direction, incoming, isScreenSharing, mode, ringback, status]);
 
   useEffect(() => () => {
-    // Cleanup này là lớp bảo vệ cuối cùng: dừng cả player Expo và native tone
-    // nếu trạng thái call đổi/Provider bị unmount trước khi effect trạng thái chạy lại.
+    // Cleanup này là lớp bảo vệ cuối cùng: dừng player Expo nếu Provider bị unmount
+    // trước khi effect trạng thái kịp chạy lại.
     try { incoming.pause(); incoming.seekTo(0); } catch { /* Player đã release. */ }
     try { ringback.pause(); ringback.seekTo(0); } catch { /* Player đã release. */ }
-    try { InCallManager.stopRingback(); } catch { /* Native audio đã được giải phóng. */ }
-    nativeVoiceRingback.current = false;
   }, [incoming, ringback]);
 }

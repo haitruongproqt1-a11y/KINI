@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.36
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.37
         required: true
-        default: v1.8.36
+        default: v1.8.37
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.33
+        description: Mã GitHub Release nhận APK, ví dụ v1.34
         required: true
-        default: v1.33
+        default: v1.34
         type: string
 
 permissions:

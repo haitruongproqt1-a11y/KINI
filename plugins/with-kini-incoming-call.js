@@ -10,9 +10,7 @@ const {
 const PERMISSIONS = [
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.USE_FULL_SCREEN_INTENT",
-  "android.permission.MANAGE_OWN_CALLS",
   "android.permission.FOREGROUND_SERVICE",
-  "android.permission.FOREGROUND_SERVICE_PHONE_CALL",
   "android.permission.WAKE_LOCK",
 ];
 
@@ -37,8 +35,9 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.media.Ringtone
-import android.media.RingtoneManager
+import android.media.AudioAttributes
+import android.net.Uri
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -47,7 +46,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
 
 object KiniCallNotifier {
-  const val CHANNEL_ID = "calls"
+  // Kênh mới tránh giữ lại cấu hình âm thanh của channel calls từ APK cũ.
+  const val CHANNEL_ID = "kini_calls_v2"
   const val EXTRA_CALL_ID = "callId"
   const val EXTRA_CALLER_NAME = "callerName"
   const val EXTRA_CALLER_AVATAR = "callerAvatar"
@@ -62,6 +62,7 @@ object KiniCallNotifier {
       manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Cuộc gọi KINI", NotificationManager.IMPORTANCE_HIGH).apply {
         description = "Cuộc gọi KINI"
         enableVibration(true)
+        setSound(null, null)
         lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
       })
     }
@@ -128,27 +129,35 @@ object KiniCallNotifier {
     manager.cancel(callId.hashCode())
   }
 
-  /** Ringtone riêng để màn KINI full-screen vẫn có tiếng dù ROM không đổ chuông cho ConnectionService self-managed. */
+  /** Chỉ phát file âm thanh KINI đã đóng gói, không đọc ringtone mặc định của điện thoại. */
   object KiniCallRinger {
     private var currentCallId: String? = null
-    private var ringtone: Ringtone? = null
+    private var player: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var timeout: Runnable? = null
 
     @Synchronized fun start(context: Context, callId: String) {
-      if (currentCallId == callId && ringtone?.isPlaying == true) return
+      if (currentCallId == callId && player?.isPlaying == true) return
       stop()
       try {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-          ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val next = RingtoneManager.getRingtone(context.applicationContext, uri) ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) next.isLooping = true
-        next.play()
+        val next = MediaPlayer().apply {
+          setAudioAttributes(AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build())
+          setDataSource(context.applicationContext, Uri.parse("android.resource://${packageName}/raw/kini_incoming_ring"))
+          isLooping = true
+          prepare()
+          start()
+        }
         currentCallId = callId
-        ringtone = next
+        player = next
         timeout = Runnable { stop(callId) }.also { handler.postDelayed(it, 55_000L) }
       } catch (_: Exception) {
-        // ROM có thể từ chối audio focus nền; full-screen call vẫn tiếp tục hiển thị.
+        try { player?.release() } catch (_: Exception) { }
+        player = null
+        currentCallId = null
+        // Full-screen call vẫn hiển thị nếu ROM chặn audio focus nền.
       }
     }
 
@@ -156,8 +165,9 @@ object KiniCallNotifier {
       if (callId != null && currentCallId != callId) return
       timeout?.let { handler.removeCallbacks(it) }
       timeout = null
-      try { ringtone?.stop() } catch (_: Exception) { }
-      ringtone = null
+      try { player?.stop() } catch (_: Exception) { }
+      try { player?.release() } catch (_: Exception) { }
+      player = null
       currentCallId = null
     }
   }
@@ -188,7 +198,6 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
     if (data["type"] == "call_ended" || data["type"] == "call_cancelled") {
       data["callId"]?.let { callId ->
         KiniCallNotifier.cancelIncomingCall(this, callId)
-        KiniTelecomBridge.dismissIncomingCall(callId)
         KiniIncomingCallActivity.dismissIncomingCall(callId)
       }
       return
@@ -206,7 +215,6 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
       val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)
       if (shouldUseFullScreen) {
         KiniCallNotifier.showIncomingCall(this, callId, callerName, mode, callerAvatar)
-        KiniTelecomBridge.reportIncomingCall(this, callId, callerName, mode)
       } else {
         // App đang mở: tầng socket/React hiển thị overlay call KINI, không tạo notification hoặc fullScreenIntent.
         KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)
@@ -292,6 +300,7 @@ class KiniConnectionService : ConnectionService() {
 class KiniConnection(private val context: Context, val callId: String, val callerName: String) : Connection() {
   override fun onAnswer() {
     setActive()
+    KiniTelecomBridge.forgetIncomingCall(callId)
     KiniCallNotifier.cancelIncomingCall(context, callId)
     KiniIncomingCallActivity.openReactApp(context, callId, "answer")
   }
@@ -436,17 +445,9 @@ class KiniIncomingCallActivity : Activity() {
     val root = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       gravity = Gravity.CENTER_HORIZONTAL
-      setPadding(dp(24), dp(36), dp(24), dp(28))
+      setPadding(dp(24), dp(48), dp(24), dp(28))
       setBackgroundColor(Color.rgb(13, 39, 69))
     }
-    root.addView(TextView(this).apply {
-      text = "Kết nối riêng tư KINI"
-      textSize = 12f
-      setTextColor(Color.rgb(215, 233, 250))
-      gravity = Gravity.CENTER
-      setPadding(dp(14), dp(8), dp(14), dp(8))
-      background = rounded(Color.argb(28, 255, 255, 255), dp(18))
-    })
     val spacerTop = View(this)
     root.addView(spacerTop, LinearLayout.LayoutParams(1, 0, 1.25f))
     val avatarRing = FrameLayout(this).apply {
@@ -607,9 +608,6 @@ module.exports = function withKiniIncomingCall(config) {
     addComponent(application, "service", `${namespace}.KiniFirebaseMessagingService`, { "android:exported": "false" });
     const firebaseService = application.service.find((service) => service.$?.["android:name"] === `${namespace}.KiniFirebaseMessagingService`);
     firebaseService["intent-filter"] = firebaseService["intent-filter"] ?? [{ action: [{ $: { "android:name": "com.google.firebase.MESSAGING_EVENT" } }] }];
-    addComponent(application, "service", `${namespace}.KiniConnectionService`, { "android:permission": "android.permission.BIND_TELECOM_CONNECTION_SERVICE", "android:exported": "true" });
-    const connectionService = application.service.find((service) => service.$?.["android:name"] === `${namespace}.KiniConnectionService`);
-    connectionService["intent-filter"] = connectionService["intent-filter"] ?? [{ action: [{ $: { "android:name": "android.telecom.ConnectionService" } }] }];
     addComponent(application, "activity", `${namespace}.KiniIncomingCallActivity`, { "android:exported": "false", "android:showWhenLocked": "true", "android:turnScreenOn": "true", "android:excludeFromRecents": "true" });
     return mod;
   });
@@ -647,6 +645,11 @@ module.exports = function withKiniIncomingCall(config) {
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, contents);
     }
+    const rawSource = path.join(__dirname, "..", "assets", "audio", "kini-incoming-ring.mp3");
+    const rawTarget = path.join(mod.modRequest.platformProjectRoot, "app", "src", "main", "res", "raw", "kini_incoming_ring.mp3");
+    if (!fs.existsSync(rawSource)) throw new Error("Thiếu assets/audio/kini-incoming-ring.mp3 cho incoming call KINI.");
+    fs.mkdirSync(path.dirname(rawTarget), { recursive: true });
+    fs.copyFileSync(rawSource, rawTarget);
     return mod;
   }]);
 };

@@ -22,21 +22,21 @@ export function VideoCall({ call, title, initials, color, avatarUrl }: { call: a
   const insets = useSafeAreaInsets();
   const visible = call.mode === "video" && call.status !== "idle" && !call.minimized;
   const incoming = call.status === "ringing" && call.direction === "incoming";
-  const isScreenActive = call.isScreenSharing || Boolean(call.remoteScreenStream);
-  // Không render screenStream cục bộ: MediaProjection sẽ tự quay lại chính overlay và tạo ảnh đen/nhấp nháy trên Android.
-  const primaryStream = call.remoteScreenStream ?? (call.remoteCameraEnabled ? call.remoteStream : null);
+  const isScreenActive = call.isScreenSharing || call.remoteScreenSharing || Boolean(call.remoteScreenStream);
+  // Khi peer đang chia sẻ, ưu tiên tuyệt đối màn hình và không hiển thị camera của người xem.
+  const primaryStream = call.remoteScreenStream ?? (call.remoteCameraEnabled && !call.remoteScreenSharing ? call.remoteStream : null);
   const previewStream = isScreenActive ? null : (call.localStream && call.cameraEnabled ? call.localStream : null);
   const previewMirrored = true;
   return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => incoming ? void call.declineIncomingCall() : call.minimizeCall()}>
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 14) }]}>
       <RtcVideo stream={primaryStream} objectFit={isScreenActive ? "contain" : "cover"} zOrder={0} style={styles.remote} />
       <View pointerEvents="none" style={styles.shade} />
-      {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>Camera của đối phương đang tắt</Text></View> : null}
+      {!primaryStream && !incoming ? <View pointerEvents="none" style={styles.cameraOff}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={92} /></View><Text style={styles.cameraOffTitle}>{title}</Text><Text style={styles.cameraOffText}>{call.remoteScreenSharing ? "Đang chờ màn hình được chia sẻ" : "Camera của đối phương đang tắt"}</Text></View> : null}
       {call.isScreenSharing ? <View pointerEvents="none" style={styles.localSharing}><MaterialIcons name="screen-share" size={25} color={kiniColors.white} /><Text style={styles.localSharingTitle}>Bạn đang chia sẻ màn hình</Text><Text style={styles.localSharingText}>KINI vẫn giữ màn hình điều khiển cuộc gọi. Nhấn Dừng chia sẻ hoặc phím Quay lại để trở về gọi video.</Text></View> : null}
       {previewStream ? <RtcVideo stream={previewStream} mirrored={previewMirrored} zOrder={1} style={styles.local} /> : null}
       {incoming ? <View style={styles.incomingIdentity}><View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={88} /></View><Text numberOfLines={1} style={styles.incomingName}>{title}</Text><Text style={styles.incomingState}>{callStatus(call, true)}</Text></View> : <View style={styles.top}><View style={styles.topIdentity}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={40} /><View style={styles.topCopy}><Text numberOfLines={1} style={styles.name}>{title}</Text><Text style={styles.state}>{callStatus(call, false)}</Text></View></View><View style={styles.topTools}>{call.status === "connected" ? <View style={styles.ping}><MaterialIcons name="network-check" size={14} color="#D8EEFF" /><Text style={styles.pingText}>{formatCallPing(call.pingMs)}</Text></View> : null}<TouchableOpacity onPress={call.minimizeCall} style={styles.minimize} accessibilityLabel="Thu nhỏ cuộc gọi để nhắn tin"><MaterialIcons name="keyboard-arrow-down" size={22} color={kiniColors.white} /></TouchableOpacity></View></View>}
       <View style={styles.bottom}>
-        {incoming ? <><Text style={styles.actionHint}>Trả lời bằng video hoặc từ chối</Text><IncomingCallActions mode="video" onDecline={call.declineIncomingCall} onAccept={call.acceptIncomingCall} /></> : <><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.toggleCamera} onSwitchCamera={call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></>}
+        {incoming ? <><Text style={styles.actionHint}>Trả lời bằng video hoặc từ chối</Text><IncomingCallActions mode="video" onDecline={call.declineIncomingCall} onAccept={call.acceptIncomingCall} /></> : <><ScreenShare active={call.isScreenSharing} onToggle={() => void call.toggleScreenShare()} /><CallControls muted={call.muted} cameraEnabled={call.remoteScreenSharing ? false : call.cameraEnabled} speakerEnabled={call.speakerEnabled} video onMute={call.toggleMute} onCamera={call.remoteScreenSharing ? undefined : call.toggleCamera} onSwitchCamera={call.remoteScreenSharing ? undefined : call.switchCamera} onSpeaker={call.toggleSpeaker} onEnd={call.endCall} /></>}
       </View>
     </View>
   </Modal>;

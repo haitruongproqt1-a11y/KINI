@@ -308,12 +308,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.33",
-      appVersion: "1.8.36",
-      buildNumber: 36,
-      notes: "Tăng độ tin cậy call nền: FCM high priority có TTL cuộc gọi, full-screen chỉ khi Activity KINI thật sự không foreground, ringtone native KINI kéo dài đến lúc nhận/từ chối/kết thúc và có hướng dẫn mở quyền Cuộc gọi toàn màn hình Android 14+. Khi screen share, foreground service giữ microphone và tái chiếm audio focus sau khi bấm Home; end call có fallback HTTP để dừng âm thanh phía còn lại nếu socket rớt.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.33",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.33/KINI-Release-v1.33.apk",
+      releaseCode: "v1.34",
+      appVersion: "1.8.37",
+      buildNumber: 37,
+      notes: "Incoming call nền/màn khóa dùng full-screen Activity KINI không đăng ký Telecom UI riêng và chỉ phát ringtone đã đóng gói của KINI; ringback gọi đi cũng chỉ dùng audio KINI. Khi screen share, màn hình được ưu tiên tuyệt đối, camera người xem bị khóa đến khi dừng share và audio/micro nền tiếp tục qua foreground service.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.34",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.34/KINI-Release-v1.34.apk",
     });
   });
 

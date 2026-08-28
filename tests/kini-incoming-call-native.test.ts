@@ -6,13 +6,14 @@ const plugin = readFileSync(resolve(import.meta.dirname, "../plugins/with-kini-i
 const pushServer = readFileSync(resolve(import.meta.dirname, "../server/push.ts"), "utf8");
 
 describe("KINI Android full-screen incoming call", () => {
-  it("khai báo Firebase Messaging, ConnectionService và quyền full-screen call", () => {
+  it("khai báo Firebase Messaging và Activity full-screen KINI, không đăng ký Telecom UI riêng", () => {
     expect(plugin).toContain("android.permission.POST_NOTIFICATIONS");
     expect(plugin).toContain("android.permission.USE_FULL_SCREEN_INTENT");
-    expect(plugin).toContain("android.permission.MANAGE_OWN_CALLS");
+    expect(plugin).not.toContain("android.permission.MANAGE_OWN_CALLS");
     expect(plugin).toContain("KiniFirebaseMessagingService");
-    expect(plugin).toContain("KiniConnectionService");
-    expect(plugin).toContain("android.telecom.ConnectionService");
+    expect(plugin).toContain("KiniIncomingCallActivity");
+    expect(plugin).not.toContain("Kết nối riêng tư KINI");
+    expect(plugin).not.toContain('addComponent(application, "service", `${namespace}.KiniConnectionService`');
     expect(plugin).toContain("setShowWhenLocked(true)");
     expect(plugin).toContain("setTurnScreenOn(true)");
     expect(plugin).toContain('data["type"] == "incoming_call"');
@@ -22,9 +23,14 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("isDeviceLocked");
   });
 
-  it("dùng bootstrap full-screen không CallStyle, ringtone native và timeout đồng bộ với thời gian đổ chuông", () => {
+  it("dùng bootstrap full-screen im lặng và ringtone đóng gói của KINI, không dùng âm thanh mặc định", () => {
     expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
     expect(plugin).toContain("setSilent(true)");
+    expect(plugin).toContain("MediaPlayer");
+    expect(plugin).toContain("kini_incoming_ring");
+    expect(plugin).toContain('assets", "audio", "kini-incoming-ring.mp3');
+    expect(plugin).toContain("setSound(null, null)");
+    expect(plugin).not.toContain("RingtoneManager.getDefaultUri");
     expect(plugin).toContain("setTimeoutAfter(55_000L)");
     expect(plugin).toContain("bootstrap im lặng");
     expect(plugin).toContain("object KiniCallRinger");
@@ -42,8 +48,8 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("callerAvatar");
     expect(plugin).toContain("showMissedCall");
     expect(plugin).toContain("dismissIncomingCall");
-    expect(plugin).toContain("KiniTelecomBridge.dismissIncomingCall(callId)");
-    expect(plugin).toContain("activeConnections");
+    expect(plugin).not.toContain("KiniTelecomBridge.dismissIncomingCall(callId)");
+    expect(plugin).not.toContain("KiniTelecomBridge.reportIncomingCall(this, callId");
     expect(plugin).toContain("Nhận cuộc gọi");
     expect(plugin).toContain("actionButton(\"☎\"");
     expect(plugin).not.toContain("override fun onShowIncomingCallUi()");

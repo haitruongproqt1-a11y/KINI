@@ -26,16 +26,16 @@ describe("KINI call UI", () => {
     expect(provider).toContain("MinimizedCall");
   });
 
-  it("phát nhạc chờ native cho gọi thoại Android và tạo phản hồi nhẹ cho cuộc gọi đến", () => {
-    expect(sounds).toContain('mode === "voice"');
-    expect(sounds).toContain('InCallManager.startRingback("_DTMF_")');
+  it("phát nhạc chờ từ file KINI cho mọi chế độ và tạo phản hồi nhẹ cho cuộc gọi đến", () => {
+    expect(sounds).toContain('ringbackSound = require("@/assets/audio/kini-outgoing-ringback.mp3")');
+    expect(sounds).not.toContain("startRingback");
     expect(sounds).toContain("isScreenSharing = false");
     expect(sounds).toContain("!isScreenSharing");
     expect(controls).toContain("attention onPress={onDecline}");
     expect(controls).toContain("attention onPress={onAccept}");
     expect(nativeService).toContain("InCallManager.stopRingback()");
     expect(webRtc).toContain("Dừng stream/audio/ringback cục bộ ngay");
-    expect(sounds).toContain("dừng cả player Expo và native tone");
+    expect(sounds).toContain("dừng player Expo nếu Provider bị unmount");
     expect(sounds).toContain("incoming.pause(); incoming.seekTo(0)");
     expect(webRtc).toContain('apiCall<{ ok: boolean }>("/api/call/end"');
     expect(webRtc).toContain("HTTP dự phòng vẫn yêu cầu server gửi FCM call_ended");
@@ -45,6 +45,10 @@ describe("KINI call UI", () => {
     expect(nativeVideo).toContain("zOrder={zOrder}");
     expect(video).toContain("zOrder={1}");
     expect(video).toContain("const primaryStream = call.remoteScreenStream");
+    expect(video).toContain("call.remoteScreenSharing");
+    expect(video).toContain("cameraEnabled={call.remoteScreenSharing ? false : call.cameraEnabled}");
     expect(video).toContain("Bạn đang chia sẻ màn hình");
+    expect(webRtc).toContain("remoteCameraEnabledBeforeScreenShareRef");
+    expect(webRtc).toContain("remoteScreenSharing: true");
   });
 });

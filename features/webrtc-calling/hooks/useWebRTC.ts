@@ -47,6 +47,7 @@ type WebRTCState = {
   screenStream: NativeStream | null;
   remoteStream: NativeStream | null;
   remoteScreenStream: NativeStream | null;
+  remoteScreenSharing: boolean;
   remoteCameraEnabled: boolean;
   muted: boolean;
   cameraEnabled: boolean;
@@ -59,7 +60,7 @@ type WebRTCState = {
 
 const initialState: WebRTCState = {
   status: "idle", mode: null, direction: null, conversationId: null, peer: null, error: null, incoming: null,
-  localStream: null, screenStream: null, remoteStream: null, remoteScreenStream: null, remoteCameraEnabled: true, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null, minimized: false,
+  localStream: null, screenStream: null, remoteStream: null, remoteScreenStream: null, remoteScreenSharing: false, remoteCameraEnabled: true, muted: false, cameraEnabled: true, speakerEnabled: false, isScreenSharing: false, elapsedSeconds: 0, pingMs: null, minimized: false,
 };
 
 /** Quản lý một cuộc gọi KINI toàn cục; mọi callback native cũ bị vô hiệu hóa khi cuộc gọi được dọn dẹp. */
@@ -79,6 +80,9 @@ export function useWebRTC(enabled = true) {
   const incomingRef = useRef<IncomingCall | null>(null);
   const pingRef = useRef<number | null>(null);
   const remoteScreenSharingRef = useRef(false);
+  const remoteCameraEnabledBeforeScreenShareRef = useRef<boolean | null>(null);
+  const localCameraEnabledBeforeScreenShareRef = useRef<boolean | null>(null);
+  const cameraEnabledRef = useRef(true);
   const endingRef = useRef(false);
   const cleanupTokenRef = useRef(0);
   const renegotiatingRef = useRef(false);
@@ -106,6 +110,9 @@ export function useWebRTC(enabled = true) {
     screenSenderRef.current = null;
     cameraSenderRef.current = null;
     remoteScreenSharingRef.current = false;
+    remoteCameraEnabledBeforeScreenShareRef.current = null;
+    localCameraEnabledBeforeScreenShareRef.current = null;
+    cameraEnabledRef.current = true;
     pendingScreenSharingRef.current = null;
     pendingNotificationActionRef.current = null;
     if (renegotiationTimerRef.current) clearTimeout(renegotiationTimerRef.current);
@@ -194,8 +201,35 @@ export function useWebRTC(enabled = true) {
             const peer = peerRef.current;
             if (!peer || signal.callId !== callIdRef.current || endingRef.current) return;
             try {
-              remoteScreenSharingRef.current = signal.screenSharing === true;
-              if (signal.screenSharing === false) setState((current) => ({ ...current, remoteScreenStream: null }));
+              const nextRemoteScreenSharing = signal.screenSharing === true;
+              const previousRemoteScreenSharing = remoteScreenSharingRef.current;
+              remoteScreenSharingRef.current = nextRemoteScreenSharing;
+              if (nextRemoteScreenSharing && !previousRemoteScreenSharing) {
+                remoteCameraEnabledBeforeScreenShareRef.current = cameraEnabledRef.current;
+                const viewerStream = localStreamRef.current;
+                const viewerTrack = viewerStream?.getVideoTracks?.()[0];
+                const viewerSender = cameraSenderRef.current;
+                if (viewerTrack && viewerSender && cameraEnabledRef.current) {
+                  setCameraEnabledOnStream(viewerStream, false);
+                  await viewerSender.replaceTrack(null);
+                  cameraEnabledRef.current = false;
+                  signalRef.current?.emitMedia({ callId: signal.callId, conversationId: signal.conversationId, cameraEnabled: false });
+                }
+                setState((current) => ({ ...current, remoteScreenSharing: true, cameraEnabled: false, remoteScreenStream: null }));
+              } else if (!nextRemoteScreenSharing && previousRemoteScreenSharing) {
+                const shouldRestoreViewerCamera = remoteCameraEnabledBeforeScreenShareRef.current === true;
+                remoteCameraEnabledBeforeScreenShareRef.current = null;
+                const viewerStream = localStreamRef.current;
+                const viewerTrack = viewerStream?.getVideoTracks?.()[0];
+                const viewerSender = cameraSenderRef.current;
+                if (shouldRestoreViewerCamera && viewerTrack && viewerSender && viewerTrack.readyState !== "ended") {
+                  setCameraEnabledOnStream(viewerStream, true);
+                  await viewerSender.replaceTrack(viewerTrack);
+                  cameraEnabledRef.current = true;
+                  signalRef.current?.emitMedia({ callId: signal.callId, conversationId: signal.conversationId, cameraEnabled: true });
+                }
+                setState((current) => ({ ...current, remoteScreenSharing: false, cameraEnabled: shouldRestoreViewerCamera ? true : current.cameraEnabled, remoteScreenStream: null }));
+              }
               await peer.setRemoteDescription(toDescription(description));
               if (peer !== peerRef.current || signal.callId !== callIdRef.current) return;
               await addQueuedCandidates();
@@ -373,6 +407,7 @@ export function useWebRTC(enabled = true) {
   }, [acceptIncomingCall, declineIncomingCall, ensureSignal]);
   const toggleMute = useCallback(() => setState((current) => { const muted = !current.muted; setMutedOnStream(current.localStream, muted); return { ...current, muted }; }), []);
   const toggleCamera = useCallback(async () => {
+    if (remoteScreenSharingRef.current) return;
     const localStream = localStreamRef.current;
     const track = localStream?.getVideoTracks?.()[0];
     const nextEnabled = !state.cameraEnabled;
@@ -382,6 +417,7 @@ export function useWebRTC(enabled = true) {
       const sender = cameraSenderRef.current;
       if (sender) await sender.replaceTrack(nextEnabled ? track : null);
       if (callIdRef.current && conversationIdRef.current) signalRef.current?.emitMedia({ callId: callIdRef.current, conversationId: conversationIdRef.current, cameraEnabled: nextEnabled });
+      cameraEnabledRef.current = nextEnabled;
       setState((current) => ({ ...current, cameraEnabled: nextEnabled }));
     } catch (error) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể thay đổi camera." }));
@@ -398,6 +434,8 @@ export function useWebRTC(enabled = true) {
     const peer = peerRef.current;
     const screen = screenStreamRef.current;
     const track = screenTrackRef.current;
+    const shouldRestoreCamera = localCameraEnabledBeforeScreenShareRef.current === true;
+    localCameraEnabledBeforeScreenShareRef.current = null;
     if (!sender && !screen) return;
     screenSenderRef.current = null;
     screenStreamRef.current = null;
@@ -405,8 +443,17 @@ export function useWebRTC(enabled = true) {
     try {
       if (track) track.onended = null;
       if (sender && peer && peer.connectionState !== "closed") await sender.replaceTrack(null);
+      const localStream = localStreamRef.current;
+      const cameraTrack = localStream?.getVideoTracks?.()[0];
+      const cameraSender = cameraSenderRef.current;
+      if (shouldRestoreCamera && localStream && cameraTrack && cameraSender && cameraTrack.readyState !== "ended") {
+        setCameraEnabledOnStream(localStream, true);
+        await cameraSender.replaceTrack(cameraTrack);
+        cameraEnabledRef.current = true;
+        if (callIdRef.current && conversationIdRef.current) signalRef.current?.emitMedia({ callId: callIdRef.current, conversationId: conversationIdRef.current, cameraEnabled: true });
+      }
       stopStream(screen);
-      setState((current) => ({ ...current, isScreenSharing: false, screenStream: null }));
+        setState((current) => ({ ...current, isScreenSharing: false, cameraEnabled: shouldRestoreCamera ? true : current.cameraEnabled, screenStream: null }));
       renegotiate(false);
     } catch (error) {
       setState((current) => ({ ...current, error: error instanceof Error ? error.message : "Không thể dừng chia sẻ màn hình an toàn." }));
@@ -433,9 +480,11 @@ export function useWebRTC(enabled = true) {
       }
       const cameraTrack = localStreamRef.current?.getVideoTracks?.()[0];
       const cameraSender = cameraSenderRef.current;
+      localCameraEnabledBeforeScreenShareRef.current = state.cameraEnabled;
       if (cameraTrack && cameraSender && state.cameraEnabled) {
         setCameraEnabledOnStream(localStreamRef.current, false);
         await cameraSender.replaceTrack(null);
+        cameraEnabledRef.current = false;
         if (callIdRef.current && conversationIdRef.current) signalRef.current?.emitMedia({ callId: callIdRef.current, conversationId: conversationIdRef.current, cameraEnabled: false });
         setState((current) => ({ ...current, cameraEnabled: false }));
       }

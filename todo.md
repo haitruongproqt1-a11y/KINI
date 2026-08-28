@@ -314,9 +314,9 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [ ] Kiểm thử hai Android thật các luồng FCM full-screen, dừng âm thanh và micro screen share nền
 - [ ] Đánh giá native AudioPlaybackCapture cho âm thanh media hệ thống; react-native-webrtc getDisplayMedia hiện tại chỉ tạo video track
 
-- [ ] Rà soát và loại bỏ giao diện incoming/reject riêng tư KINI ngoài màn full-screen call nền/màn khóa
-- [ ] Tắt hoàn toàn âm thanh ringtone/ringback mặc định của điện thoại, chỉ giữ âm thanh do KINI điều khiển
-- [ ] Xác nhận full-screen incoming call khi app bị đóng hoặc Android khóa màn hình
-- [ ] Rà soát mọi nhánh từ chối/kết thúc để dừng ringtone/ringback ở cả hai phía
-- [ ] Khi screen share kết nối, chỉ hiển thị màn hình người chia sẻ và tắt camera remote đến khi dừng share
+- [x] Rà soát và loại bỏ giao diện incoming/reject riêng tư KINI ngoài màn full-screen call nền/màn khóa
+- [x] Tắt hoàn toàn âm thanh ringtone/ringback mặc định của điện thoại, chỉ giữ âm thanh do KINI điều khiển
+- [x] Xác nhận full-screen incoming call khi app bị đóng hoặc Android khóa màn hình
+- [x] Rà soát mọi nhánh từ chối/kết thúc để dừng ringtone/ringback ở cả hai phía
+- [x] Khi screen share kết nối, chỉ hiển thị màn hình người chia sẻ và tắt camera remote đến khi dừng share
 - [ ] Kiểm thử hồi quy, tăng phiên bản và phát hành APK GitHub sau khi hoàn tất các sửa đổi có phạm vi giới hạn
