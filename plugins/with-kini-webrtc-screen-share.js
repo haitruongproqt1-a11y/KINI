@@ -181,7 +181,6 @@ class KiniScreenShareAudioService : Service() {
       .setContentTitle("KINI đang chia sẻ màn hình")
       .setContentText("Đang giữ micro cho cuộc gọi.")
       .setOngoing(true)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) builder.setSilent(true)
     val notification = builder.build()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       startForeground(74_421, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
