@@ -306,8 +306,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Thêm nút quay lại cuộc gọi khi ra màn hình chính theo quyền Android overlay, chỉ trong lúc screen share
 - [x] Kiểm thử hồi quy native Android/call, tăng phiên bản và phát hành APK KINI sửa lỗi nền/màn khóa
 
-- [ ] Chẩn đoán FCM incoming call không rung/không mở full-screen khi KINI bị đóng hoặc Android nghỉ
-- [ ] Bảo đảm kết thúc, hủy hoặc từ chối call dừng ringtone/ringback tức thì trên cả hai thiết bị
-- [ ] Giữ màn call đang chia sẻ không tự thu nhỏ/chuyển tab trước khi peer nhận được stream
-- [ ] Hoàn thiện bubble quay lại call screen share và audio/micro hai chiều khi người chia sẻ bấm Home
-- [ ] Kiểm thử hai Android thật, tăng phiên bản và phát hành APK KINI sửa call/screen share nền
+- [x] Chẩn đoán FCM incoming call không rung/không mở full-screen khi KINI bị đóng hoặc Android nghỉ
+- [x] Bảo đảm kết thúc, hủy hoặc từ chối call dừng ringtone/ringback tức thì trên cả hai thiết bị
+- [x] Giữ màn call đang chia sẻ không tự thu nhỏ/chuyển tab trước khi peer nhận được stream
+- [x] Hoàn thiện bubble quay lại call screen share và audio/micro hai chiều khi người chia sẻ bấm Home
+- [x] Tăng phiên bản và phát hành APK KINI 1.8.36 sửa call/screen share nền
+- [ ] Kiểm thử hai Android thật các luồng FCM full-screen, dừng âm thanh và micro screen share nền
+- [ ] Đánh giá native AudioPlaybackCapture cho âm thanh media hệ thống; react-native-webrtc getDisplayMedia hiện tại chỉ tạo video track
