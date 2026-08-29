@@ -340,3 +340,5 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Thêm hành động trả lời nhanh inline reply trên notification tin nhắn Android
 - [x] Xử lý gửi phản hồi nền đúng tài khoản/cuộc trò chuyện và kiểm thử hồi quy
+
+- [ ] Đẩy bản inline reply mới nhất lên GitHub và xác minh build APK Release
