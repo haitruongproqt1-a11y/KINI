@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.40
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.41
         required: true
-        default: v1.8.40
+        default: v1.8.41
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.37
+        description: Mã GitHub Release nhận APK, ví dụ v1.38
         required: true
-        default: v1.37
+        default: v1.38
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.40 · Build 40. Hardening volume và call lifecycle: không chặn phím volume, ngoài call dùng MUSIC, trong call dùng VOICE_CALL; dừng/release ringtone-ringback tuyệt đối, bỏ branding riêng tư khỏi incoming UI và giữ muted local preview."
+              --notes "KINI 1.8.41 · Build 41. Thêm inline reply trên thông báo tin nhắn Android; Title là tên người gửi, Body là preview tin nhắn và phản hồi dùng luồng chat.send hiện có."
           fi
