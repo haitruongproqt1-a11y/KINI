@@ -36,6 +36,7 @@ export default function HomeScreen() {
           title: latestConversation.title,
           body: latestConversation.preview,
           sound: "default",
+          categoryIdentifier: "message_reply",
           data: { type: "chat_message", conversationId: String(latestConversation.id) },
         },
         trigger: null,

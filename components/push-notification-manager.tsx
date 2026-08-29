@@ -28,6 +28,14 @@ async function getPushToken() {
       { identifier: "ANSWER_CALL", buttonTitle: "Trả lời", options: { opensAppToForeground: true } },
       { identifier: "DECLINE_CALL", buttonTitle: "Từ chối", options: { isDestructive: true, opensAppToForeground: true } },
     ]);
+    await Notifications.setNotificationCategoryAsync("message_reply", [
+      {
+        identifier: "REPLY_MESSAGE",
+        buttonTitle: "Trả lời",
+        textInput: { submitButtonTitle: "Gửi", placeholder: "Nhập tin nhắn" },
+        options: { opensAppToForeground: false },
+      },
+    ]);
   }
   const permissions = await Notifications.getPermissionsAsync();
   const finalStatus = permissions.status === "granted" ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
@@ -65,6 +73,7 @@ export function PushNotificationManager() {
   const registrationInFlight = useRef(false);
   const fullScreenPermissionPrompted = useRef(false);
   const register = trpc.push.register.useMutation();
+  const quickReply = trpc.chat.send.useMutation();
   const registerPushToken = useCallback(async () => {
     if (!isAuthenticated || !user || registeredForUser.current === user.id || registrationInFlight.current) return;
     registrationInFlight.current = true;
@@ -109,6 +118,10 @@ export function PushNotificationManager() {
       if (data?.type === "session_replaced") return;
       const rawId = data?.conversationId;
       const conversationId = typeof rawId === "string" ? rawId : typeof rawId === "number" ? String(rawId) : null;
+      if (response.actionIdentifier === "REPLY_MESSAGE" && response.userText?.trim() && conversationId) {
+        void quickReply.mutateAsync({ conversationId: Number(conversationId), kind: "text", content: response.userText.trim() }).catch(() => undefined);
+        return;
+      }
       if (data?.type === "incoming_call") {
         if (response.actionIdentifier === "ANSWER_CALL" && data.callId) call.handleIncomingNotificationAction(data.callId, "answer");
         if (response.actionIdentifier === "DECLINE_CALL" && data.callId) call.handleIncomingNotificationAction(data.callId, "decline");
@@ -118,7 +131,7 @@ export function PushNotificationManager() {
     const subscription = Notifications.addNotificationResponseReceivedListener(openConversation);
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) openConversation(response); });
     return () => subscription.remove();
-  }, [call, router]);
+  }, [call, quickReply, router]);
   useEffect(() => {
     if (Platform.OS === "web") return;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {

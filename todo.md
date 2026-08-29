@@ -337,3 +337,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Sửa push notification tin nhắn: Title là tên người gửi và Body là nội dung tin nhắn
 - [x] Kiểm thử payload FCM foreground/background và TypeScript sau thay đổi notification
+
+- [x] Thêm hành động trả lời nhanh inline reply trên notification tin nhắn Android
+- [x] Xử lý gửi phản hồi nền đúng tài khoản/cuộc trò chuyện và kiểm thử hồi quy

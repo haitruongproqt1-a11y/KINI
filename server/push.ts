@@ -75,7 +75,7 @@ async function sendFcmPushNotification(token: string, notification: GenericNotif
       body: JSON.stringify({
         message: {
           token,
-          data: notification.data,
+          data: { ...notification.data, categoryId: notification.channelId === "messages" ? "message_reply" : undefined },
           ...(notification.channelId === "messages" ? {
             notification: { title: notification.title, body: notification.body.slice(0, 160) },
           } : {}),
@@ -111,7 +111,7 @@ async function sendExpoPushNotifications(tokens: string[], notification: Generic
     const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(tokens.map((to) => ({ to, sound: "default", title: notification.title, body: notification.body.slice(0, 160), priority: "high", channelId: notification.channelId, categoryId: notification.data.type === "incoming_call" ? "incoming_call" : undefined, data: notification.data }))),
+      body: JSON.stringify(tokens.map((to) => ({ to, sound: "default", title: notification.title, body: notification.body.slice(0, 160), priority: "high", channelId: notification.channelId, categoryId: notification.channelId === "messages" ? "message_reply" : notification.data.type === "incoming_call" ? "incoming_call" : undefined, data: notification.data }))),
     });
     if (!response.ok) console.warn("[Push] Expo gateway không nhận notification.");
     return response.ok ? tokens.length : 0;

@@ -36,5 +36,11 @@ describe("Bảo mật và thông báo đẩy KINI", () => {
     expect(inbox).toContain("body: latestConversation.preview");
     expect(inbox).not.toContain("Tin nhắn mới trên KINI");
     expect(inbox).not.toContain("tin nhắn chưa đọc");
+
+    const pushManager = readFileSync(resolve(import.meta.dirname, "../components/push-notification-manager.tsx"), "utf8");
+    expect(pushManager).toContain('setNotificationCategoryAsync("message_reply"');
+    expect(pushManager).toContain('identifier: "REPLY_MESSAGE"');
+    expect(pushManager).toContain("response.userText?.trim()");
+    expect(pushManager).toContain("quickReply.mutateAsync");
   });
 });
