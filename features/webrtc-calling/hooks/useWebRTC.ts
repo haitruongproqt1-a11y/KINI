@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
 import { apiCall } from "@/lib/_core/api";
+import { stopCallSounds } from "./useCallSounds";
 import { createKiniSignalClient, type KiniSignalClient } from "../services/signalingClient";
 import {
   candidateToPayload,
@@ -129,6 +130,7 @@ export function useWebRTC(enabled = true) {
     try { if (screenTrack) screenTrack.onended = null; } catch { /* Không cần xử lý thêm. */ }
     stopStream(screenStream);
     stopStream(localStream);
+    stopCallSounds();
     try { peer?.close(); } catch { /* Peer đã đóng hoặc native không còn hợp lệ. */ }
     stopInCall();
     callIdRef.current = null;
@@ -247,7 +249,7 @@ export function useWebRTC(enabled = true) {
         callIdRef.current = signal.callId;
         conversationIdRef.current = signal.conversationId;
         incomingRef.current = incoming;
-        setState({ ...initialState, status: "ringing", direction: "incoming", mode, conversationId: signal.conversationId, peer: signal.caller ?? { title: "Bạn KINI", initials: "K", color: "#1677FF" }, incoming });
+        setState({ ...initialState, status: "ringing", direction: "incoming", mode, conversationId: signal.conversationId, peer: signal.caller ?? { title: "Người gọi", initials: "N", color: "#1677FF" }, incoming });
       },
       answer: async (signal) => {
         const peer = peerRef.current;

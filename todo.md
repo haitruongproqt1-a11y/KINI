@@ -327,3 +327,10 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Nhả audio focus, MODE_NORMAL và speakerphone khi kết thúc call hoặc mọi lifecycle app/service thoát
 - [x] Kiểm thử hồi quy và phát hành APK KINI sửa volume/lifecycle
 - [ ] Kiểm thử volume A-D trên Android thật sau khi cài APK v1.36
+
+- [x] Rà soát và giữ duy nhất UI incoming call full-screen khi nền/màn khóa, loại banner cuộc gọi đến
+- [x] Bảo đảm ringback bên gọi và ringtone bên nhận dừng ngay khi kết nối, nhận, từ chối, nhỡ hoặc kết thúc
+- [x] Bổ sung cleanupCall dừng và release audio player, không còn âm thanh chạy ngầm
+- [x] Bật echoCancellation, noiseSuppression, autoGainControl và muted localStream preview
+- [x] Đồng bộ MODE_IN_COMMUNICATION và STREAM_VOICE_CALL trong call, không ảnh hưởng ngoài call
+- [ ] Kiểm thử hồi quy, prebuild Android và phát hành APK GitHub cho bản sửa call

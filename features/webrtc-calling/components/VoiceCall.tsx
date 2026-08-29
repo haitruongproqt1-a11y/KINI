@@ -23,7 +23,7 @@ export function VoiceCall({ call, title, initials, color, avatarUrl }: { call: a
   return <Modal visible={visible} animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => incoming ? void call.declineIncomingCall() : call.minimizeCall()}>
     <View style={[styles.screen, { paddingTop: insets.top + 30, paddingBottom: Math.max(insets.bottom, 20) }]}>
       <View style={styles.orbOne} /><View style={styles.orbTwo} />
-      <View style={styles.topRow}><View style={styles.topBadge}><MaterialIcons name="lock" size={14} color="#BFD8F3" /><Text style={styles.topBadgeText}>Kết nối riêng tư KINI</Text></View>{!incoming ? <TouchableOpacity onPress={call.minimizeCall} style={styles.minimize} accessibilityLabel="Thu nhỏ cuộc gọi để nhắn tin"><MaterialIcons name="keyboard-arrow-down" size={23} color={kiniColors.white} /></TouchableOpacity> : null}</View>
+      <View style={styles.topRow}>{!incoming ? <TouchableOpacity onPress={call.minimizeCall} style={styles.minimize} accessibilityLabel="Thu nhỏ cuộc gọi để nhắn tin"><MaterialIcons name="keyboard-arrow-down" size={23} color={kiniColors.white} /></TouchableOpacity> : null}</View>
       <View style={styles.identity}>
         <View style={styles.avatarRing}><Avatar initials={initials} color={color} imageUri={avatarUrl} size={116} /></View>
         <Text numberOfLines={1} style={styles.name}>{title}</Text>
@@ -42,7 +42,6 @@ const styles = StyleSheet.create({
   orbOne: { position: "absolute", width: 350, height: 350, borderRadius: 175, top: -160, left: -105, backgroundColor: "#155C9A", opacity: 0.48 },
   orbTwo: { position: "absolute", width: 290, height: 290, borderRadius: 145, bottom: 35, right: -135, backgroundColor: "#532F96", opacity: 0.42 },
   topRow: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, topBadge: { flexDirection: "row", gap: 6, alignItems: "center", borderRadius: 16, paddingHorizontal: 11, paddingVertical: 6, backgroundColor: "rgba(255,255,255,0.10)" }, minimize: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 19, backgroundColor: "rgba(255,255,255,0.14)" },
-  topBadgeText: { color: "#D7E9FA", fontSize: 11, fontWeight: "700" },
   identity: { alignItems: "center", marginTop: "auto", marginBottom: "auto" },
   avatarRing: { padding: 7, borderRadius: 67, backgroundColor: "rgba(255,255,255,0.13)", borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
   name: { marginTop: 23, maxWidth: 290, color: kiniColors.white, fontSize: 27, lineHeight: 33, fontWeight: "900" },

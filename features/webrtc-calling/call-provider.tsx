@@ -23,7 +23,7 @@ const screenShareAudio = NativeModules.KiniScreenShareAudio as {
 } | undefined;
 
 function CallOverlay({ call }: { call: CallController }) {
-  const peer = call.peer ?? { title: "Bạn KINI", initials: "K", color: "#1677FF" };
+  const peer = call.peer ?? { title: "Người gọi", initials: "N", color: "#1677FF" };
   const full = call.mode === "voice" ? <VoiceCall call={call} title={peer.title} initials={peer.initials} color={peer.color} avatarUrl={peer.avatarUrl} /> : call.mode === "video" ? <VideoCall call={call} title={peer.title} initials={peer.initials} color={peer.color} avatarUrl={peer.avatarUrl} /> : null;
   if (!call.minimized || call.status === "idle") return full;
   return <><MinimizedCall call={call} peer={peer} />{full}</>;
@@ -89,7 +89,7 @@ export function CallProvider({ children }: PropsWithChildren) {
           // Screen share local không tự thu nhỏ: mở lại từ bubble sẽ quay thẳng về màn điều khiển call.
           call.keepAudioActive();
           void screenShareAudio?.start?.().catch(() => undefined);
-          void screenShareOverlay?.show?.(call.peer?.initials ?? "K").catch(() => undefined);
+          void screenShareOverlay?.show?.(call.peer?.initials ?? "N").catch(() => undefined);
         } else {
           call.minimizeCall();
         }

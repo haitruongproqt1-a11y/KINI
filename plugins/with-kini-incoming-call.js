@@ -205,12 +205,12 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
     }
     if (data["type"] == "missed_call") {
       val callId = data["callId"] ?: return
-      KiniCallNotifier.showMissedCall(this, callId, data["callerName"] ?: "Bạn KINI", data["mode"] ?: "voice")
+      KiniCallNotifier.showMissedCall(this, callId, data["callerName"] ?: "Người gọi", data["mode"] ?: "voice")
       return
     }
     if (data["type"] == "incoming_call") {
       val callId = data["callId"] ?: return
-      val callerName = data["callerName"] ?: "Bạn KINI"
+      val callerName = data["callerName"] ?: "Người gọi"
       val callerAvatar = data["callerAvatar"] ?: ""
       val mode = data["mode"] ?: "voice"
       val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)
@@ -223,100 +223,6 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
       return
     }
     super.onMessageReceived(message)
-  }
-}
-`;
-
-  const connectionService = `package ${packageName}.kini.incomingcall
-
-import android.content.ComponentName
-import android.content.Context
-import android.net.Uri
-import android.os.Bundle
-import android.telecom.Connection
-import android.telecom.ConnectionRequest
-import android.telecom.ConnectionService
-import android.telecom.DisconnectCause
-import android.telecom.PhoneAccount
-import android.telecom.PhoneAccountHandle
-import android.telecom.TelecomManager
-
-object KiniTelecomBridge {
-  private const val ACCOUNT_ID = "kini_voip"
-  private val activeConnections = mutableMapOf<String, KiniConnection>()
-  private fun handle(context: Context) = PhoneAccountHandle(ComponentName(context, KiniConnectionService::class.java), ACCOUNT_ID)
-
-  fun attachIncomingConnection(connection: KiniConnection) {
-    synchronized(activeConnections) { activeConnections[connection.callId] = connection }
-  }
-
-  fun dismissIncomingCall(callId: String) {
-    val connection = synchronized(activeConnections) { activeConnections.remove(callId) } ?: return
-    try {
-      connection.setDisconnected(DisconnectCause(DisconnectCause.REMOTE))
-      connection.destroy()
-    } catch (_: Exception) {
-      // Connection có thể đã được Telecom hủy trước khi FCM end đến.
-    }
-  }
-
-  fun forgetIncomingCall(callId: String) {
-    synchronized(activeConnections) { activeConnections.remove(callId) }
-  }
-
-  fun reportIncomingCall(context: Context, callId: String, callerName: String, mode: String) {
-    try {
-      val telecom = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
-      val account = PhoneAccount.Builder(handle(context), "KINI").setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED).setSupportedUriSchemes(listOf("kini")).build()
-      telecom.registerPhoneAccount(account)
-      val extras = Bundle().apply {
-        putString(KiniCallNotifier.EXTRA_CALL_ID, callId)
-        putString(KiniCallNotifier.EXTRA_CALLER_NAME, callerName)
-        putString(KiniCallNotifier.EXTRA_MODE, mode)
-      }
-      telecom.addNewIncomingCall(handle(context), extras)
-    } catch (_: SecurityException) {
-      // Notification full-screen vẫn hoạt động nếu thiết bị chặn Telecom self-managed.
-    } catch (_: UnsupportedOperationException) {
-      // Một số ROM hạn chế self-managed ConnectionService; giữ CallStyle fallback.
-    }
-  }
-}
-
-class KiniConnectionService : ConnectionService() {
-  override fun onCreateIncomingConnection(phoneAccountHandle: PhoneAccountHandle, request: ConnectionRequest): Connection {
-    val extras = request.extras
-    val connection = KiniConnection(applicationContext, extras.getString(KiniCallNotifier.EXTRA_CALL_ID) ?: "", extras.getString(KiniCallNotifier.EXTRA_CALLER_NAME) ?: "Bạn KINI").apply {
-      connectionProperties = Connection.PROPERTY_SELF_MANAGED
-      setAddress(Uri.parse("kini:" + callId), TelecomManager.PRESENTATION_ALLOWED)
-      setCallerDisplayName(callerName, TelecomManager.PRESENTATION_ALLOWED)
-      setAudioModeIsVoip(true)
-      setRinging()
-    }
-    KiniTelecomBridge.attachIncomingConnection(connection)
-    return connection
-  }
-}
-
-class KiniConnection(private val context: Context, val callId: String, val callerName: String) : Connection() {
-  override fun onAnswer() {
-    setActive()
-    KiniTelecomBridge.forgetIncomingCall(callId)
-    KiniCallNotifier.cancelIncomingCall(context, callId)
-    KiniIncomingCallActivity.openReactApp(context, callId, "answer")
-  }
-  override fun onReject() {
-    setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
-    destroy()
-    KiniTelecomBridge.forgetIncomingCall(callId)
-    KiniCallNotifier.cancelIncomingCall(context, callId)
-    KiniIncomingCallActivity.openReactApp(context, callId, "decline")
-  }
-  override fun onDisconnect() {
-    setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
-    destroy()
-    KiniTelecomBridge.forgetIncomingCall(callId)
-    KiniCallNotifier.cancelIncomingCall(context, callId)
   }
 }
 `;
@@ -513,7 +419,7 @@ class KiniIncomingCallActivity : Activity() {
 
   private fun render(intent: Intent) {
     callId = intent.getStringExtra(KiniCallNotifier.EXTRA_CALL_ID) ?: ""
-    val callerName = intent.getStringExtra(KiniCallNotifier.EXTRA_CALLER_NAME) ?: "Bạn KINI"
+    val callerName = intent.getStringExtra(KiniCallNotifier.EXTRA_CALLER_NAME) ?: "Người gọi"
     val callerAvatar = intent.getStringExtra(KiniCallNotifier.EXTRA_CALLER_AVATAR) ?: ""
     val mode = intent.getStringExtra(KiniCallNotifier.EXTRA_MODE) ?: "voice"
     val action = intent.getStringExtra(KiniCallNotifier.EXTRA_ACTION) ?: KiniCallNotifier.ACTION_OPEN
@@ -667,7 +573,6 @@ class KiniIncomingCallActivity : Activity() {
     [path.join(dir, "KiniCallNotifier.kt"), notifier],
     [path.join(dir, "KiniAudioSessionModule.kt"), audioSessionModule],
     [path.join(dir, "KiniFirebaseMessagingService.kt"), messagingService],
-    [path.join(dir, "KiniConnectionService.kt"), connectionService],
     [path.join(dir, "KiniIncomingCallSettingsModule.kt"), fullScreenSettingsModule],
     [path.join(dir, "KiniIncomingCallActivity.kt"), incomingActivity],
   ];

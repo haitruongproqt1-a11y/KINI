@@ -35,8 +35,10 @@ describe("KINI call UI", () => {
     expect(controls).toContain("attention onPress={onAccept}");
     expect(nativeService).toContain("InCallManager.stopRingback()");
     expect(webRtc).toContain("Dừng stream/audio/ringback cục bộ ngay");
-    expect(sounds).toContain("dừng player Expo nếu Provider bị unmount");
-    expect(sounds).toContain("incoming.pause(); incoming.seekTo(0)");
+    expect(sounds).toContain("stopCallSounds");
+    expect(sounds).toContain("player.stop()");
+    expect(sounds).toContain("incoming.release()");
+    expect(sounds).toContain("ringback.release()");
     expect(webRtc).toContain('apiCall<{ ok: boolean }>("/api/call/end"');
     expect(webRtc).toContain("HTTP dự phòng vẫn yêu cầu server gửi FCM call_ended");
   });
@@ -44,6 +46,8 @@ describe("KINI call UI", () => {
   it("đưa preview camera local lên trên RTC video và không render màn hình tự chia sẻ", () => {
     expect(nativeVideo).toContain("zOrder={zOrder}");
     expect(video).toContain("zOrder={1}");
+    expect(video).toContain("muted");
+    expect(nativeVideo).toContain("muted");
     expect(video).toContain("const primaryStream = call.remoteScreenStream");
     expect(video).toContain("call.remoteScreenSharing");
     expect(video).toContain("cameraEnabled={call.remoteScreenSharing ? false : call.cameraEnabled}");
