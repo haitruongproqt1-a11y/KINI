@@ -30,5 +30,11 @@ describe("Bảo mật và thông báo đẩy KINI", () => {
     expect(source).not.toContain("sendNewDeviceLoginPush");
     expect(source).toContain("sendMissedCallPush");
     expect(source).toContain("callerAvatar");
+
+    const inbox = readFileSync(resolve(import.meta.dirname, "../app/(tabs)/index.tsx"), "utf8");
+    expect(inbox).toContain("title: latestConversation.title");
+    expect(inbox).toContain("body: latestConversation.preview");
+    expect(inbox).not.toContain("Tin nhắn mới trên KINI");
+    expect(inbox).not.toContain("tin nhắn chưa đọc");
   });
 });

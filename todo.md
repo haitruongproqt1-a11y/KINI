@@ -334,3 +334,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bật echoCancellation, noiseSuppression, autoGainControl và muted localStream preview
 - [x] Đồng bộ MODE_IN_COMMUNICATION và STREAM_VOICE_CALL trong call, không ảnh hưởng ngoài call
 - [x] Kiểm thử hồi quy, prebuild Android và phát hành APK GitHub cho bản sửa call
+
+- [x] Sửa push notification tin nhắn: Title là tên người gửi và Body là nội dung tin nhắn
+- [x] Kiểm thử payload FCM foreground/background và TypeScript sau thay đổi notification

@@ -29,10 +29,19 @@ export default function HomeScreen() {
     if (unread === undefined) return;
     const increased = previousUnread.current !== null && unread > previousUnread.current;
     previousUnread.current = unread;
-    if (increased && Platform.OS !== "web") {
-      void Notifications.scheduleNotificationAsync({ content: { title: "Tin nhắn mới trên KINI", body: `Bạn có ${unread} tin nhắn chưa đọc.`, sound: "default" }, trigger: null });
+    const latestConversation = conversationsQuery.data?.[0];
+    if (increased && Platform.OS !== "web" && latestConversation) {
+      void Notifications.scheduleNotificationAsync({
+        content: {
+          title: latestConversation.title,
+          body: latestConversation.preview,
+          sound: "default",
+          data: { type: "chat_message", conversationId: String(latestConversation.id) },
+        },
+        trigger: null,
+      });
     }
-  }, [notificationQuery.data?.unreadMessages]);
+  }, [conversationsQuery.data, notificationQuery.data?.unreadMessages]);
   if (loading || conversationsQuery.isLoading && isAuthenticated) return <ScreenContainer><View style={styles.loader}><ActivityIndicator color={kiniColors.blue} size="large" /><Text style={styles.loaderText}>Đang tải cuộc trò chuyện…</Text></View></ScreenContainer>;
   if (!isAuthenticated) return <KiniPasswordAuth onSessionReady={auth.refresh} />;
   return (
