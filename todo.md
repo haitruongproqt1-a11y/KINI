@@ -333,4 +333,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Bổ sung cleanupCall dừng và release audio player, không còn âm thanh chạy ngầm
 - [x] Bật echoCancellation, noiseSuppression, autoGainControl và muted localStream preview
 - [x] Đồng bộ MODE_IN_COMMUNICATION và STREAM_VOICE_CALL trong call, không ảnh hưởng ngoài call
-- [ ] Kiểm thử hồi quy, prebuild Android và phát hành APK GitHub cho bản sửa call
+- [x] Kiểm thử hồi quy, prebuild Android và phát hành APK GitHub cho bản sửa call
