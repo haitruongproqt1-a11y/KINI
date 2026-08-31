@@ -348,4 +348,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Thay spinner tải cuộc trò chuyện bằng skeleton loading
 - [x] Thêm thông báo mất mạng nhỏ gọn và tự ẩn khi kết nối lại
-- [ ] Kiểm thử, build APK và đẩy bản cập nhật lên GitHub
+- [x] Kiểm thử, build APK và đẩy bản cập nhật lên GitHub
