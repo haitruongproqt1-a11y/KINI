@@ -12,6 +12,14 @@ describe("KINI chat timeline", () => {
     expect(chatScreen).toContain("left.timestamp - right.timestamp");
   });
 
+  it("không để trạng thái tải cuộc trò chuyện treo vô hạn và vẫn giữ polling realtime", () => {
+    expect(chatScreen).toContain("setLoadingTimedOut(true)");
+    expect(chatScreen).toContain("Kết nối đang chậm. Vui lòng thử lại.");
+    expect(chatScreen).toContain("refetchInterval: 5000");
+    expect(chatScreen).toContain("refetchInterval: 20_000");
+    expect(chatScreen).toContain("refetchInterval: 45_000");
+  });
+
   it("không còn render call history thành footer cố định cuối chat", () => {
     expect(chatScreen).not.toContain("ListFooterComponent={<CallHistory");
     expect(chatScreen).toContain("<CallTimelineEntry call={item.call} />");

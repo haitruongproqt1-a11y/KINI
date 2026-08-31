@@ -342,3 +342,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Xử lý gửi phản hồi nền đúng tài khoản/cuộc trò chuyện và kiểm thử hồi quy
 
 - [x] Đẩy bản inline reply mới nhất lên GitHub và xác minh build APK Release
+
+- [x] Sửa lỗi màn hình Đang tải cuộc trò chuyện bị treo, không làm mất tin nhắn và cuộc gọi realtime
+- [x] Kiểm thử loading chat, timeout/retry và realtime sau khi sửa

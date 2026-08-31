@@ -31,10 +31,13 @@ export function createTRPCClient() {
         },
         // Custom fetch to include credentials for cookie-based auth
         fetch(url, options) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15_000);
           return fetch(url, {
             ...options,
             credentials: "include",
-          });
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timeout));
         },
       }),
     ],

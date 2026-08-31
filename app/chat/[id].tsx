@@ -253,6 +253,7 @@ export default function ChatScreen() {
   const [androidKeyboardOverlap, setAndroidKeyboardOverlap] = useState(0);
   const [sentFeedbackNonce, setSentFeedbackNonce] = useState(0);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const sentMessagePlayer = useAudioPlayer(sentMessageSound);
   const summaryQuery = trpc.chat.list.useQuery({ filter: "all" }, { enabled: isAuthenticated, refetchInterval: 8000, refetchIntervalInBackground: false, staleTime: 1_500, retry: 3, retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000) });
   const conversation = useMemo(() => summaryQuery.data?.find((item) => item.id === conversationId), [conversationId, summaryQuery.data]);
@@ -284,6 +285,14 @@ export default function ChatScreen() {
       sentMessagePlayer.play();
     } catch { /* Âm thanh là phản hồi bổ sung; gửi tin vẫn thành công nếu thiết bị chặn media. */ }
   };
+  useEffect(() => {
+    if (!messagesQuery.isLoading || messagesQuery.data || messagesQuery.isError) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timeout = setTimeout(() => setLoadingTimedOut(true), 18_000);
+    return () => clearTimeout(timeout);
+  }, [messagesQuery.data, messagesQuery.isError, messagesQuery.isLoading]);
   useEffect(() => {
     if (messagesQuery.data?.length) markRead.mutate({ conversationId });
   }, [conversationId, messagesQuery.data?.length]);
@@ -386,11 +395,11 @@ export default function ChatScreen() {
     });
   };
 
-  if (!isAuthenticated || (messagesQuery.isLoading && !messagesQuery.data)) {
+  if (!isAuthenticated || (messagesQuery.isLoading && !messagesQuery.data && !loadingTimedOut)) {
     return <View style={styles.loading}><ActivityIndicator color={kiniColors.blue} size="large" /><Text style={styles.loadingText}>Đang tải cuộc trò chuyện…</Text></View>;
   }
-  if (messagesQuery.isError) {
-    return <View style={styles.loading}><MaterialIcons name="cloud-off" size={34} color={kiniColors.coral} /><Text style={styles.loadingText}>Không thể tải cuộc trò chuyện.</Text><TouchableOpacity onPress={() => void messagesQuery.refetch()} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity></View>;
+  if (messagesQuery.isError || loadingTimedOut) {
+    return <View style={styles.loading}><MaterialIcons name="cloud-off" size={34} color={kiniColors.coral} /><Text style={styles.loadingText}>{loadingTimedOut && !messagesQuery.isError ? "Kết nối đang chậm. Vui lòng thử lại." : "Không thể tải cuộc trò chuyện."}</Text><TouchableOpacity onPress={() => { setLoadingTimedOut(false); void messagesQuery.refetch(); }} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity></View>;
   }
 
   return (
