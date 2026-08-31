@@ -351,4 +351,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Kiểm thử, build APK và đẩy bản cập nhật lên GitHub
 
 - [x] Khi chạm thông báo cuộc gọi, mở thẳng giao diện gọi chính KINI và không giữ màn hình incoming native riêng
-- [ ] Kiểm thử call notification, build APK và đẩy GitHub Release mới
+- [x] Kiểm thử call notification, build APK và đẩy GitHub Release mới
