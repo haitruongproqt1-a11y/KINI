@@ -308,12 +308,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.39",
-      appVersion: "1.8.42",
-      buildNumber: 42,
-      notes: "Thay spinner tải cuộc trò chuyện bằng skeleton loading và thêm thông báo mất mạng nhỏ gọn tự ẩn khi kết nối lại; giữ nguyên realtime tin nhắn và cuộc gọi.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.39",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.39/KINI-Release-v1.39.apk",
+      releaseCode: "v1.40",
+      appVersion: "1.8.43",
+      buildNumber: 43,
+      notes: "Khi chạm thông báo cuộc gọi sẽ mở thẳng giao diện gọi chính KINI; giữ nguyên full-screen khi khóa máy và các tính năng cuộc gọi khác.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.40",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.40/KINI-Release-v1.40.apk",
     });
   });
 

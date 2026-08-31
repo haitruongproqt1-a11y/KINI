@@ -87,7 +87,8 @@ object KiniCallNotifier {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     ensureChannel(notificationManager)
     KiniCallRinger.start(context, callId)
-    val contentIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_OPEN, 101)
+    val fullScreenIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_OPEN, 101)
+    val contentIntent = mainActivityIntent(context, callId)
     // Đây chỉ là bootstrap im lặng cho Android mở Activity full-screen; tuyệt đối không dùng CallStyle
     // vì CallStyle hiển thị heads-up/banner chồng lên giao diện KINI có nút Nghe/Từ chối riêng.
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -99,7 +100,8 @@ object KiniCallNotifier {
       // Một số ROM trì hoãn khởi động Activity từ FCM data-only khi máy đang khóa.
       // Activity tự hủy bootstrap ở onResume; timeout dài chỉ là fallback nếu Android chặn mở UI.
       .setTimeoutAfter(55_000L)
-      .setFullScreenIntent(contentIntent, true)
+      .setContentIntent(contentIntent)
+      .setFullScreenIntent(fullScreenIntent, true)
       .build()
     notificationManager.notify(callId.hashCode(), notification)
   }
@@ -171,6 +173,15 @@ object KiniCallNotifier {
       player = null
       currentCallId = null
     }
+  }
+
+  private fun mainActivityIntent(context: Context, callId: String): PendingIntent {
+    val intent = Intent(context, ${packageName}.MainActivity::class.java).apply {
+      action = Intent.ACTION_VIEW
+      data = Uri.parse("${deepLinkScheme}://incoming-call?callId=" + Uri.encode(callId) + "&action=open")
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+    }
+    return PendingIntent.getActivity(context, ("main:" + callId).hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
   private fun activityIntent(context: Context, callId: String, callerName: String, mode: String, callerAvatar: String, action: String, requestCode: Int): PendingIntent {

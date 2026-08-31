@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.42
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.43
         required: true
-        default: v1.8.42
+        default: v1.8.43
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.39
+        description: Mã GitHub Release nhận APK, ví dụ v1.40
         required: true
-        default: v1.39
+        default: v1.40
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.42 · Build 42. Thay spinner bằng skeleton loading, thêm chỉ báo mất mạng tự ẩn khi kết nối lại và giữ nguyên realtime tin nhắn/cuộc gọi."
+              --notes "KINI 1.8.43 · Build 43. Khi chạm thông báo cuộc gọi sẽ mở thẳng giao diện gọi chính KINI; giữ nguyên full-screen khi khóa máy và các tính năng cuộc gọi khác."
           fi

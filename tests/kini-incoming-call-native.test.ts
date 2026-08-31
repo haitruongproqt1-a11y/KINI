@@ -26,7 +26,10 @@ describe("KINI Android full-screen incoming call", () => {
   });
 
   it("dùng bootstrap full-screen im lặng và ringtone đóng gói của KINI, không dùng âm thanh mặc định", () => {
-    expect(plugin).toContain("setFullScreenIntent(contentIntent, true)");
+    expect(plugin).toContain("setContentIntent(contentIntent)");
+    expect(plugin).toContain("setFullScreenIntent(fullScreenIntent, true)");
+    expect(plugin).toContain("mainActivityIntent(context, callId)");
+    expect(plugin).toContain("${packageName}.MainActivity::class.java");
     expect(plugin).toContain("setSilent(true)");
     expect(plugin).toContain("MediaPlayer");
     expect(plugin).toContain("kini_incoming_ring");
@@ -61,6 +64,7 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)");
     expect(plugin).toContain("if (shouldUseFullScreen)");
     expect(plugin).toContain("KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)");
+    expect(plugin).toContain("val contentIntent = mainActivityIntent(context, callId)");
     expect(plugin).toContain("lifecycle-process:2.8.4");
     expect(plugin).toContain("KiniIncomingCallSettingsModule");
     expect(plugin).toContain("ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT");
