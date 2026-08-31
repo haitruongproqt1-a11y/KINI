@@ -345,3 +345,7 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Sửa lỗi màn hình Đang tải cuộc trò chuyện bị treo, không làm mất tin nhắn và cuộc gọi realtime
 - [x] Kiểm thử loading chat, timeout/retry và realtime sau khi sửa
+
+- [x] Thay spinner tải cuộc trò chuyện bằng skeleton loading
+- [x] Thêm thông báo mất mạng nhỏ gọn và tự ẩn khi kết nối lại
+- [ ] Kiểm thử, build APK và đẩy bản cập nhật lên GitHub

@@ -27,6 +27,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatComposer } from "@/components/chat-composer";
+import { ChatSkeleton } from "@/components/network-status-notice";
 import { KiniMessageStatus } from "@/components/kini-message-status";
 import { Avatar, kiniColors } from "@/components/kini-ui";
 import { useKiniMediaUploadQueue, type MediaUploadJob } from "@/features/media-upload/media-upload-provider";
@@ -396,7 +397,7 @@ export default function ChatScreen() {
   };
 
   if (!isAuthenticated || (messagesQuery.isLoading && !messagesQuery.data && !loadingTimedOut)) {
-    return <View style={styles.loading}><ActivityIndicator color={kiniColors.blue} size="large" /><Text style={styles.loadingText}>Đang tải cuộc trò chuyện…</Text></View>;
+    return <ChatSkeleton />;
   }
   if (messagesQuery.isError || loadingTimedOut) {
     return <View style={styles.loading}><MaterialIcons name="cloud-off" size={34} color={kiniColors.coral} /><Text style={styles.loadingText}>{loadingTimedOut && !messagesQuery.isError ? "Kết nối đang chậm. Vui lòng thử lại." : "Không thể tải cuộc trò chuyện."}</Text><TouchableOpacity onPress={() => { setLoadingTimedOut(false); void messagesQuery.refetch(); }} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity></View>;

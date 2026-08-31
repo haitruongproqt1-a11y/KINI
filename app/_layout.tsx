@@ -10,6 +10,7 @@ import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { ReleaseUpdateManager } from "@/components/release-update-manager";
+import { NetworkStatusNotice } from "@/components/network-status-notice";
 import { CallProvider } from "@/features/webrtc-calling/call-provider";
 import { MediaUploadProvider } from "@/features/media-upload/media-upload-provider";
 import {
@@ -90,6 +91,7 @@ export default function RootLayout() {
           <CallProvider>
           <PushNotificationManager />
           <ReleaseUpdateManager />
+          <NetworkStatusNotice />
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
           {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}

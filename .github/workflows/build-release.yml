@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.41
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.42
         required: true
-        default: v1.8.41
+        default: v1.8.42
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.38
+        description: Mã GitHub Release nhận APK, ví dụ v1.39
         required: true
-        default: v1.38
+        default: v1.39
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.41 · Build 41. Thêm inline reply trên thông báo tin nhắn Android; Title là tên người gửi, Body là preview tin nhắn và phản hồi dùng luồng chat.send hiện có."
+              --notes "KINI 1.8.42 · Build 42. Thay spinner bằng skeleton loading, thêm chỉ báo mất mạng tự ẩn khi kết nối lại và giữ nguyên realtime tin nhắn/cuộc gọi."
           fi

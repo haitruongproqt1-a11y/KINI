@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const chatScreen = readFileSync(resolve(import.meta.dirname, "../app/chat/[id].tsx"), "utf8");
+const rootLayout = readFileSync(resolve(import.meta.dirname, "../app/_layout.tsx"), "utf8");
+const networkNotice = readFileSync(resolve(import.meta.dirname, "../components/network-status-notice.tsx"), "utf8");
 
 describe("KINI chat timeline", () => {
   it("gộp call log và message vào cùng timeline sắp theo timestamp", () => {
@@ -10,6 +12,14 @@ describe("KINI chat timeline", () => {
     expect(chatScreen).toContain('entryType: "call"');
     expect(chatScreen).toContain("new Date(call.startedAt).getTime()");
     expect(chatScreen).toContain("left.timestamp - right.timestamp");
+  });
+
+  it("dùng skeleton thay spinner và hiển thị network notice tự ẩn", () => {
+    expect(chatScreen).toContain("<ChatSkeleton />");
+    expect(chatScreen).not.toContain("Đang tải cuộc trò chuyện…</Text></View>");
+    expect(rootLayout).toContain("<NetworkStatusNotice />");
+    expect(networkNotice).toContain("isInternetReachable === false");
+    expect(networkNotice).toContain("setVisible(false)");
   });
 
   it("không để trạng thái tải cuộc trò chuyện treo vô hạn và vẫn giữ polling realtime", () => {
