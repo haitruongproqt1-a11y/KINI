@@ -745,12 +745,17 @@ export async function listConversations(userId: number, filter: "all" | "unread"
 
 export async function getConversationMessages(userId: number, conversationId: number) {
   const db = await requireDb();
-  await assertParticipant(userId, conversationId);
+  await retryTransientDatabaseOperation(() => assertParticipant(userId, conversationId));
   const thread = await retryTransientDatabaseOperation(() => db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt).limit(200));
   const incomingIds = thread.filter((item) => item.senderId !== userId).map((item) => item.id);
-  if (incomingIds.length) await db.update(messageReceipts).set({ status: "delivered" }).where(and(inArray(messageReceipts.messageId, incomingIds), eq(messageReceipts.userId, userId), eq(messageReceipts.status, "sent")));
+  if (incomingIds.length) {
+    await db.update(messageReceipts).set({ status: "delivered" }).where(and(inArray(messageReceipts.messageId, incomingIds), eq(messageReceipts.userId, userId), eq(messageReceipts.status, "sent"))).catch(() => undefined);
+  }
   const ownMessageIds = thread.filter((item) => item.senderId === userId).map((item) => item.id);
-  const receipts = ownMessageIds.length ? await db.select().from(messageReceipts).where(inArray(messageReceipts.messageId, ownMessageIds)) : [];
+  let receipts: Array<typeof messageReceipts.$inferSelect> = [];
+  if (ownMessageIds.length) {
+    receipts = await db.select().from(messageReceipts).where(inArray(messageReceipts.messageId, ownMessageIds)).catch(() => []);
+  }
   const receiptsByMessage = new Map<number, typeof receipts>();
   receipts.forEach((receipt) => receiptsByMessage.set(receipt.messageId, [...(receiptsByMessage.get(receipt.messageId) ?? []), receipt]));
   return thread.map((message) => {

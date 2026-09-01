@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const chatScreen = readFileSync(resolve(import.meta.dirname, "../app/chat/[id].tsx"), "utf8");
 const rootLayout = readFileSync(resolve(import.meta.dirname, "../app/_layout.tsx"), "utf8");
 const networkNotice = readFileSync(resolve(import.meta.dirname, "../components/network-status-notice.tsx"), "utf8");
+const database = readFileSync(resolve(import.meta.dirname, "../server/db.ts"), "utf8");
 
 describe("KINI chat timeline", () => {
   it("gộp call log và message vào cùng timeline sắp theo timestamp", () => {
@@ -25,9 +26,17 @@ describe("KINI chat timeline", () => {
   it("không để trạng thái tải cuộc trò chuyện treo vô hạn và vẫn giữ polling realtime", () => {
     expect(chatScreen).toContain("setLoadingTimedOut(true)");
     expect(chatScreen).toContain("Kết nối đang chậm. Vui lòng thử lại.");
+    expect(chatScreen).toContain("(messagesQuery.isError || loadingTimedOut) && !messagesQuery.data");
     expect(chatScreen).toContain("refetchInterval: 5000");
     expect(chatScreen).toContain("refetchInterval: 20_000");
     expect(chatScreen).toContain("refetchInterval: 45_000");
+  });
+
+  it("không để lỗi receipt phụ làm hỏng dữ liệu tin nhắn chính", () => {
+    expect(database).toContain('set({ status: "delivered" }).where(');
+    expect(database).toContain('.catch(() => undefined);');
+    expect(database).toContain('where(inArray(messageReceipts.messageId, ownMessageIds)).catch(() => []);');
+    expect(database).toContain('retryTransientDatabaseOperation(() => assertParticipant(userId, conversationId))');
   });
 
   it("không còn render call history thành footer cố định cuối chat", () => {

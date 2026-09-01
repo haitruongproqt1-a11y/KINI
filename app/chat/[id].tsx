@@ -399,7 +399,7 @@ export default function ChatScreen() {
   if (!isAuthenticated || (messagesQuery.isLoading && !messagesQuery.data && !loadingTimedOut)) {
     return <ChatSkeleton />;
   }
-  if (messagesQuery.isError || loadingTimedOut) {
+  if ((messagesQuery.isError || loadingTimedOut) && !messagesQuery.data) {
     return <View style={styles.loading}><MaterialIcons name="cloud-off" size={34} color={kiniColors.coral} /><Text style={styles.loadingText}>{loadingTimedOut && !messagesQuery.isError ? "Kết nối đang chậm. Vui lòng thử lại." : "Không thể tải cuộc trò chuyện."}</Text><TouchableOpacity onPress={() => { setLoadingTimedOut(false); void messagesQuery.refetch(); }} style={styles.retry}><Text style={styles.retryText}>Thử lại</Text></TouchableOpacity></View>;
   }
 

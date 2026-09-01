@@ -355,3 +355,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Thêm nút Nghe và Từ chối trực tiếp trên thông báo cuộc gọi Android
 - [x] Xử lý action nền và kiểm thử notification call không mở app ngoài ý muốn
+
+- [x] Khắc phục lỗi báo không thể tải cuộc trò chuyện dù kết nối mạng tốt
+- [x] Kiểm thử API, phiên đăng nhập, retry và realtime sau khi sửa
