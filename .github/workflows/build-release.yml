@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.43
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.44
         required: true
-        default: v1.8.43
+        default: v1.8.44
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.40
+        description: Mã GitHub Release nhận APK, ví dụ v1.41
         required: true
-        default: v1.40
+        default: v1.41
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.43 · Build 43. Khi chạm thông báo cuộc gọi sẽ mở thẳng giao diện gọi chính KINI; giữ nguyên full-screen khi khóa máy và các tính năng cuộc gọi khác."
+              --notes "KINI 1.8.44 · Build 44. Thêm nút Nghe và Từ chối trực tiếp trên thông báo cuộc gọi Android; giữ nguyên giao diện gọi chính và full-screen khi khóa máy."
           fi

@@ -352,3 +352,6 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Khi chạm thông báo cuộc gọi, mở thẳng giao diện gọi chính KINI và không giữ màn hình incoming native riêng
 - [x] Kiểm thử call notification, build APK và đẩy GitHub Release mới
+
+- [x] Thêm nút Nghe và Từ chối trực tiếp trên thông báo cuộc gọi Android
+- [ ] Xử lý action nền và kiểm thử notification call không mở app ngoài ý muốn

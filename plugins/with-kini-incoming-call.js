@@ -89,6 +89,8 @@ object KiniCallNotifier {
     KiniCallRinger.start(context, callId)
     val fullScreenIntent = activityIntent(context, callId, callerName, mode, callerAvatar, ACTION_OPEN, 101)
     val contentIntent = mainActivityIntent(context, callId)
+    val answerIntent = mainActivityActionIntent(context, callId, ACTION_ANSWER, 102)
+    val declineIntent = mainActivityActionIntent(context, callId, ACTION_DECLINE, 103)
     // Đây chỉ là bootstrap im lặng cho Android mở Activity full-screen; tuyệt đối không dùng CallStyle
     // vì CallStyle hiển thị heads-up/banner chồng lên giao diện KINI có nút Nghe/Từ chối riêng.
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -101,6 +103,8 @@ object KiniCallNotifier {
       // Activity tự hủy bootstrap ở onResume; timeout dài chỉ là fallback nếu Android chặn mở UI.
       .setTimeoutAfter(55_000L)
       .setContentIntent(contentIntent)
+      .addAction(context.applicationInfo.icon, "Nghe", answerIntent)
+      .addAction(context.applicationInfo.icon, "Từ chối", declineIntent)
       .setFullScreenIntent(fullScreenIntent, true)
       .build()
     notificationManager.notify(callId.hashCode(), notification)
@@ -173,6 +177,15 @@ object KiniCallNotifier {
       player = null
       currentCallId = null
     }
+  }
+
+  private fun mainActivityActionIntent(context: Context, callId: String, action: String, requestCode: Int): PendingIntent {
+    val intent = Intent(context, ${packageName}.MainActivity::class.java).apply {
+      this.action = Intent.ACTION_VIEW
+      data = Uri.parse("${deepLinkScheme}://incoming-call?callId=" + Uri.encode(callId) + "&action=" + Uri.encode(action))
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+    }
+    return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
   private fun mainActivityIntent(context: Context, callId: String): PendingIntent {

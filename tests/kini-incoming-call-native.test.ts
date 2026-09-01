@@ -27,6 +27,10 @@ describe("KINI Android full-screen incoming call", () => {
 
   it("dùng bootstrap full-screen im lặng và ringtone đóng gói của KINI, không dùng âm thanh mặc định", () => {
     expect(plugin).toContain("setContentIntent(contentIntent)");
+    expect(plugin).toContain("addAction(context.applicationInfo.icon, \"Nghe\", answerIntent)");
+    expect(plugin).toContain("addAction(context.applicationInfo.icon, \"Từ chối\", declineIntent)");
+    expect(plugin).toContain("mainActivityActionIntent(context, callId, ACTION_ANSWER, 102)");
+    expect(plugin).toContain("mainActivityActionIntent(context, callId, ACTION_DECLINE, 103)");
     expect(plugin).toContain("setFullScreenIntent(fullScreenIntent, true)");
     expect(plugin).toContain("mainActivityIntent(context, callId)");
     expect(plugin).toContain("${packageName}.MainActivity::class.java");
@@ -65,6 +69,7 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("if (shouldUseFullScreen)");
     expect(plugin).toContain("KiniIncomingCallActivity.openReactApp(this, callId, KiniCallNotifier.ACTION_OPEN)");
     expect(plugin).toContain("val contentIntent = mainActivityIntent(context, callId)");
+    expect(plugin).toContain("data = Uri.parse(\"${deepLinkScheme}://incoming-call?callId=\" + Uri.encode(callId) + \"&action=\" + Uri.encode(action))");
     expect(plugin).toContain("lifecycle-process:2.8.4");
     expect(plugin).toContain("KiniIncomingCallSettingsModule");
     expect(plugin).toContain("ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT");
