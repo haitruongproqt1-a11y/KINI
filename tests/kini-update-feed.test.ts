@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 const server = readFileSync(resolve(import.meta.dirname, "../server/_core/index.ts"), "utf8");
 
 describe("KINI update feed", () => {
-  it("công bố KINI 1.8.44 / Release v1.41 mà không dùng cache cũ", () => {
+  it("công bố KINI 1.8.45 / Release v1.42 mà không dùng cache cũ", () => {
     expect(server).toContain('res.setHeader("Cache-Control", "no-store")');
-    expect(server).toContain('releaseCode: "v1.41"');
-    expect(server).toContain('appVersion: "1.8.44"');
-    expect(server).toContain('KINI-Release-v1.41.apk');
+    expect(server).toContain('releaseCode: "v1.42"');
+    expect(server).toContain('appVersion: "1.8.45"');
+    expect(server).toContain('KINI-Release-v1.42.apk');
   });
 });

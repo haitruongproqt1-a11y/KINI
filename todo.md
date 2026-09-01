@@ -358,3 +358,5 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Khắc phục lỗi báo không thể tải cuộc trò chuyện dù kết nối mạng tốt
 - [x] Kiểm thử API, phiên đăng nhập, retry và realtime sau khi sửa
+
+- [ ] Đẩy bản sửa lỗi tải cuộc trò chuyện lên GitHub và build APK Release mới
