@@ -362,4 +362,4 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 - [x] Đẩy bản sửa lỗi tải cuộc trò chuyện lên GitHub và build APK Release mới
 
 - [x] Sửa notification cuộc gọi ngoài màn hình để hiển thị tên người gọi và loại cuộc gọi
-- [ ] Kiểm thử notification nền/màn khóa, regression và build APK đẩy GitHub
+- [x] Kiểm thử notification nền/màn khóa, regression và build APK đẩy GitHub
