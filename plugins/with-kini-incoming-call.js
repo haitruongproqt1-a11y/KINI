@@ -91,11 +91,15 @@ object KiniCallNotifier {
     val contentIntent = mainActivityIntent(context, callId)
     val answerIntent = mainActivityActionIntent(context, callId, ACTION_ANSWER, 102)
     val declineIntent = mainActivityActionIntent(context, callId, ACTION_DECLINE, 103)
+    val modeText = if (mode == "video") "Cuộc gọi video đến" else "Cuộc gọi thoại đến"
     // Đây chỉ là bootstrap im lặng cho Android mở Activity full-screen; tuyệt đối không dùng CallStyle
     // vì CallStyle hiển thị heads-up/banner chồng lên giao diện KINI có nút Nghe/Từ chối riêng.
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
       .setSmallIcon(context.applicationInfo.icon)
       .setCategory(NotificationCompat.CATEGORY_CALL)
+      .setContentTitle(callerName.ifBlank { "Người gọi" })
+      .setContentText(modeText)
+      .setStyle(NotificationCompat.BigTextStyle().bigText(modeText))
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setSilent(true)
       .setOnlyAlertOnce(true)
@@ -234,7 +238,7 @@ class KiniFirebaseMessagingService : FirebaseMessagingService() {
     }
     if (data["type"] == "incoming_call") {
       val callId = data["callId"] ?: return
-      val callerName = data["callerName"] ?: "Người gọi"
+      val callerName = data["callerName"]?.takeIf { it.isNotBlank() } ?: "Người gọi"
       val callerAvatar = data["callerAvatar"] ?: ""
       val mode = data["mode"] ?: "voice"
       val shouldUseFullScreen = !KiniCallNotifier.isAppInForeground(this) || KiniCallNotifier.isDeviceLocked(this)

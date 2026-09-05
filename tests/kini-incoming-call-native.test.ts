@@ -19,6 +19,7 @@ describe("KINI Android full-screen incoming call", () => {
     expect(plugin).toContain("setShowWhenLocked(true)");
     expect(plugin).toContain("setTurnScreenOn(true)");
     expect(plugin).toContain('data["type"] == "incoming_call"');
+    expect(plugin).toContain('data["callerName"]?.takeIf { it.isNotBlank() } ?: "Người gọi"');
     expect(plugin).toContain("KiniCallNotifier.showIncomingCall");
     expect(plugin).toContain("isAppInForeground");
     expect(plugin).toContain("Lifecycle.State.RESUMED");
@@ -27,6 +28,9 @@ describe("KINI Android full-screen incoming call", () => {
 
   it("dùng bootstrap full-screen im lặng và ringtone đóng gói của KINI, không dùng âm thanh mặc định", () => {
     expect(plugin).toContain("setContentIntent(contentIntent)");
+    expect(plugin).toContain("setContentTitle(callerName.ifBlank { \"Người gọi\" })");
+    expect(plugin).toContain("setContentText(modeText)");
+    expect(plugin).toContain("val modeText = if (mode == \"video\") \"Cuộc gọi video đến\" else \"Cuộc gọi thoại đến\"");
     expect(plugin).toContain("addAction(context.applicationInfo.icon, \"Nghe\", answerIntent)");
     expect(plugin).toContain("addAction(context.applicationInfo.icon, \"Từ chối\", declineIntent)");
     expect(plugin).toContain("mainActivityActionIntent(context, callId, ACTION_ANSWER, 102)");

@@ -308,12 +308,12 @@ async function startServer() {
   app.get("/api/update/latest", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json({
-      releaseCode: "v1.42",
-      appVersion: "1.8.45",
-      buildNumber: 45,
-      notes: "Ổn định tải cuộc trò chuyện khi mạng tốt; giữ cache tin nhắn và không để lỗi receipt phụ làm gián đoạn chat.",
-      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.42",
-      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.42/KINI-Release-v1.42.apk",
+      releaseCode: "v1.43",
+      appVersion: "1.8.46",
+      buildNumber: 46,
+      notes: "Hiển thị tên người gọi và loại cuộc gọi rõ ràng trên notification khi KINI ở nền hoặc màn khóa.",
+      releaseUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/tag/v1.43",
+      apkUrl: "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.43/KINI-Release-v1.43.apk",
     });
   });
 
