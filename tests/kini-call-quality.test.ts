@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const nativeService = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/services/webrtcService.native.ts"), "utf8");
 const callHook = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/hooks/useWebRTC.ts"), "utf8");
+const callSounds = readFileSync(resolve(import.meta.dirname, "../features/webrtc-calling/hooks/useCallSounds.ts"), "utf8");
 
 describe("KINI WebRTC call quality", () => {
   it("keeps Android audio focus for both voice and video with echo controls", () => {
@@ -11,11 +12,24 @@ describe("KINI WebRTC call quality", () => {
     expect(nativeService).toContain("echoCancellation: true");
     expect(nativeService).toContain("noiseSuppression: true");
     expect(nativeService).toContain("autoGainControl: true");
+    expect(nativeService).toContain("googEchoCancellation: true");
+    expect(nativeService).toContain("googEchoCancellation2: true");
+    expect(nativeService).toContain("googNoiseSuppression: true");
+    expect(nativeService).toContain("googAutoGainControl: true");
+    expect(nativeService).toContain("googHighpassFilter: true");
     expect(nativeService).toContain("Microphone của call được giữ trên local stream riêng");
     expect(nativeService).toContain("keepCallAudioActive");
     expect(nativeService).toContain("luôn tái chiếm session");
     expect(callHook).toContain("microphoneTrack");
     expect(callHook).toContain("const keepAudioActive");
+  });
+
+  it("starts and stops ringback through a guarded playback generation", () => {
+    expect(callSounds).toContain("await player.seekTo(0)");
+    expect(callSounds).toContain("if (generation !== playbackGeneration.current) return;");
+    expect(callSounds).toContain("playbackGeneration.current += 1");
+    expect(callSounds).toContain("status === \"ringing\" && direction === \"outgoing\"");
+    expect(callSounds).toContain("stopCallSounds");
   });
 
   it("samples selected/nominated candidate pairs before displaying round-trip ping", () => {

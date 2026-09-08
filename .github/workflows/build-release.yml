@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: Tag mã nguồn KINI cần build, ví dụ v1.8.46
+        description: Tag mã nguồn KINI cần build, ví dụ v1.8.47
         required: true
-        default: v1.8.46
+        default: v1.8.47
         type: string
       release_tag:
-        description: Mã GitHub Release nhận APK, ví dụ v1.43
+        description: Mã GitHub Release nhận APK, ví dụ v1.44
         required: true
-        default: v1.43
+        default: v1.44
         type: string
 
 permissions:
@@ -151,5 +151,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$source_commit" \
               --title "KINI Release $RELEASE_TAG" \
-              --notes "KINI 1.8.46 · Build 46. Hiển thị tên người gọi và loại cuộc gọi rõ ràng trên notification khi KINI ở nền hoặc màn khóa."
+              --notes "KINI 1.8.47 · Build 47. Giảm vang/rè khi gọi video và sửa nhạc chờ phát đúng lúc, dừng đúng khi cuộc gọi kết thúc."
           fi

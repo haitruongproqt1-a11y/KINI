@@ -363,3 +363,7 @@ _ Cập nhật: bỏ qua dòng ghi chú nếu không cần hiển thị cho ngư
 
 - [x] Sửa notification cuộc gọi ngoài màn hình để hiển thị tên người gọi và loại cuộc gọi
 - [x] Kiểm thử notification nền/màn khóa, regression và build APK đẩy GitHub
+
+- [x] Khắc phục tiếng vang/rè trong cuộc gọi video khi chưa có lời nói, không phá WebRTC hiện tại
+- [x] Sửa nhạc chờ: phát ngay khi bắt đầu gọi, dừng khi kết nối/kết thúc và không phát ngoài trạng thái gọi
+- [x] Kiểm thử audio lifecycle, regression và phát hành APK GitHub cho bản sửa mới
