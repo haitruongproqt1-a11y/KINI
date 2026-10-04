@@ -1,12 +1,19 @@
-{
-    "windows_ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/update_v1.0.5.zip",
-    "android_apk_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/KINI_Chat_v1.0.5_Mobile.apk",
-    "build_number": 6,
-    "release_notes": "1. KINI Pay 100% Thật (Xóa toàn bộ dữ liệu Demo): Lưu & đồng bộ Chia hóa đơn / Lì xì may mắn thời gian thực, giữ duy nhất 1 bảng hướng dẫn cho người dùng.\n2. Phòng họp Trực tuyến & Gọi Thoại/Video WebRTC P2P 2 chiều: Mời người dùng thật phải đổ chuông và chờ ấn Đồng ý mới vào phòng, truyền âm thanh/hình ảnh 2 chiều ổn định trên cả PC & Mobile, loại bỏ Trợ lý AI khỏi danh sách họp.\n3. Bảo mật Khóa ứng dụng nâng cấp: Đổi mã PIN 3 bước (Mã PIN cũ -> Mã PIN mới -> Xác nhận mã PIN mới) và hiển thị/kích hoạt Khóa Vân Tay (Fingerprint) trực tiếp trên điện thoại.\n4. Giao diện & Phím tắt Chat: Sửa lỗi chữ đang soạn bị chìm trong Giao diện Đen Xanh, bấm phím Enter trên máy tính gửi tin nhắn ngay (Shift+Enter xuống dòng).\n5. Âm thanh & Chuông báo thật: Phát âm thanh thật cho Tin nhắn, Nhạc chuông cuộc gọi đến, Nhạc chờ khi đang gọi và hỗ trợ chọn nhạc chuông từ tệp máy (.mp3/.wav/.m4a).\n6. Hồ sơ cá nhân chuẩn xác: Chọn Ngày/Tháng/Năm sinh theo mẫu DD/MM/YYYY (ví dụ 30/04/1994) và tự động tính chuẩn số Tuổi theo năm sinh. Xóa bỏ hoàn toàn mục Mã hóa KINI Shield và đồng bộ số phiên bản v1.0.5.\n7. Sửa chuẩn Múi giờ Chat (+7h) & Đa phương tiện: Sắp xếp và hiển thị đúng giờ địa phương, bấm xem ảnh/video toàn màn hình, nhấn giữ/chuột phải hiện đầy đủ Sao chép, Trả lời, Lưu về máy, Sửa ảnh/tin nhắn, Ghim, Chi tiết, Xóa, gửi Video, Tệp tin và Vị trí mở trực tiếp Google Maps.",
-    "platform": "all",
-    "version": "1.0.5",
-    "ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/latest_ota_package.zip",
-    "released_at": "2026-10-04T06:40:00Z",
-    "title": "KINI Chat v1.0.5 - Gọi/Họp WebRTC 2 Chiều Có Mời Đồng Ý, KINI Pay Thật, Âm Thanh/Nhạc Chờ, Vân Tay, Chuẩn Múi Giờ & Đa Phương Tiện",
-    "is_mandatory": false
+﻿{
+    "version":  "1.0.5",
+    "build_number":  6,
+    "title":  "KINI Chat v1.0.5 - Gọi/Họp WebRTC 2 Chiều Có Mời Đồng Ý, KINI Pay Thật, Âm Thanh/Nhạc Chờ, Vân Tay, Chuẩn Múi Giờ \u0026 Đa Phương Tiện",
+    "changelog":  "1. KINI Pay 100% Thật (Xóa toàn bộ dữ liệu Demo): Lưu \u0026 đồng bộ Chia hóa đơn / Lì xì may mắn thời gian thực, giữ duy nhất 1 bảng hướng dẫn cho người dùng.\n2. Phòng họp Trực tuyến \u0026 Gọi Thoại/Video WebRTC P2P 2 chiều: Mời người dùng thật phải đổ chuông và chờ ấn Đồng ý mới vào phòng, truyền âm thanh/hình ảnh 2 chiều ổn định trên cả PC \u0026 Mobile, loại bỏ Trợ lý AI khỏi danh sách họp.\n3. Bảo mật Khóa ứng dụng nâng cấp: Đổi mã PIN 3 bước (Mã PIN cũ -\u003e Mã PIN mới -\u003e Xác nhận mã PIN mới) và hiển thị/kích hoạt Khóa Vân Tay (Fingerprint) trực tiếp trên điện thoại.\n4. Giao diện \u0026 Phím tắt Chat: Sửa lỗi chữ đang soạn bị chìm trong Giao diện Đen Xanh, bấm phím Enter trên máy tính gửi tin nhắn ngay (Shift+Enter xuống dòng).\n5. Âm thanh \u0026 Chuông báo thật: Phát âm thanh thật cho Tin nhắn, Nhạc chuông cuộc gọi đến, Nhạc chờ khi đang gọi và hỗ trợ chọn nhạc chuông từ tệp máy (.mp3/.wav/.m4a).\n6. Hồ sơ cá nhân chuẩn xác: Chọn Ngày/Tháng/Năm sinh theo mẫu DD/MM/YYYY (ví dụ 30/04/1994) và tự động tính chuẩn số Tuổi theo năm sinh. Xóa bỏ hoàn toàn mục Mã hóa KINI Shield và đồng bộ số phiên bản v1.0.5.\n7. Sửa chuẩn Múi giờ Chat (+7h) \u0026 Đa phương tiện: Sắp xếp và hiển thị đúng giờ địa phương, bấm xem ảnh/video toàn màn hình, nhấn giữ/chuột phải hiện đầy đủ Sao chép, Trả lời, Lưu về máy, Sửa ảnh/tin nhắn, Ghim, Chi tiết, Xóa, gửi Video, Tệp tin và Vị trí mở trực tiếp Google Maps.",
+    "release_notes":  "1. KINI Pay 100% Thật (Xóa toàn bộ dữ liệu Demo): Lưu \u0026 đồng bộ Chia hóa đơn / Lì xì may mắn thời gian thực, giữ duy nhất 1 bảng hướng dẫn cho người dùng.\n2. Phòng họp Trực tuyến \u0026 Gọi Thoại/Video WebRTC P2P 2 chiều: Mời người dùng thật phải đổ chuông và chờ ấn Đồng ý mới vào phòng, truyền âm thanh/hình ảnh 2 chiều ổn định trên cả PC \u0026 Mobile, loại bỏ Trợ lý AI khỏi danh sách họp.\n3. Bảo mật Khóa ứng dụng nâng cấp: Đổi mã PIN 3 bước (Mã PIN cũ -\u003e Mã PIN mới -\u003e Xác nhận mã PIN mới) và hiển thị/kích hoạt Khóa Vân Tay (Fingerprint) trực tiếp trên điện thoại.\n4. Giao diện \u0026 Phím tắt Chat: Sửa lỗi chữ đang soạn bị chìm trong Giao diện Đen Xanh, bấm phím Enter trên máy tính gửi tin nhắn ngay (Shift+Enter xuống dòng).\n5. Âm thanh \u0026 Chuông báo thật: Phát âm thanh thật cho Tin nhắn, Nhạc chuông cuộc gọi đến, Nhạc chờ khi đang gọi và hỗ trợ chọn nhạc chuông từ tệp máy (.mp3/.wav/.m4a).\n6. Hồ sơ cá nhân chuẩn xác: Chọn Ngày/Tháng/Năm sinh theo mẫu DD/MM/YYYY (ví dụ 30/04/1994) và tự động tính chuẩn số Tuổi theo năm sinh. Xóa bỏ hoàn toàn mục Mã hóa KINI Shield và đồng bộ số phiên bản v1.0.5.\n7. Sửa chuẩn Múi giờ Chat (+7h) \u0026 Đa phương tiện: Sắp xếp và hiển thị đúng giờ địa phương, bấm xem ảnh/video toàn màn hình, nhấn giữ/chuột phải hiện đầy đủ Sao chép, Trả lời, Lưu về máy, Sửa ảnh/tin nhắn, Ghim, Chi tiết, Xóa, gửi Video, Tệp tin và Vị trí mở trực tiếp Google Maps.",
+    "package_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/update_v1.0.5.zip",
+    "latest_package_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/latest/download/latest_ota_package.zip",
+    "ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/latest_ota_package.zip",
+    "windows_ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/update_v1.0.5.zip",
+    "apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/KINI_Chat_v1.0.5_Mobile.apk",
+    "android_apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.5/KINI_Chat_v1.0.5_Mobile.apk",
+    "release_date":  "2026-10-04T06:56:07Z",
+    "released_at":  "2026-10-04T06:56:07Z",
+    "is_target_global":  true,
+    "is_mandatory":  false,
+    "platform":  "all",
+    "min_supported_version":  "1.0.0"
 }
