@@ -1,12 +1,12 @@
 ﻿{
-    "windows_ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/update_v1.0.3.zip",
-    "android_apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/KINI_Chat_v1.0.3_Mobile.apk",
-    "build_number":  4,
-    "release_notes":  "1. Sửa triệt để giao diện Gọi Video toàn màn hình chuẩn PC \u0026 Mobile.\n2. Đồng bộ chuẩn dung lượng Google Drive thật theo từng gói tài khoản (15GB Thường, 100GB/200GB Google One, 2TB/5TB Gemini Pro).\n3. Xóa toàn bộ dữ liệu Demo/ảo, khôi phục quyền Super Admin (@haitruongproqt / @admin).\n4. Lưu vĩnh viễn toàn bộ lịch sử chuyển tiền KINI Pay trên thiết bị và đám mây.",
+    "windows_ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.4/update_v1.0.4.zip",
+    "android_apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.4/KINI_Chat_v1.0.4_Mobile.apk",
+    "build_number":  5,
+    "release_notes":  "1. Kết nối 100% Thời gian thực (2.5s) giữa PC \u0026 Mobile: Kết bạn, Xóa bạn, Chặn, Nhắn tin, Gửi ảnh, Gọi thoại/Video \u0026 Chia sẻ màn hình WebRTC P2P có đổ chuông cuộc gọi đến.\n2. Kích hoạt Trợ lý KINI AI thông minh \u0026 3 Kênh OA (Official Account) tương tác trực tiếp.\n3. Nâng cấp Tìm bạn quanh đây: Lọc Độ tuổi (14-70), 63 Tỉnh/Thành phố, Khoảng cách tối đa 100 km và Phòng trò chuyện cộng đồng thật 100%.\n4. Hồ sơ cá nhân nâng cấp: Đổi Avatar trực tiếp từ thư viện ảnh, bổ sung Giới tính, Tuổi, Ngày sinh, Tỉnh/TP, SĐT, Tiểu sử, Khóa PIN 6 số + Vân tay thật và Chuyển đổi Giao diện Đen Xanh / Sáng.\n5. Xóa toàn bộ dữ liệu Demo trong KINI Pay, bổ sung Cẩm nang hướng dẫn sử dụng 4 tiện ích VietQR.\n6. Tối ưu hiển thị Mobile: Tràn viền khi cài vuốt cử chỉ và chống cấn nút tuyệt đối khi cài 3 phím điều hướng.",
     "platform":  "all",
-    "version":  "1.0.3",
-    "ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/latest_ota_package.zip",
-    "released_at":  "2026-10-04T03:04:26Z",
-    "title":  "KINI Chat v1.0.3 - Fullscreen Video Call, Google Drive Chuẩn Từng Gói \u0026 Lưu Vĩnh Viễn Lịch Sử Chuyển Tiền",
+    "version":  "1.0.4",
+    "ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.4/latest_ota_package.zip",
+    "released_at":  "2026-10-04T04:38:10Z",
+    "title":  "KINI Chat v1.0.4 - Chat/Call/ScreenShare 2 Chiều Thật, Trợ Lý AI, Kênh OA, Tìm Quanh Đây 100km \u0026 Chuẩn Màn Hình Mobile",
     "is_mandatory":  false
 }
