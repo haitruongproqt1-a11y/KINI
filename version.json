@@ -1,0 +1,12 @@
+﻿{
+    "windows_ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/update_v1.0.3.zip",
+    "android_apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/KINI_Chat_v1.0.3_Mobile.apk",
+    "build_number":  4,
+    "release_notes":  "1. Sửa triệt để giao diện Gọi Video toàn màn hình chuẩn PC \u0026 Mobile.\n2. Đồng bộ chuẩn dung lượng Google Drive thật theo từng gói tài khoản (15GB Thường, 100GB/200GB Google One, 2TB/5TB Gemini Pro).\n3. Xóa toàn bộ dữ liệu Demo/ảo, khôi phục quyền Super Admin (@haitruongproqt / @admin).\n4. Lưu vĩnh viễn toàn bộ lịch sử chuyển tiền KINI Pay trên thiết bị và đám mây.",
+    "platform":  "all",
+    "version":  "1.0.3",
+    "ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.3/latest_ota_package.zip",
+    "released_at":  "2026-10-04T03:04:26Z",
+    "title":  "KINI Chat v1.0.3 - Fullscreen Video Call, Google Drive Chuẩn Từng Gói \u0026 Lưu Vĩnh Viễn Lịch Sử Chuyển Tiền",
+    "is_mandatory":  false
+}
