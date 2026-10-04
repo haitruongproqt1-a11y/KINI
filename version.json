@@ -10,11 +10,11 @@
     "windows_ota_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.6/update_v1.0.6.zip",
     "apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.6/KINI_Chat_v1.0.6_Mobile.apk",
     "android_apk_url":  "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.6/KINI_Chat_v1.0.6_Mobile.apk",
-    "release_date":  "2026-10-04T11:07:42Z",
-    "released_at":  "2026-10-04T11:07:42Z",
+    "release_date":  "2026-10-04T11:44:03Z",
+    "released_at":  "2026-10-04T11:44:03Z",
     "is_target_global":  true,
     "is_mandatory":  false,
     "platform":  "all",
     "min_supported_version":  "1.0.0",
-    "sha256":  "D8D889AA27E75BEF8198CC18E21E7822F4984B3BB5E699415075B31F3DCA005B"
+    "sha256":  "3333293CA5907DFB92E7A5132312BAD448B570A8CE23753EDADA674042CC30D8"
 }
