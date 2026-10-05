@@ -1,26 +1,25 @@
 {
-  "version": "1.0.19",
-  "build_number": 20,
-  "title": "KINI Chat v1.0.19 - Cập Nhật Hệ Thống Supabase Mới Tốc Độ Cao & Khơi Thông Băng Thông",
+  "version": "1.0.20",
+  "build_number": 21,
+  "title": "KINI Chat v1.0.20 - Tích Hợp Kho Lưu Trữ Cloudflare R2 & Người Gác Cổng Tự Xóa Khi Đạt 90%",
   "changelog": [
-    "Khởi chạy hệ thống máy chủ Supabase mới tốc độ cao: Khơi thông toàn bộ băng thông, tin nhắn và thông báo cuộc gọi gửi nhận tức thì với độ trễ 0s",
-    "Tối ưu âm lượng cuộc gọi to rõ & Phím tăng giảm phần cứng: Tích hợp định tuyến STREAM_VOICE_CALL, thanh trượt âm lượng nổi và AGC chống nói lí nhí",
-    "Chia sẻ màn hình chạy nền & Thanh thông báo quay lại cuộc gọi chuẩn Zalo: Chạy ngầm Android 14 mượt mà, ActiveCallBanner chạm để quay lại tức thì",
-    "Tự thích ứng tỉ lệ màn hình Camera trên PC: Khắc phục triệt để lỗi video bị phình to 3x, hỗ trợ nút chuyển đổi nhanh Contain / Cover",
-    "Bong bóng tin nhắn cá nhân hóa & 20 mẫu bong bóng độc đáo mới: Mỗi tài khoản tự chọn mẫu hiển thị riêng biệt"
+    "Tích hợp kho lưu trữ đám mây Cloudflare R2: Miễn phí 100% băng thông tải xem (Zero Egress), video và ảnh phát tức thì với tốc độ CDN cao",
+    "Cơ chế Người gác cổng tự động (Auto Storage Sentinel): Chạm mốc 90% (9 GB) tự động dọn dẹp 35% - 40% file cũ nhất, giữ trọn 60% file mới nhất, ứng dụng vĩnh viễn không vượt trần 10 GB và 0đ chi phí",
+    "Máy chủ Supabase kết nối chuyên biệt: Toàn bộ tin nhắn chữ và báo chuông đàm thoại thông suốt 0s",
+    "Tối ưu âm lượng cuộc gọi to rõ, chia sẻ màn hình nền chuẩn Android 14, fix camera PC và 20 theme bong bóng mới"
   ],
-  "release_notes": "Bản cập nhật v1.0.19 nâng cấp hệ thống kết nối Supabase mới siêu tốc, giải quyết triệt để nghẽn băng thông, tin nhắn gửi nhận 0 giây cùng toàn bộ tính năng âm lượng, chia sẻ màn hình và camera chuẩn.",
-  "package_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/update_v1.0.19.zip",
-  "latest_package_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/latest_ota_package.zip",
-  "ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/update_v1.0.19.zip",
-  "windows_ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/update_v1.0.19.zip",
-  "apk_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/KINI_Chat_v1.0.19_Mobile.apk",
-  "android_apk_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.19/KINI_Chat_v1.0.19_Mobile.apk",
-  "release_date": "2026-10-05 22:04:48",
-  "released_at": "2026-10-05 22:04:48",
+  "release_notes": "Bản cập nhật v1.0.20 tích hợp Cloudflare R2 không giới hạn băng thông, tự động kiểm soát dung lượng chạm 90% tự xóa file cũ, giải phóng hoàn toàn Supabase.",
+  "package_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/update_v1.0.20.zip",
+  "latest_package_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/latest_ota_package.zip",
+  "ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/update_v1.0.20.zip",
+  "windows_ota_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/update_v1.0.20.zip",
+  "apk_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/KINI_Chat_v1.0.20_Mobile.apk",
+  "android_apk_url": "https://github.com/haitruongproqt1-a11y/KINI/releases/download/v1.0.20/KINI_Chat_v1.0.20_Mobile.apk",
+  "release_date": "2026-10-05 22:59:08",
+  "released_at": "2026-10-05 22:59:08",
   "is_target_global": true,
   "is_mandatory": false,
   "platform": "all",
   "min_supported_version": "1.0.0",
-  "sha256": "A7EDA923B8F31088CD50483A6DB260DB2D03D27FC7C6B924B572990BCB5FE1AB"
+  "sha256": "37F80505284F0C5B88F1CE6CEA9C4B0C823BC04591440044DFB729410F4C14C5"
 }
